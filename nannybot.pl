@@ -3141,7 +3141,7 @@ sub geolocate_ip_win32 {
     if (!defined($ip)) { return "Неверный Ip"; }
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return "Tried to geolocate an invalid IP:  $ip"; }
 
-    if ($ip =~ /^192\.168\.|^10\.|^169\.254\./) { return "Очень близко от сервера"; }
+    if ($ip =~ /^192\.168\.|^10\.|^169\.254\./) { return '"^2своей локальной сети"'; }
 
     my $gi = Geo::IP->open("databases/GeoLiteCity.dat", GEOIP_STANDARD);
 
