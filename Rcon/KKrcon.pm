@@ -146,7 +146,7 @@ sub _sendrecv
 	
 	unless(defined(send(RCON, $msg, 0, $hispaddr)))
 	{
-		die("KKrcon: send $ip:$port : $!");
+		print("KKrcon: send $ipaddr:$port : $!");
 	}
 
 	my $rin = "";

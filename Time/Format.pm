@@ -2,19 +2,21 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
+=encoding utf8
+
 =head1 NAME
 
 Time::Format - Easy-to-use date/time formatting.
 
 =head1 VERSION
 
-This documentation describes version 1.11 of Time::Format.pm, June 18, 2009.
+This is version 1.12 of Time::Format, September 27, 2012.
 
 =cut
 
 use strict;
 package Time::Format;
-$Time::Format::VERSION  = '1.11';
+$Time::Format::VERSION  = '1.12';
 
 # This module claims to be compatible with the following versions
 # of Time::Format_XS.
@@ -338,21 +340,26 @@ sub _classify_time
     # Except we make it more flexible by allowing the date OR the time to be specfied
     # This will also match Date::Manip strings, and many ISO-8601 strings.
     elsif ($timeval =~ m{\A(   (?!\d{6,8}\z)                 # string must not consist of only 6 or 8 digits.
-                          (?:
-                            \d{4} [-/.]? \d{2} [-/.]? \d{2}  # year-month-day
+                          (?:                                # year-month-day
+                                   \d{4}                     #     year
+                            [-/.]? (?:0[1-9]|1[0-2])         #     month
+                            [-/.]? (?:0[1-9]|[12]\d|3[01])   #     day
                           )?                                 # ymd is optional
                           (?:  (?<=\d)  [T_ ]  (?=\d) )?     # separator: T or _ or space, but only if ymd and hms both present
                         )                                    # End of $1: YMD and separator
                           (?:                                # hms is optional
                         (
-                            \d{2} [:.]? \d{2} [:.]? \d{2}    # hour:minute:second
+                                  (?:[01]\d|2[0-4])          #     hour
+                            [:.]? (?:[0-5]\d)                #     minute
+                            [:.]? (?:[0-5]\d|6[0-1])?        #     second
                         )                                    # End of $2: HMS
                             (?: [,.] (\d+))?                 # optional fraction
+                            (Z?)                             # optional "zulu" (UTC) designator
                           )?                                 # end of optional (HMS.fraction)
                         \z
                       }x)
     {
-        $cache_value = ($1 || q{}) . ($2 || q{});
+        $cache_value = ($1 || q{}) . ($2 || q{}) . ($4 || q{});
         $frac        = $3? '0.' . $3 : 0;
         $time_type   = $DATETIME_STRING;
     }
@@ -370,7 +377,7 @@ sub _classify_time
         # Get numeric time
         $timeval     = _have('Time::HiRes')? Time::HiRes::time() : time;
         $cache_value = int $timeval;
-        $frac        = $cache_value - $timeval;
+        $frac        = $timeval - $cache_value;
         $time_type   = $NUMERIC_TIME;
     }
     else
@@ -452,7 +459,7 @@ sub decode_DateTime_object
              $dt->second,  $dt->minute, $dt->hour,
              $dt->day,     $dt->month,  $dt->year,
              $dt->dow,     $dt->doy,    $dt->is_dst);
-    $t[-1] = 0 if $t[-1] == 7;   # Convert 1-7 (Mon-Sun) to 0-6 (Sun-Sat).
+    $t[-3] = 0 if $t[-3] == 7;   # Convert 1-7 (Mon-Sun) to 0-6 (Sun-Sat).
 
     return @t;
 }
@@ -469,6 +476,7 @@ sub decode_DateTime_string
                       (?:                                      # hms is optional
                          (\d{2}) [:.]? (\d{2}) [:.]? (\d{2})   # hour:minute:second
                          (?: [,.] \d+)?                        # optional fraction (ignored in this sub)
+                         (Z?)                                  # optional "zulu" (UTC) indicator
                       )?   \z
                      }x)
     {
@@ -477,9 +485,9 @@ sub decode_DateTime_string
         die qq{Unrecognized DateTime string "$dts": probable Time::Format bug};
     }
 
-    my ($y,$mon,$d,$h,$min,$s) = ($1,$2,$3,$4,$5,$6);
+    my ($y,$mon,$d,$h,$min,$s,$tz) = ($1,$2,$3,$4,$5,$6,$7);
     my ($d_only, $t_only);
-    my ($h12, $tz, $is_dst, $dow);
+    my ($h12, $is_dst, $dow);
     if (!defined $y)
     {
         # Time only.  Set date to 1969-12-31.
@@ -520,8 +528,14 @@ sub decode_DateTime_string
     my @t = map {$_+0} ($s,$min,$h,$d,$mon,$y);
     $h12 += 0;
 
-    $tz = POSIX::strftime('%Z', @t, $dow, -1, $is_dst)
-        if _have('POSIX');
+    if ($tz  &&  $tz eq 'Z')
+    {
+        $tz = 'UTC';
+    }
+    elsif (_have('POSIX'))
+    {
+        $tz = POSIX::strftime('%Z', @t, $dow, -1, $is_dst);
+    }
 
     return ($h12, $tz, @t, $dow, -1, $is_dst);
 }
@@ -1127,7 +1141,7 @@ limitation.
 
 =head1 AUTHOR / COPYRIGHT
 
-Copyright (c) 2003-2009 by Eric J. Roode, ROODE I<-at-> cpan I<-dot-> org
+Copyright © 2003-2012 by Eric J. Roode, ROODE I<-at-> cpan I<-dot-> org
 
 All rights reserved.
 
@@ -1155,11 +1169,11 @@ endeavor to improve the software.
 =begin gpg
 
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (Cygwin)
+Version: GnuPG v1.4.12 (Cygwin)
 
-iEYEARECAAYFAko6+8sACgkQwoSYc5qQVqpHSgCggtDbvzExQFNs4b1QoF/t9TaU
-BNYAn0C5LsPiJqCk4lzf8Jfn/4t+Zw7+
-=C+Tp
+iEYEARECAAYFAlBkW30ACgkQwoSYc5qQVqqrEQCfbTBXPht5+eHBMYZwO+nfbbWM
+1BsAniYB6BwNCwmTOyawYbV7qQFGBbYt
+=/RZp
 -----END PGP SIGNATURE-----
 
 =end gpg

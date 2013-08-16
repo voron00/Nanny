@@ -1,7 +1,7 @@
 
 package Time::Duration;
 # POD is at the end.
-$VERSION = '1.06';
+$VERSION = '1.1';
 require Exporter;
 @ISA = ('Exporter');
 @EXPORT = qw( later later_exact earlier earlier_exact
@@ -14,16 +14,19 @@ require Exporter;
 use strict;
 use constant DEBUG => 0;
 
+our $MILLISECOND = 0;
+
 # ALL SUBS ARE PURE FUNCTIONS
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 sub concise ($) {
   my $string = $_[0];
-  #print "in : $string\n";
+  DEBUG and print "in : $string\n";
   $string =~ tr/,//d;
   $string =~ s/\band\b//;
   $string =~ s/\b(year|day|hour|minute|second)s?\b/substr($1,0,1)/eg;
+  $string =~ s/\b(millisecond)s?\b/ms/g;
   $string =~ s/\s*(\d+)\s*/$1/g;
   return $string;
 }
@@ -66,21 +69,21 @@ sub duration {
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 sub interval_exact {
-  my $span = $_[0];                      # interval, in seconds
-                                         # precision is ignored
-  my $direction = ($span <= -1) ? $_[2]  # what a neg number gets
-                : ($span >=  1) ? $_[3]  # what a pos number gets
-                : return          $_[4]; # what zero gets
+  my $span = $_[0];                    # interval, in seconds
+                                       # precision is ignored
+  my $direction = ($span < 0) ? $_[2]  # what a neg number gets
+                : ($span > 0) ? $_[3]  # what a pos number gets
+                : return        $_[4]; # what zero gets
   _render($direction,
           _separate($span));
 }
 
 sub interval {
-  my $span = $_[0];                      # interval, in seconds
-  my $precision = int($_[1] || 0) || 2;  # precision (default: 2)
-  my $direction = ($span <= -1) ? $_[2]  # what a neg number gets
-                : ($span >=  1) ? $_[3]  # what a pos number gets
-                : return          $_[4]; # what zero gets
+  my $span = $_[0];                     # interval, in seconds
+  my $precision = int($_[1] || 0) || 2; # precision (default: 2)
+  my $direction = ($span < 0) ? $_[2]   # what a neg number gets
+                : ($span > 0) ? $_[3]   # what a pos number gets
+                : return        $_[4];  # what zero gets
   _render($direction,
           _approximate($precision,
                        _separate($span)));
@@ -123,6 +126,13 @@ sub _separate {
   $remainder -= $this * 60;
   
   push @wheel, ['second', int($remainder), 60];
+
+	# Thanks to Steven Haryanto (http://search.cpan.org/~sharyanto/) for the basis of this change.
+	if ($MILLISECOND) {
+		$remainder -= int($remainder);
+		push @wheel, ['millisecond', sprintf("%0.f", $remainder * 1000), 1000];
+	}
+
   return @wheel;
 }
 
@@ -273,6 +283,22 @@ ago>".  And if the file's
 modtime is, surprisingly, three seconds into the future, $age is -3,
 and you'll get the equally and appropriately surprising
 "I<file> was modified B<3 seconds from now>."
+
+=head1 MILLISECOND MODE
+
+By default, this module assumes input is an integer representing number
+of seconds and only emits results based on the integer part of any
+floating-point values passed to it.  However, if you set the variable
+C<$Time::Duration::MILLISECOND> to any true value, then the methods will
+interpret inputs as floating-point numbers and will emit results containing
+information about the number of milliseconds in the value.
+
+For example, C<duration(1.021)> will return B<1 second and 21 milliseconds>
+in this mode.
+
+Millisecond mode is not enabled by default because this module sees heavy use
+and existing users of it may be relying on its implicit truncation of non-integer
+arguments.
 
 
 =head1 FUNCTIONS
@@ -428,9 +454,10 @@ ever told him to use Time::Duration.
 
 =head1 COPYRIGHT AND DISCLAIMER
 
-Copyright 2006, Sean M. Burke C<sburke@cpan.org>, all rights
-reserved.  This program is free software; you can redistribute it
-and/or modify it under the same terms as Perl itself.
+Copyright 2013, Sean M. Burke C<sburke@cpan.org>; Avi Finkel,
+C<avi@finkel.org>, all rights reserved.  This program is free
+software; you can redistribute it and/or modify it under the
+same terms as Perl itself.
 
 This program is distributed in the hope that it will be useful,
 but without any warranty; without even the implied warranty of
