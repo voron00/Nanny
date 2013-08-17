@@ -55,7 +55,7 @@ sub new
 	
 	# Check parameters
 	$params{"Host"} = "127.0.0.1"  unless($params{"Host"});
-	$params{"Port"} = 27015        unless($params{"Port"});
+	$params{"Port"} = "28960"        unless($params{"Port"});
 	$params{"Type"} = "new"        unless($params{"Type"});
 	
 	# Initialise properties

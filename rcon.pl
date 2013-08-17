@@ -2,7 +2,6 @@
 
 use strict;
 use Rcon::KKrcon;
-use Tkx;
 
 
 &load_config_file('nanny.cfg');
