@@ -365,7 +365,7 @@ my $rcon = new KKrcon(
 &rcon_command("g_logSync 1");
 
 # Ask the server if voting is currently turned on or off
-my $voting_result = &rcon_query("g_allowVote");
+my $voting_result = &rcon_query("g_allowvote");
 if ($voting_result =~ /\"g_allowvote\" is: \"(\d+)\^7\"/m) {
     $voting = $1;
     if ($voting) { print "Voting is currently turned ON\n"; }
