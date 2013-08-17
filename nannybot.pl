@@ -2248,7 +2248,7 @@ sub chat{
             if (&check_access('nextmap')) {
 		if (&flood_protection('nextmap', 120, $slot)) { }
 		else {
-		    &rcon_command("say" . "^2$name^7" . '": Следующая карта будет: ^1"' . $description{$next_map} .  " ^7(^2" .  
+		    &rcon_command("say" . " ^2$name^7" . '": Следующая карта будет: ^1"' . $description{$next_map} .  " ^7(^2" .  
 				  $description{$next_gametype} . "^7)");
 		    sleep 1;
 		}
