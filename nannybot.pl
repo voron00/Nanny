@@ -1536,7 +1536,7 @@ sub initialize_databases {
            version $version
             by smugllama
 
-   for Call of Duty 2 version 1.0
+         for Call of Duty 2
 
     rcon code provided by KKrcon
   see: http://kkrcon.sourceforge.net
@@ -1551,9 +1551,8 @@ sub initialize_databases {
  The Latest Version of Nannybot is at:
    http://smaert.com/nannybot.zip
    
-   Mod RuS_Jump
-   
-   Перевод - VoroN
+ 
+         Перевод - VoroN
 
 =======================================
 ";
@@ -5274,8 +5273,4 @@ sub rank {
 
 
 }
-
-
-
-
 
