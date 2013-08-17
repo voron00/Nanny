@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $version = '3.1.6';
+my $version = '3.0.2 RU';
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -2234,10 +2234,11 @@ sub chat{
 		    sleep 1;
 		    &rcon_command("say ... with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
 		    sleep 1;
-			  &rcon_command("say" . '"ƒоработка и перевод на русский €зык- VoroN"');
+			&rcon_command("say" . '"ƒоработка и перевод на русский €зык- ^5V^0oroN^5"');
 		    sleep 1;
-		    &rcon_command("say" . '"^3ѕрограмму и исходный код можно скачать тут:^2 h t t p : / / s m a e r t . c o m / n a n n y b o t . z i p"');
-                    sleep 1;
+		    &rcon_command("say" . '"^3ѕрограмму и исходный код моей русской версии можно найти тут:^2 https://github.com/alexey12424323/Nanny"');
+            sleep 1;
+			&rcon_command("say" . '"^3ќригинал можно скачать тут:^2 http://smaert.com/nannybot.zip"');
 		}	    
 	    }
 	}
@@ -3127,15 +3128,15 @@ sub geolocate_ip_win32 {
     my $ip = shift;
     my $metric = 0;
     if (!defined($ip)) { return '"Ќеверный IP"'; }
-    if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return "Tried to geolocate an invalid IP:  $ip"; }
+    if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Ќеверный IP адрес:  "' . "$ip"; }
 
     if ($ip =~ /^192\.168\.|^10\.|^169\.254\./) { return '"^2своей локальной сети"'; }
 
     my $gi = Geo::IP->open("databases/GeoLiteCity.dat", GEOIP_STANDARD);
 
-    my $record = $gi->record_by_name($ip);
+    my $record = $gi->record_by_addr($ip);
 
-    if (!defined($record)) { return 'ниоткуда...'; }
+    if (!defined($record)) { return '"ниоткуда..."'; }
 
     # region code is built as COUNTRY.REGION
     my $region_code = $record->country_code . '.' . $record->region;
@@ -3193,8 +3194,11 @@ sub geolocate_ip_win32 {
         Postal Code: " . $record->postal_code . "
         Lattitude: " . $record->latitude . "
         Longitude: " . $record->longitude . "
-        DMA Code: " . $record->dma_code . "
-        Area Code: " . $record->area_code . "\n";
+		Time Zone: " . $record->time_zone . "
+        Area Code: " . $record->area_code . "
+		Continent Code: " . $record->continent_code . "
+		Metro Code " . $record->metro_code . "
+		\n";
 
 
     if ((defined($record->country_code)) && ($record->country_code eq 'US')) { $metric = 0 }
@@ -3349,7 +3353,7 @@ sub stats {
 	@row = $stats_sth->fetchrow_array;
     }
     if ($row[0]) {
-	$stats_msg .= "$row[2]" . '" ^7убийств, "' . "^1 $row[3]" . '" ^7смертей, "' . "^1 $row[4]" . '" ^7выстрелов в голову,"';
+	$stats_msg .= "$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7выстрелов в голову,"';
 	$kills = $row[2];
 	if ($row[3]) { 
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
@@ -3359,7 +3363,7 @@ sub stats {
 	}
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	   # $stats_msg .= " -^1 $headshot_percent" . '" ^7процентов выстрелов в голову"';
+	    #$stats_msg .= " -^1 $headshot_percent" . '" ^7процентов выстрелов в голову"';
 	} 
     }
     else {
@@ -3392,7 +3396,7 @@ sub stats {
 	$stats_msg .= "$pistol_ratio" . '" ^7пистолетов,"' . "^1 $grenade_ratio" . '" ^7гранат,"' . "^1 $bash_ratio" . '" ^7баша"';
 	
 	if (($row[2]) || ($row[3]) || ($row[4])) { 
-	 #   &rcon_command("say $stats_msg");
+	  #  &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	  #  sleep 1;
 	}
