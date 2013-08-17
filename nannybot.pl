@@ -63,8 +63,8 @@ my $version = '3.1.6';
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 use IO::File; # IO-File is used for raw disk reads under windows
-use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
-use DBD::SQLite; # Perl2EXE is happier if we declare this.
+#use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
+#use DBD::SQLite; # Perl2EXE is happier if we declare this.
 #use DBD::mysql; # Support for MySQL based logging.
 use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
@@ -3139,7 +3139,7 @@ sub rcon_query {
 sub geolocate_ip_win32 {
     my $ip = shift;
     my $metric = 0;
-    if (!defined($ip)) { return "Ќеверный Ip"; }
+    if (!defined($ip)) { return '"Ќеверный IP"'; }
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return "Tried to geolocate an invalid IP:  $ip"; }
 
     if ($ip =~ /^192\.168\.|^10\.|^169\.254\./) { return '"^2своей локальной сети"'; }
@@ -3216,7 +3216,8 @@ sub geolocate_ip_win32 {
     print "DEBUG: metric = $metric\n"; 
 
     # GPS Coordinates
-    if (($config->{'ip'} !~ /^192\.168\.|^10\.|^169\.254\./) && ($^O ne 'MSWin32')) {
+    if (($config->{'ip'} !~ /^192\.168\.|^10\.|^169\.254\./))
+    {
 	if ((defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
 	    my ($player_lat, $player_lon) = ($record->latitude, $record->longitude);
 	    # gps coordinates are defined for this IP.
@@ -3229,10 +3230,10 @@ sub geolocate_ip_win32 {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($metric) {
                     $dist = int($dist/1000);
-                    $geo_ip_info .= " ^7($dist" . '" километров до сервера)"';
+                    $geo_ip_info .= " ^7$dist" . '" километров до сервера"';
 		} else {
 		    $dist = int($dist/1609.344);
-                    $geo_ip_info .= " ^7($dist miles from the server)";
+                    $geo_ip_info .= " ^7$dist" . '" миль до сервера"';
 		}
 	    }
 	}
