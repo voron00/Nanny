@@ -720,6 +720,7 @@ while (1) {
 
 		if ($config->{'show_joins'}) {
 		    print "JOIN: " . &strip_color($name) . " has joined the game\n";
+			&rcon_command("say" . '"Игрок "' . "$name" . '"^7присоединился к игре"');
 		}
 	    } else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
 	} 
@@ -749,7 +750,8 @@ while (1) {
 		# end of !seen data population
 		
                 if ($config->{'show_quits'}) {
-		    print "QUIT: " . &strip_color($name) . " has left the game\n"; 
+		    print "QUIT: " . &strip_color($name) . " has left the game\n";
+            &rcon_command("say" . '"Игрок "' . "$name" . '"^7покинул игру"'); 
 		}
 		
 	    } else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
