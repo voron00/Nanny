@@ -2349,19 +2349,6 @@ sub chat{
             }
         }
 
-
-      # !clearnames (search_string)
-        elsif ($message =~ /^!clearnames\s+(.+)/i) {
-            if (&check_access('clearnames')) {
-                &aliases($1);
-            }
-        }
-        elsif ($message =~ /^!(clearnames)\s*$/i) {
-            if (&check_access('aliases')) {
-                &rcon_command("say" . '"!clearnames для кого?"');
-            }
-        }
-
         # !uptime
         elsif ($message =~ /^!uptime\b/i) {
             if (&check_access('uptime')) {
@@ -2660,7 +2647,7 @@ sub chat{
 
 	elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-                &rcon_command("say" . '"^2Московское время^7:^3 "' . $time{'hh:mm:ss'});
+                &rcon_command("say" . '"^2Текущее время^7:^3 "' . $time{'hh:mm:ss'});
                 sleep 1;
             }
         }
