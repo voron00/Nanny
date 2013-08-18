@@ -365,8 +365,8 @@ my $rcon = new KKrcon(
 &rcon_command("g_logSync 1");
 
 # Ask the server if voting is currently turned on or off
-my $voting_result = &rcon_query("g_allowvote");
-if ($voting_result =~ /\"g_allowvote\" is: \"(\d+)\^7\"/m) {
+my $voting_result = &rcon_query("g_allowVote");
+if ($voting_result =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
     $voting = $1;
     if ($voting) { print "Voting is currently turned ON\n"; }
     else { print "Voting is currently turned OFF\n"; }
@@ -749,7 +749,7 @@ while (1) {
 		$seen_sth->execute($time,$name) or &die_nice("Unable to do update\n");
 		# end of !seen data population
 		
-                if ($config->{'show_quits'}) {
+            if ($config->{'show_quits'}) {
 		    print "QUIT: " . &strip_color($name) . " has left the game\n";
             &rcon_command("say" . '"Игрок "' . "$name" . '"^7покинул игру"'); 
 		}
@@ -2385,7 +2385,7 @@ sub chat{
                     sleep 1;
                 }
 		if (&check_access('map_control')) {		
-		    &rcon_command("say" . '"^ ^7Вы можете сменить тип игры при помощи: ^1!dm !tdm !ctf !sd ^7and ^1!hq"');
+		    &rcon_command("say" . '"^7Вы можете сменить тип игры при помощи: ^1!dm !tdm !ctf !sd ^7and ^1!hq"');
 		    sleep 1;
 		    &rcon_command("say" . '" ^7Вы можете ^1!restart ^7карты или ^1!rotate ^7чтобы перейти к следующей"');
 		    sleep 1;
@@ -2833,7 +2833,7 @@ sub locate {
 	    }
 	}
     }
-    if ($search_string =~ /^console$/) {
+    if ($search_string =~ /^console$|^nanny$|^Nanny$/) {
 	$location = &geolocate_ip_win32($config->{'ip'});
 	if ($location =~ /,.* - .+/) {
 	    $location = '"Этот сервер находится в районе ^2"' . $location;
@@ -3659,11 +3659,11 @@ sub forgive {
     my $search_string = shift;
     my $key;
     
-    if ($search_string =~ /Cyrus/i) { 
-	&rcon_command("say I can`t do that.   Sorry, Cyrus.   You`re still a DICK.");
-	sleep 1;
-	return 0;
-    }
+    # if ($search_string =~ /Cyrus/i) { 
+	# &rcon_command("say I can`t do that.   Sorry, Cyrus.   You`re still a DICK.");
+	# sleep 1;
+	# return 0;
+    # }
 
     if ($search_string =~ /^\#(\d+)$/) {
         my $slot = $1;
@@ -5204,14 +5204,13 @@ sub broadcast_message {
 sub big_red_button_command {
     my @matches = &matching_users('.');
     my $slot;
-    &rcon_command("say OH NOES, he pushed the ^1BIG RED BUTTON^7!!!!!!!");
+    &rcon_command("say " . '"О НЕТ!, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!"');
     sleep 1;
     foreach $slot (@matches) {
         &rcon_command("clientkick $slot");
 	sleep 1;
         &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !big red button command");
-    }
-    
+    }  
 }
 
 #BEGIN !rank
@@ -5219,8 +5218,7 @@ sub big_red_button_command {
 sub rank {
 
     if (&flood_protection('rank', 300, $slot)) { return 1; }
-    
-    
+
    my $stats_msg = "$name: ";
    my $kills = 1;
 
@@ -5257,15 +5255,9 @@ sub rank {
 	{
 	$stats_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
 	}
-	
-	
     }
-
-
     &rcon_command("say $stats_msg");
     print "$stats_msg\n"; 
     sleep 1; 
-
-
 }
 
