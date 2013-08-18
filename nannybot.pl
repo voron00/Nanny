@@ -2234,7 +2234,7 @@ sub chat{
 		    sleep 1;
 		    &rcon_command("say ... with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
 		    sleep 1;
-			&rcon_command("say" . '"Доработка и перевод на русский язык- ^5V^0oroN^5"');
+			&rcon_command("say" . '"Доработка и перевод на русский язык- ^5V^0oro^5N"');
 		    sleep 1;
 		    &rcon_command("say" . '"^3Программу и исходный код моей русской версии можно найти тут:^2 https://github.com/alexey12424323/Nanny"');
             sleep 1;
@@ -2648,7 +2648,7 @@ sub chat{
 
 	elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-                &rcon_command("say" . '"^2Текущее время^7:^3 "' . $time{'hh:mm:ss'});
+                &rcon_command("say" . '"^2Московское время^7:^3 "' . $time{'hh:mm:ss'});
                 sleep 1;
             }
         }
@@ -3185,7 +3185,8 @@ sub geolocate_ip_win32 {
     }
 
     # debugging
-    print "        Country Code: " . $record->country_code . "
+    print "
+        Country Code: " . $record->country_code . "
         Country Code 3: " . $record->country_code3 . "
         Country Name: " . $record->country_name . "
         Region: " . $record->region . "
