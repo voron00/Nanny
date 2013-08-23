@@ -249,7 +249,6 @@ my %last_killed_by;
 my %kill_spree;
 my %best_spree;
 my $next_announcement;
-my $undercover_brothers = 'RuS_Toujane_SD';
 my $voting = 1;
 my $reactivate_voting = 0;
 my %location_spoof;
@@ -2646,7 +2645,7 @@ sub chat{
 	}
 	# End of map !commands
 
-	elsif ($message =~ /^!time\b/i) {
+	        elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
                 &rcon_command("say" . '"^2Московское время^7:^3 "' . $time{'hh:mm:ss'});
                 sleep 1;
@@ -2660,16 +2659,23 @@ sub chat{
             }
         }
 
-	elsif ($message =~ /^!guid\b/i) {
+	        elsif ($message =~ /^!guid\b/i) {
             {
-                &rcon_command("say" . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1GUID^7 - ^1 "' . "$guid");
+                &rcon_command("say" . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1GUID^7 - ^2 "' . "$guid");
                 sleep 1;
             }
         }
 		
 			elsif ($message =~ /^!id\b/i) {
             {
-                &rcon_command("say" . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1ID^7 - ^1 "' . "$slot");
+                &rcon_command("say" . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1ID^7 - ^2 "' . "$slot");
+                sleep 1;
+            }
+        }
+		
+			elsif ($message =~ /^!ip\b/i) {
+            {
+                &rcon_command("say" . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1IP Адрес^7 - ^2 "' . "$ip_by_slot{$slot}");
                 sleep 1;
             }
         }
@@ -2790,9 +2796,6 @@ sub locate {
     my $search_string = shift;
     my $key;
     my $location;
-    
-    my $locate_exemptions = $undercover_brothers;
-    
     my @matches = &matching_users($search_string);
     my $ip;
     my $guessed;
@@ -2800,7 +2803,7 @@ sub locate {
     if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 300))) { return 1; }
     if (&flood_protection('locate', 60, $slot)) { return 1; }
     foreach $key (@matches) {
-	if ((&strip_color($name_by_slot{$key}) !~ /$locate_exemptions/i)) {
+	if ((&strip_color($name_by_slot{$key}))) {
 	    print "MATCH: $name_by_slot{$key}   IP = $ip_by_slot{$key}\n";
 	    $ip = $ip_by_slot{$key};
 	    if ($ip =~ /\?$/) {
