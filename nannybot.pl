@@ -721,9 +721,11 @@ while (1) {
 		$penalty_points{$slot} = 0;
 		# $ignore{$slot} = 0;
 
+		if ($config->{'show_game_joins'}) {
+			&rcon_command("say" . '"Игрок "' . "$name" . '"^7присоединился к игре"');
+		}
 		if ($config->{'show_joins'}) {
 		    print "JOIN: " . &strip_color($name) . " has joined the game\n";
-			&rcon_command("say" . '"Игрок "' . "$name" . '"^7присоединился к игре"');
 		}
 	    } else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
 	} 
@@ -752,11 +754,12 @@ while (1) {
 		$seen_sth->execute($time,$name) or &die_nice("Unable to do update\n");
 		# end of !seen data population
 		
-            if ($config->{'show_quits'}) {
+        if ($config->{'show_quits'}) {
 		    print "QUIT: " . &strip_color($name) . " has left the game\n";
-            &rcon_command("say" . '"Игрок "' . "$name" . '"^7покинул игру"'); 
 		}
-		
+		if ($config->{'show_game_quits'}) {
+			&rcon_command("say" . '"Игрок "' . "$name" . '"^7покинул игру"');
+		}
 	    } else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	    
 	}
@@ -1157,7 +1160,7 @@ sub load_config_file {
                 $config->{$config_name} = $config_val;
                 print "[*] $config_name: " . $config->{$config_name} . "\n";
             }
-	    elsif ($config_name =~ /show_(joins|quits|kills|headshots|timestamps|talk|rcon)/) {
+	    elsif ($config_name =~ /show_(joins|game_joins|game_quits|quits|kills|headshots|timestamps|talk|rcon)/) {
 		if ($config_val =~ /yes|1|on/i) { $config->{$config_name} = 1; }
 		else { $config->{$config_name} = 0; }
                 print "[*] $config_name: " . $config->{$config_name} . "\n";
