@@ -49,9 +49,9 @@ my $version = '3.0.2 RU';
 #  ability to specify tempban time via config?  (sv_kickbantime 300)
 #
 #  Command wish list:
-#  !teambalance on/off
-#  !forcerespawn on/off
-#  !spectatefree on/off
+#  !teambalance on/off ...done
+#  !forcerespawn on/off ...done
+#  !spectatefree on/off ...done
 #  !rifles on/off/only
 #  !bolt on/off/only
 #  !mgs on/off/only
@@ -2095,19 +2095,6 @@ sub chat{
 	    }
 	}
 
-        # !teambalance
-        elsif ($message =~ /^!(team.?balance|balance)\s+(.+)/i) {
-            if (&check_access('teambalance')) {
-		&toggle_weapon('scr_teambalance', 'Team Balance', $2);
-            }
-        }
-	elsif ($message =~ /^!(team.?balance|balance)\s*$/i) {
-            if (&check_access('teambalance')) {
-                &rcon_command("say ^1$name: ^7You can turn^1 !$1 ^5on ^7or turn ^1 !$1 ^5off^7.  Which is it?");
-            }
-        }
-
-
         # !grenades
         elsif ($message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s+(.+)/i) {
             if (&check_access('weapon_control')) {
@@ -2342,6 +2329,19 @@ sub chat{
 		&rcon_command("say !forcerespawn on" . '" или !forcerespawn off?"');
 	    }
 	}
+	# teambalance
+		elsif ($message =~ /^!teambalance\s*$/i) {
+	    if (&check_access('teambalance')) {
+		&rcon_command("say !teambalance on" . '" или !teambalance off?"');
+	    }
+	}
+	# spectatefree
+		elsif ($message =~ /^!spectatefree\s*$/i) {
+	    if (&check_access('spectatefree')) {
+		&rcon_command("say !spectatefree on" . '" или !spectatefree off?"');
+	    }
+	}
+
 	
         # !aliases (search_string)
         elsif ($message =~ /^!names\s+(.+)/i) {
@@ -2705,7 +2705,7 @@ sub chat{
             }
         }
 		
-				    # !forcerespawn command
+	 # !forcerespawn command
 			elsif ($message =~ /^!forcerespawn on\b/i) {
 			
 			if (&check_access('forcerespawn'))
@@ -2725,7 +2725,46 @@ sub chat{
                 sleep 1;
             }
         }
-
+	 # !teambalance command
+			elsif ($message =~ /^!teambalance on\b/i) {
+			
+			if (&check_access('teambalance'))
+            {
+                &rcon_command("scr_teambalance 1");
+				&rcon_command("say " . '"Баланс команд ^2Включено"');
+                sleep 1;
+            }
+        }
+		
+			elsif ($message =~ /^!teambalance off\b/i) {
+			
+			if (&check_access('teambalance'))
+            {
+                &rcon_command("scr_teambalance 0");
+				&rcon_command("say " . '"Баланс команд ^1Выключено"');
+                sleep 1;
+            }
+        }
+	 # !spectatefree command
+			elsif ($message =~ /^!spectatefree on\b/i) {
+			
+			if (&check_access('spectatefree'))
+            {
+                &rcon_command("scr_spectatefree 1");
+				&rcon_command("say " . '"Свободный режим наблюдения ^2Включено"');
+                sleep 1;
+            }
+        }
+		
+			elsif ($message =~ /^!spectatefree off\b/i) {
+			
+			if (&check_access('spectatefree'))
+            {
+                &rcon_command("scr_spectatefree 0");
+				&rcon_command("say " . '"Свободный режим наблюдения ^1Выключено"');
+                sleep 1;
+            }
+        }
 
 	# !lastbans N
 	elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)\s+(\d+)/i) {
