@@ -80,7 +80,10 @@ use Carp; # ftptail support
 use warnings;
 use locale;
 use Time::Format; # for better !time command
-use Tkx; #Gui on start :) 
+
+if ($^O eq 'MSWin32') 
+{
+use Tkx; #Gui on start
 
 #prepare gui to startup
 
@@ -171,7 +174,7 @@ Tkx::MainLoop();
 #This need for Russian encoding support in console :)
 system 'chcp 1251';
 
-
+}
 
 # use Net::Server::Daemonize qw(daemonize);  # used for running the program in the background under unix.
 
