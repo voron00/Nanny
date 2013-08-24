@@ -2333,7 +2333,13 @@ sub chat{
 	}
 	elsif ($message =~ /^!glitch\s*$/i) {
 	    if (&check_access('glitch')) {
-		&rcon_command("say !glitch on  ... or !glitch off ... ?");
+		&rcon_command("say !glitch on" . '" или !glitch off ... ?"');
+	    }
+	}
+	# forcerespawn
+		elsif ($message =~ /^!forcerespawn\s*$/i) {
+	    if (&check_access('forcerespawn')) {
+		&rcon_command("say !forcerespawn on" . '" или !forcerespawn off?"');
 	    }
 	}
 	
@@ -2680,9 +2686,10 @@ sub chat{
             }
         }
 		
+		    # bash mode only works when bash mod is installed
 			elsif ($message =~ /^!bash on\b/i) {
 			
-			if (&check_access('bash'))
+			if (&check_access('bash_mode'))
             {
                 &rcon_command("set bash_mode 1");
                 sleep 1;
@@ -2691,9 +2698,30 @@ sub chat{
 		
 			elsif ($message =~ /^!bash off\b/i) {
 			
-			if (&check_access('bash'))
+			if (&check_access('bash_mode'))
             {
                 &rcon_command("set bash_mode 0");
+                sleep 1;
+            }
+        }
+		
+				    # !forcerespawn command
+			elsif ($message =~ /^!forcerespawn on\b/i) {
+			
+			if (&check_access('forcerespawn'))
+            {
+                &rcon_command("scr_forcerespawn 1");
+				&rcon_command("say " . '"Быстрое возрождение ^2Включено"');
+                sleep 1;
+            }
+        }
+		
+			elsif ($message =~ /^!forcerespawn off\b/i) {
+			
+			if (&check_access('forcerespawn'))
+            {
+                &rcon_command("scr_forcerespawn 0");
+				&rcon_command("say " . '"Быстрое возрождение ^1Выключено"');
                 sleep 1;
             }
         }
