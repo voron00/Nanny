@@ -1,1 +1,1 @@
-perl rcon.pl
+@perl rcon.pl

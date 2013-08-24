@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.4 RU';
+my $version = '3.0.5 RU';
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -60,7 +60,7 @@ my $version = '3.0.4 RU';
 # NOTE:  rcon names have full color codes, kill lines have full colors, chat lines do not.
 
 # List of modules
-use warnings;
+use warnings; # helps catch failure strings
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 use IO::File; # IO-File is used for raw disk reads under windows
