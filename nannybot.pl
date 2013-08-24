@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.3 RU';
+my $version = '3.0.4 RU';
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -3494,8 +3494,8 @@ sub stats {
 	} 
 
 	if ($best_killspree) {
-	    $stats_msg = "" . '"Статистика^2"' . " $name^7:" . '"Лучшее кол-во убийств не умирая:^1 "' . "$best_killspree";
-	   # &rcon_command("say $stats_msg");
+	    $stats_msg = "" . '"Статистика^2"' . " $name^7:" . '"Лучшее кол-во серий убийств:^1 "' . "$best_killspree";
+	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
@@ -4019,10 +4019,10 @@ sub awards {
     # Most Kills
     $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" ORDER BY kills DESC LIMIT 10;');
     $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command('say' . '"^2Лучшие 10 игроков сервера:"');
+    &rcon_command('say' . '"^2Лучшие 10 игроков сервера^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-	&rcon_command('say ^3' . &nth($counter++) . '"^7  место: "' . "(#$row[0])^2  $row[1]  " . '"^7с^1 "' . "$row[2] " . '"^7убийствами"' );
+	&rcon_command('say ^3' . ($counter++) . '"^7место:"' . "^2  $row[1]" . '"^7с^1"' . "$row[2] " . '"^7убийствами"' );
 	sleep 1;
     }
 
@@ -4290,10 +4290,10 @@ sub suk {
 
     $sth = $stats_dbh->prepare('SELECT * FROM stats ORDER BY deaths DESC LIMIT 10;');
     $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command('say' . '" ^1Наибольшее количество смертей:"');
+    &rcon_command('say' . '" ^1Наибольшее количество смертей^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command('say ^3' . &nth($counter++) . "^7" . '"  место:^2"' . "  $row[1]" . '"  ^7с^1"' . "  $row[3]" . '"  ^7смертями"' );
+        &rcon_command('say ^3' . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . "$row[3]" . '"^7смертями"' );
         sleep 1;
     }
 
@@ -4638,7 +4638,7 @@ sub dictionary {
 
     # Now we sanatize what we're looking for - online databases don't have multiword definitions.
     if ($word =~ /[^A-Za-z\-\_\s\d]/) {
-	&rcon_command("say Sorry, invalid characters detected.  ONLY letters, dashes, spaces and numbers");
+	&rcon_command("say" . '" Неверный ввод, разрешены только английские буквы, точки, пробелы и цифры"');
         sleep 1;
         return 1;
     }
@@ -4661,7 +4661,7 @@ sub dictionary {
     } else {
 	$content = get("http://wordnetweb.princeton.edu/perl/webwn?s=" . $word);
 	if (!defined($content)) {
-	    &rcon_command("say Sorry, the dictionary is broken.  We apologize for the inconvenience");
+	    &rcon_command("say" . '" Словарь английского языка в настоящее время недоступен, попробуйте позже"');
 	    sleep 1;
 	    return 1;
 	}
