@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.2 RU';
+my $version = '3.0.3 RU';
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -103,15 +103,15 @@ my $button_1 = $main_window->new_ttk__button(-text => 'Launch Nanny', -command =
 
 my $button_2 = $main_window->new_ttk__button(-text => 'Open config file', -command => sub { exec("Nanny.cfg"); },);
 
-#my $button_3 = $main_window->new_ttk__button(-text => 'Settings', -command => sub { exec("Settings.pl"); },);
+my $button_3 = $main_window->new_ttk__button(-text => 'Rcon Tool', -command => sub { exec(" Perl Rcon.pl"); },);
 
 
 
-Tkx::grid($button_1, -row => 0, -column => 3, -padx => 80, -pady => 80);
+Tkx::grid($button_1, -row => 0, -column => 2, -padx => 20, -pady => 20);
 
-Tkx::grid($button_2, -row => 0, -column => 1, -padx => 50, -pady => 50);
+Tkx::grid($button_2, -row => 0, -column => 3, -padx => 20, -pady => 20);
 
-#Tkx::grid($button_3, -row => 0, -column => 2, -padx => 0, -pady => 0);
+Tkx::grid($button_3, -row => 0, -column => 4, -padx => 20, -pady => 20);
 
 
 
@@ -155,7 +155,8 @@ sub make_menu {
                 -title => 'About...',
                 -message => "Nannybot
 Version $version
-Launch GUI by VoroN",	
+Launch GUI by VoroN
+Source code at https://github.com/alexey12424323/Nanny",	
             );
         },
     );
