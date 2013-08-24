@@ -63,9 +63,9 @@ my $version = '3.0.2 RU';
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 use IO::File; # IO-File is used for raw disk reads under windows
-#use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
-#use DBD::SQLite; # Perl2EXE is happier if we declare this.
-#use DBD::mysql; # Support for MySQL based logging.
+use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
+use DBD::SQLite; # Perl2EXE is happier if we declare this.
+use DBD::mysql; # Support for MySQL based logging.
 use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
