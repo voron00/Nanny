@@ -60,6 +60,7 @@ my $version = '3.0.4 RU';
 # NOTE:  rcon names have full color codes, kill lines have full colors, chat lines do not.
 
 # List of modules
+use warnings;
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 use IO::File; # IO-File is used for raw disk reads under windows
@@ -77,106 +78,7 @@ use Net::FTP; # FTP support for remote logfiles
 use File::Basename; # ftptail support
 use File::Temp qw/ :POSIX /; # ftptail support
 use Carp; # ftptail support
-use warnings;
-use locale;
 use Time::Format; # for better !time command
-
-if ($^O eq 'MSWin32') 
-{
-use Tkx; #Gui on start
-
-#prepare gui to startup
-
-our $PROGNAME = 'Nanny';
-
-# main window
-my $main_window = Tkx::widget->new( '.' );
-
-# устанавливаем заголовок
-$main_window->g_wm_title( 'Nanny' );
-
-# создаем и прикрепляем меню
-$main_window->configure( -menu => make_menu( $main_window ) );
-
-
-
-   
-
-my $button_1 = $main_window->new_ttk__button(-text => 'Launch Nanny', -command => sub { Tkx::destroy("."); },);
-
-my $button_2 = $main_window->new_ttk__button(-text => 'Open config file', -command => sub { exec("Nanny.cfg"); },);
-
-my $button_3 = $main_window->new_ttk__button(-text => 'Rcon Tool', -command => sub { exec(" Perl Rcon.pl"); },);
-
-
-
-Tkx::grid($button_1, -row => 0, -column => 2, -padx => 20, -pady => 20);
-
-Tkx::grid($button_2, -row => 0, -column => 3, -padx => 20, -pady => 20);
-
-Tkx::grid($button_3, -row => 0, -column => 4, -padx => 20, -pady => 20);
-
-
-
-# подпрограмма создания главного меню
-sub make_menu {
-    my $mw = shift;
-    
-    # отключаем режим открепления меню (подобно в GIMP)
-    Tkx::option_add( '*tearOff', 0 );
-    
-    # в зависимости от ОС, идентификатор кнопки Ctrl/Control может меняться
-    my $control = ($^O eq "Darwin") ? "Command"  : "Control";
-    my $ctrl    = ($^O eq "MSwin32") ? "Command-" : "Ctrl+";
-    
-    # верхние уровни
-    my $menu = $mw->new_menu();
-    my $menu_file = $menu->new_menu();
-    my $menu_help = $menu->new_menu();
-    
-   # $menu->add_cascade(
-   #     -label => 'File',
-   #     -menu  => $menu_file,
-   # );
-    
-    $menu->add_cascade(
-        -label => 'Help',
-        -menu  => $menu_help,
-    );
-    
-    # Добавляем элементы в меню File
-    #$menu_file->add_command(
-    #    -label => 'Launch Nanny',
-    #    -command => sub { $mw->g_destroy(); },
-    #);
-    
-    # меню Help
-    $menu_help->add_command(
-        -label => 'About...',
-        -command => sub {
-            Tkx::tk___messageBox(
-                -title => 'About...',
-                -message => "Nannybot
-Version $version
-Launch GUI by VoroN
-Source code at https://github.com/alexey12424323/Nanny",	
-            );
-        },
-    );
-    
-    # возвращаем меню
-    return $menu;  
-}
-
-# запускаем основной цикл
-Tkx::MainLoop();
-
-#This need for Russian encoding support in console :)
-system 'chcp 1251';
-
-}
-
-# use Net::Server::Daemonize qw(daemonize);  # used for running the program in the background under unix.
 
 # Connect to sqlite databases
 #my $region_names_dbh = DBI->connect("dbi:SQLite:dbname=databases/region_names.db","","");

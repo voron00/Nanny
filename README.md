@@ -14,4 +14,4 @@ Nanny
 3. Запустите install_packages_windows.bat чтобы установить необходимые для программы зависимости.
 4. Запустить. В Windows можно запускать через nannybot.bat, в других ос придется воспользоватся терминалом( perl "путь к nannybot.pl").
 
-В Windows чтобы отображался русский язык необходимо в свойствах командной строки выбрать шрифт Lucida Console или запустите russian output support for windows.bat чтобы добавить его поддержку.
+В Windows чтобы отображался русский язык необходимо запустить russian output support for windows.bat чтобы добавить его поддержку.
