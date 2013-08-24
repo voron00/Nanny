@@ -4653,7 +4653,7 @@ sub dictionary {
 	}
 	
     } else {
-	$content = get("http://wordnet.princeton.edu/perl/webwn?s=" . $word);
+	$content = get("http://wordnetweb.princeton.edu/perl/webwn?s=" . $word);
 	if (!defined($content)) {
 	    &rcon_command("say Sorry, the dictionary is broken.  We apologize for the inconvenience");
 	    sleep 1;
