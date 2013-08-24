@@ -4618,7 +4618,7 @@ sub dictionary {
 	if (&check_access('add_definition')) {
 	    $sth = $definitions_dbh->prepare("INSERT INTO definitions VALUES (NULL, ?, ?)");
 	    $sth->execute($term,$definition) or &die_nice("Unable to do insert\n");
-	    &rcon_command("say ^2Added a definition for: ^1$term");
+	    &rcon_command("say" . '" ^2Добавлено определение для: "' . "^1$term");
 	    sleep 1;
 	    return 0;
 	}
