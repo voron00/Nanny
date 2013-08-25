@@ -624,7 +624,7 @@ while (1) {
 		# $ignore{$slot} = 0;
 
 		if ($config->{'show_game_joins'}) {
-			&rcon_command("say" . '"Игрок "' . "$name" . '"^7присоединился к игре"');
+			&rcon_command("say" . '"Игрок "' . "$name" . '" ^7присоединился к игре"');
 		}
 		if ($config->{'show_joins'}) {
 		    print "JOIN: " . &strip_color($name) . " has joined the game\n";
@@ -660,7 +660,7 @@ while (1) {
 		    print "QUIT: " . &strip_color($name) . " has left the game\n";
 		}
 		if ($config->{'show_game_quits'}) {
-			&rcon_command("say" . '"Игрок "' . "$name" . '"^7покинул игру"');
+			&rcon_command("say" . '"Игрок "' . "$name" . '" ^7покинул игру"');
 		}
 	    } else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	    
@@ -3893,12 +3893,12 @@ sub glitch_command {
     if (&flood_protection('glitch', 60, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	$config->{'glitch_server_mode'} = 1;
-        &rcon_command("say Glitch mode was enabled by an admin.  ^1NO KILLING NOW.");
+        &rcon_command("say Glitch mode was enabled by an admin. ^1NO KILLING NOW.");
 	sleep 1;
         &log_to_file('logs/admin.log', "!GLITCH: glitch mode was enabled by:  $name - GUID $guid");
     } elsif ($state =~ /^(off|0|no|disabled?)$/i) {
 	$config->{'glitch_server_mode'} = 0;
-        &rcon_command("say Glitch mode was disabled by an admin.  ^2Killing is permitted now.");
+        &rcon_command("say Glitch mode was disabled by an admin. ^2Killing is permitted now.");
 	sleep 1;
         &log_to_file('logs/admin.log', "!GLITCH: glitch mode was disabled by:  $name - GUID $guid");
     } else {
@@ -3993,12 +3993,12 @@ sub change_gametype {
 	print "[*] WARNING: change_gametype() was called without a game type\n";
 	return;
     }
-    if ($gametype !~ /^(dm|tdm|ctf|hq|sd)$/) {
+    if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper)$/) {
 	print "[*] WARNING: change_gametype() was called with an invalid game_type: $gametype\n";
         return;
     }
     if (&flood_protection('gametype', 120, $slot)) { return 1; }
-    &rcon_command("say ^2Changing Game Type to: ^3$gametype");
+    &rcon_command("say " . '"^2Смена режима игры на:"' . " ^3$gametype");
     &rcon_command("g_gametype $gametype");
     sleep 1;
     &rcon_command("map_restart");
@@ -4979,28 +4979,28 @@ sub friendlyfire_command {
         &rcon_command("scr_friendlyfire 1");
 	$friendly_fire = 1;
         sleep 1;
-        &rcon_command("say an admin ^1ENABLED ^7Friendly Fire.  Be careful not to kill your teammates.");
+        &rcon_command("say" . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам.  Будьте аккуратны, старайтесь не ранить своих товарищей по команде."');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED by:  $name - GUID $guid");
     } elsif ($state =~ /^(off|0|no|disabled?)$/i) {
         &rcon_command("scr_friendlyfire 0");
         $friendly_fire = 0;
         sleep 1;
-        &rcon_command("say an admin ^3DISABLED ^7Friendly Fire.");
+        &rcon_command("say" . '" Админ ^2ВЫКЛЮЧИЛ ^7Огонь по союзникам."');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was DISABLED by:  $name - GUID $guid");
     } elsif ($state =~ /^2$/i) {
         &rcon_command("scr_friendlyfire 2");
 	$friendly_fire = 2;
         sleep 1;
-        &rcon_command("say an admin ^1ENABLED ^7Friendly Fire with relective team damage.");
+        &rcon_command("say" . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с рикошетным уроном."');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED with reflective team damage by:  $name - GUID $guid");
     } elsif ($state =~ /^3$/i) {
         &rcon_command("scr_friendlyfire 3");
         $friendly_fire = 3;
         sleep 1;
-        &rcon_command("say an admin ^1ENABLED ^7Friendly Fire with shared team damage.");
+        &rcon_command("say" . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с совместным уроном."');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED with shared team damage by:  $name - GUID $guid");
     } else {
-        &rcon_command("say Unrcognized friendlyfire state:  $state  ... Use: on or off or zero through four");
+        &rcon_command("say" . '" Неверное значение команды !friendlyfire. Доступны значения от 0 до 3."');
         sleep 1;
     }
 }
