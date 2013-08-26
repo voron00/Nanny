@@ -15,3 +15,7 @@ Nanny
 4. Запустить. В Windows можно запускать через nannybot.bat, в других ос придется воспользоватся терминалом( perl "путь к nannybot.pl").
 
 Опционально: В Windows чтобы отображался русский язык необходимо запустить russian output support for windows.bat чтобы добавить его поддержку.
+В Linux:
+1. Открываем терминал
+2. Идём в меню: Terminal >> Set Character Encoding >> Add or Remove...
+3. Находим в Available encodings строку Cyrillic WINDOWS-1251 и добавляем её в Encodings shown in menu

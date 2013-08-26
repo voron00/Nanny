@@ -60,7 +60,7 @@ my $version = '3.0.5 RU';
 # NOTE:  rcon names have full color codes, kill lines have full colors, chat lines do not.
 
 # List of modules
-use warnings; # helps catch failure strings
+use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 use IO::File; # IO-File is used for raw disk reads under windows
