@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.5 RU';
+my $version = '3.0.6 RU';
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -3993,7 +3993,7 @@ sub change_gametype {
 	print "[*] WARNING: change_gametype() was called without a game type\n";
 	return;
     }
-    if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper)$/) {
+    if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper|phnt)$/) {
 	print "[*] WARNING: change_gametype() was called with an invalid game_type: $gametype\n";
         return;
     }
