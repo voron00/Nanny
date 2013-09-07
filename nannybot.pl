@@ -3169,7 +3169,7 @@ sub geolocate_ip_win32 {
         $geo_ip_info = $record->country_code;
     } else {
         # I give up.
-        $geo_ip_info = 'nowhere in particular';
+        $geo_ip_info = '"ниоткуда"';
     }
 
     # debugging
