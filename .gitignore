@@ -213,7 +213,7 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
-
+# Nanny
 logs/admin.log
 logs/chat.log
 logs/commands.log
@@ -227,4 +227,3 @@ databases/ip_to_guid.db
 databases/ip_to_name.db
 databases/seen.db
 databases/stats.db
-logs/log.txt
