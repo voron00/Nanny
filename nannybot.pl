@@ -2697,7 +2697,7 @@ sub chat{
 
 
 	# !assrape  (shh.)
-	elsif ($message =~ /^!(assrape|cornhole|daterape|hatefuck|hate-fuck|rape|fuck)\s+(.+)/i) {
+	elsif ($message =~ /^!(assrape|bitchslap|cornhole|daterape|hatefuck|hate-fuck|rape|fuck)\s+(.+)/i) {
 	    if (&check_access('assrape')) {
 		&assrape($2);
             }
@@ -4451,16 +4451,16 @@ sub assrape {
 	if (&flood_protection('assrape', 60, $slot)) { return 1; }
 	my $victim = $name_by_slot{$matches[0]};
 	my @possible = (
-			"^6* ^2console ^3gives^1 $victim ^3a quick ass-raping.",
-			"^6* ^2console ^3gives^1 $victim ^3a good old-fashioned Crisco based corn-holing.",
-                        "^6* ^2console ^3gives^1 $victim ^3a long and brutal ass-raping",
-                        "^6* ^2console ^3bends^1 $victim ^3over the hood of a blue Chevy and fucks^1 $victim ^3in the ass",
-                        "^6* ^2console ^3delivers^1 $victim ^3a brutal and violent ass-raping ",
-                        "^6* ^2console ^3examines the size of^1 $victim`s^3 mouth and runs some calculations",
-                        "^6* ^2console ^3gives^1 $victim ^3an assraping they won't soon forget.",
-                        "^6* ^2console ^3dispenses a swift assrape to^1 $victim",
+			"^6* ^2Nanny ^3gives^1 $victim ^3a quick ass-raping.",
+			"^6* ^2Nanny ^3gives^1 $victim ^3a good old-fashioned Crisco based corn-holing.",
+                        "^6* ^2Nanny ^3gives^1 $victim ^3a long and brutal ass-raping",
+                        "^6* ^2Nanny ^3bends^1 $victim ^3over the hood of a blue Chevy and fucks^1 $victim ^3in the ass",
+                        "^6* ^2Nanny ^3delivers^1 $victim ^3a brutal and violent ass-raping ",
+                        "^6* ^2Nanny ^3examines the size of^1 $victim`s^3 mouth and runs some calculations",
+                        "^6* ^2Nanny ^3gives^1 $victim ^3an assraping they won't soon forget.",
+                        "^6* ^2Nanny ^3dispenses a swift assrape to^1 $victim",
 			"^6*^1 $victim^7:^3 This is going to hurt you a lot more than it hurts me.",
-                        "^6* ^2console ^3pins down^1 $victim ^3and skull fucks them till they puke.",
+                        "^6* ^2Nanny ^3pins down^1 $victim ^3and skull fucks them till they puke.",
 			);
 	my $random = $possible[int(rand($#possible))];
 	&rcon_command("say $random");
