@@ -2571,7 +2571,7 @@ sub chat{
 
 	        elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-			my @weekday = ("Sunnday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
+			my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
             my $retval = time();
             print "Return time is $retval\n";
             my $local_time = localtime( $retval);
@@ -2587,7 +2587,7 @@ sub chat{
 		
 			elsif ($message =~ /^!date\b/i) {
             if (&check_access('time')) {
-			my @weekday = ("Sunnday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
+			my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
             my $retval = time();
             print "Return time is $retval\n";
             my $local_time = localtime( $retval);
