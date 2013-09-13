@@ -30,9 +30,8 @@ package KKrcon;
 
 use Socket;
 use Sys::Hostname;
-
 # Release version number
-$VERSION = "2.11.platypus";
+$VERSION = "2.12_CoD2";
 
 
 ##

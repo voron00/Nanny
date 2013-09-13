@@ -11,7 +11,7 @@ my $port;
 my $password;
 my $type = 'old';
 $| = 1;
-my $VERSION = "2.11.platypus";
+my $VERSION = "2.12_CoD2";
 
 
 my  $command = join(" ", @ARGV);
