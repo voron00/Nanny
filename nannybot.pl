@@ -1881,7 +1881,7 @@ sub chat{
             if (&check_access('define')) {
 		if (&flood_protection('dictionary-miss', 60 * 10 ,$slot)) { }
 		else {
-		    &rcon_command("say " . '"^1!Что жужно добавить в ^5словарь?"');
+		    &rcon_command("say $name_by_slot{$slot}^7, " . '"Что нужно добавить в ^5словарь?"');
 		}
 	    }
         }
