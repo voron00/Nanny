@@ -213,6 +213,17 @@ PeerPort=> 80,
 Proto   => "tcp");
 my $localip = $sock->sockhost;
 
+# time formatting
+my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
+my $retval = time();
+print "Return time is $retval\n";
+my $local_time = localtime($retval);
+print "Local time = $local_time\n";
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+$year = $year + 1900;
+$mon += 1;
+print "Formated time = $mday/$mon/$year $hour:$min:$sec $weekday[$wday]\n";
+
 # turn on auto-flush for STDOUT
 $| = 1;
 
@@ -2571,31 +2582,19 @@ sub chat{
 
 	        elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-			my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
-            my $retval = time();
-            print "Return time is $retval\n";
-            my $local_time = localtime( $retval);
-            print "Local time = $local_time\n";
-            my ($sec,$min,$hour,$mday,$mon,$year,$wday) = localtime(time);
+            ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
             $year = $year + 1900;
             $mon += 1;
-            print "Formated time = $mday/$mon/$year $hour:$min:$sec $weekday[$wday]\n";
-			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min");
+			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min:$sec");
             sleep 1;
             }
         }
 		
 			elsif ($message =~ /^!date\b/i) {
             if (&check_access('time')) {
-			my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
-            my $retval = time();
-            print "Return time is $retval\n";
-            my $local_time = localtime( $retval);
-            print "Local time = $local_time\n";
-            my ($sec,$min,$hour,$mday,$mon,$year,$wday) = localtime(time);
+            ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
             $year = $year + 1900;
             $mon += 1;
-            print "Formated time = $mday/$mon/$year $hour:$min:$sec $weekday[$wday]\n";
             &rcon_command("say " . '"^2Сегодняшняя дата^7:^3"' . "$mday/$mon/$year");
             sleep 1;
             }
