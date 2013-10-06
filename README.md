@@ -18,4 +18,4 @@ Nanny
 В Linux:
 1. Открываем терминал
 2. Идём в меню: Terminal >> Set Character Encoding >> Add or Remove...
-3. Находим в Available encodings строку Cyrillic WINDOWS-1251 и добавляем её в Encodings shown in menu
+3. Находим в Available encodings строку Cyrillic WINDOWS-1251 и добавляем её в Encodings shown in menu.
