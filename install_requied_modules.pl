@@ -9,3 +9,4 @@ system 'ppm install Geo-Functions';
 sleep 1;
 system 'ppm upgrade --install';
 sleep 1;
+system '@pause';
