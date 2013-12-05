@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.7 RU';
+my $version = '3.0.8 RU';
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -67,7 +67,7 @@ use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 use IO::File; # IO-File is used for raw disk reads under windows
 use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
 use DBD::SQLite; # Perl2EXE is happier if we declare this.
-use DBD::mysql; # Support for MySQL based logging.
+#use DBD::mysql; # Support for MySQL based logging.
 use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
