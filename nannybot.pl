@@ -2585,7 +2585,7 @@ sub chat{
             ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
             $year = $year + 1900;
             $mon += 1;
-			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min:$sec");
+			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min");
             sleep 1;
             }
         }
