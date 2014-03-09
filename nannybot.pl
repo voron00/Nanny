@@ -285,7 +285,9 @@ my $rcon = new KKrcon(
 );
 
 # tell the server that we want the game logfiles flushed to disk after every line.
-&rcon_command("g_logSync 1");
+&rcon_query("g_logSync 1");
+print "Synchronizing logfile...\n";
+sleep 1;
 
 # Ask the server if voting is currently turned on or off
 my $voting_result = &rcon_query("g_allowVote");
