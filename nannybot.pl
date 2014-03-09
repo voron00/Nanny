@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.8 RU Perl '.$];
+my $version = '3.0.9 RU Perl '.$];
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
