@@ -70,7 +70,7 @@ my $version = '3.0.9 RU';
 use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-use IO::File; # IO-File is used for raw disk reads under windows
+#use IO::File; # IO-File is used for raw disk reads under windows. No need anymore
 use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
 use DBD::SQLite; # Perl2EXE is happier if we declare this.
 #use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
@@ -849,9 +849,9 @@ while (1) {
 	# Windows IO::File needs this to work correctly in perl2exe
 	# It will never read new lines from the file until this
 	#   error is manually cleared.
-	if ($logfile_mode eq 'local') {
-	    LOGFILE->clearerr();
-	}
+	#if ($logfile_mode eq 'local') {
+	#    LOGFILE->clearerr();
+	#}
 
 	# cache the time to limit the number of syscalls
 	$time = time;
