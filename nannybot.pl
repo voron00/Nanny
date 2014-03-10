@@ -3345,7 +3345,7 @@ sub stats {
 	    # $name = &strip_color($name_by_slot{$matches[0]});
 	    $name = $name_by_slot{$matches[0]};
 	} elsif ($#matches > 0) {
-	    &rcon_command("say Too many matches for: $search_string  ... Be a little more specific");
+	    &rcon_command("say " . '"Слишком много совпадений для: "' . "$search_string" . " , ^7введите более точные данные.");
 	    sleep 1;
 	    return 1;
 	}
@@ -3364,17 +3364,17 @@ sub stats {
 	@row = $stats_sth->fetchrow_array;
     }
     if ($row[0]) {
-	$stats_msg .= "$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7выстрелов в голову,"';
+	$stats_msg .= "$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7хедшотов,"';
 	$kills = $row[2];
 	if ($row[3]) { 
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
-	    $stats_msg .= "" . '"^7рейтинг -"' . " ^1 $k2d_ratio" . '""';
+	    $stats_msg .= "" . '"^7 рейтинг -^7"' . " ^1 $k2d_ratio" . '"^7,"';
 	} else {
-	    $stats_msg .= " " . '"^7рейтинг -"';
+	    $stats_msg .= "" . '"^7 рейтинг -^7"';
 	}
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	    #$stats_msg .= " -^1 $headshot_percent" . '" ^7процентов выстрелов в голову"';
+	    $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
 	} 
     }
     else {
@@ -3391,7 +3391,7 @@ sub stats {
     # 2nd generation stats;
     # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bullshit_shots
     # 0  1    2            3             4          5             6            7           8                9              10         11
-    $stats_msg = "Статистика^2 $name^7: ^1";
+    $stats_msg = "";
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
     $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     @row = $stats_sth->fetchrow_array;
@@ -3404,12 +3404,12 @@ sub stats {
 	my $grenade_ratio = ($row[3]) ? int($row[3] / $kills * 10000) / 100 : 0;
 	my $bash_ratio = ($row[4]) ? int($row[4] / $kills * 10000) / 100 : 0;
 	my $best_killspree = $row[9];
-	$stats_msg .= "$pistol_ratio" . '" ^7пистолетов,"' . "^1 $grenade_ratio" . '" ^7гранат,"' . "^1 $bash_ratio" . '" ^7баша"';
+	$stats_msg .= "^7... ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7баша"';
 	
 	if (($row[2]) || ($row[3]) || ($row[4])) { 
-	  #  &rcon_command("say $stats_msg");
+	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
-	  #  sleep 1;
+	    sleep 1;
 	}
 
 	# shotgun_kills,sniper_kills,rifle_kills,machinegun_kills
@@ -3418,31 +3418,29 @@ sub stats {
         my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
 	my $bullshit_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 1000000) / 10000 : 0;
-        $stats_msg = "STATS:^2 $name^7:^1 $shotgun_ratio" . '" ^7дробовиков,"' . "^1 $sniper_ratio" . '" ^7снайп.винтов.,"' . "^1 $rifle_ratio" . '" ^7винтовок,"' . "^1 $machinegun_ratio" . '" ^7полу-автоматов"';
+        $stats_msg = "^7... ^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтов.,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
 
 	if (($row[5]) || ($row[6]) || ($row[7]) || ($row[8])) {
-	 #   &rcon_command("say $stats_msg");
+	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
-	   # sleep 1;
+	    sleep 1;
 	} 
 
+    # best killing spree 
 	if ($best_killspree) {
-	    $stats_msg = "" . '"Статистика^2"' . " $name^7:" . '"Лучшее кол-во серий убийств:^1 "' . "$best_killspree";
+	    $stats_msg = "^7... " . '"Лучшая серия убийств:^1 "' . "$best_killspree";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
 
 	if (($row[11]) && ($config->{'bullshit_calls'})) {
-	    $stats_msg = "STATS:^2 $name^7: Bullshit kills: ^1$row[11] ^7calls  (^1$bullshit_ratio ^7percent)";
-	  #  &rcon_command("say $stats_msg");
+	    $stats_msg = "^7... Bullshit kills: ^1$row[11] ^7calls (^1$bullshit_ratio ^7percent)";
+	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
-	  #  sleep 2;
+	    sleep 1;
 	}
-
-
-
-    } 
+    }
 }
 # END: stats()
 
@@ -3955,7 +3953,7 @@ sub awards {
     &rcon_command('say' . '"^2Лучшие 10 игроков сервера^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-	&rcon_command('say ^3' . ($counter++) . '"^7место:"' . "^2  $row[1]" . '"^7с^1"' . "$row[2] " . '"^7убийствами"' );
+	&rcon_command('say ^3' . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . "$row[2]" . '"^7убийствами"' );
 	sleep 1;
     }
 
@@ -4002,8 +4000,6 @@ sub awards {
       #  &rcon_command('say ^3' . &nth($counter++) . "^7  place: (#$row[0])^2  $row[1]  ^7with^1 $row[9] ^7kills in a row" );
     #    sleep 1;
    # }
-
-
 }
 
 
