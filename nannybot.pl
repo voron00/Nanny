@@ -1,6 +1,10 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.9 RU^7/^5Perl '.$^V;
+# debug message
+print "Initializing NannyBot...\n";
+sleep 1;
+
+my $version = '3.0.9 RU';
 
 # VERSION 3.xx RU changelog is on github page https://github.com/voron00/Nanny/commits/master
 
@@ -215,10 +219,13 @@ PeerPort=> 80,
 Proto   => "tcp");
 my $localip = $sock->sockhost;
 
-# time formatting
+# print current perl version (debug message)
+print "Perl runtime version is $^V\n";
+
+# initialize time, print and format it
 my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
 my $retval = time();
-print "Return time is $retval\n";
+print "Reading time values from the system...\n";
 my $local_time = localtime($retval);
 print "Local time = $local_time\n";
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
@@ -254,7 +261,7 @@ if ($logfile_mode eq 'local') {
     $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
     
     if ($config->{'use_passive_ftp'}) {
-	print "[*] Using PASV ftp mode...\n\n";
+	print "Using PASV ftp mode...\n\n";
 	$ftp->pasv() || die $ftp->message;
     }
     $ftp_lines && &ftp_getNlines;
@@ -423,7 +430,7 @@ while (1) {
 		# Glitch Server Mode.   Beat the Germans down.
 		if ($config->{'glitch_server_mode'}) {
 		    if (($attacker_team eq 'axis') && ($victim_team eq 'allies')) {
-			print "[*] Murderer:  " . &strip_color($attacker_name) . " killed someone.  Kicking!\n";
+			print "Murderer:  " . &strip_color($attacker_name) . " killed someone.  Kicking!\n";
 			&rcon_command("say ^1" . $attacker_name . ":^1 " . $config->{'glitch_kill_kick_message'});
 			print &strip_color($attacker_name) . ": " . $config->{'glitch_kill_kick_message'} . "\n"; 
 			sleep 1;
@@ -895,7 +902,7 @@ while (1) {
 	    if ($voting) {
 		&rcon_command("g_allowvote 1");
 		sleep 1;
-		print "[*] Reactivated voting...\n";
+		print "Reactivated voting...\n";
 	    }
 	}
 
@@ -974,7 +981,7 @@ sub load_config_file {
     my $regex_match;
     my $location;
 
-    print "\n[*] Parsing config file: $config_file...\n\n";
+    print "\nParsing config file: $config_file...\n\n";
     
     while (defined($line = <CONFIG>)) {
 	$line =~ s/\s+$//;
@@ -984,11 +991,11 @@ sub load_config_file {
 		$config->{'ip'} = $config_val;
 		if ($config_val eq 'localhost') {
 		$config->{'ip'} = $localip; }
-		print "[*] Server IP address: $config->{'ip'}\n"; 
+		print "Server IP address: $config->{'ip'}\n"; 
 	    }
 	    elsif ($config_name eq 'port') { 
 		$config->{'port'} = $config_val;
-		print "[*] Server port number: $config->{'port'}\n";
+		print "Server port number: $config->{'port'}\n";
 	    } 
 	    elsif ($config_name eq 'rule_name') {
 		$rule_name = $config_val;
@@ -999,7 +1006,7 @@ sub load_config_file {
 		if ($config_val =~ /(.*) = (.*)/) {
 		    $location_spoof{$1} = $2;
 		} else {
-		    print "[*] WARNING: invalid synatx for location_spoofing:\n";
+		    print "WARNING: invalid synatx for location_spoofing:\n";
 		    print "on line: $config_name = $config_val\n";
 		    print "\n\tINVALID syntax.  Check config file\n";
 		    print "\tUse the format:  location_spoofing = Name = Location\n";
@@ -1009,7 +1016,7 @@ sub load_config_file {
                 if ($config_val =~ /(.*) = (.*)/) {
                     $description{$1} = $2;
                 } else {
-                    print "[*] WARNING: invalid synatx for description:\n";
+                    print "WARNING: invalid synatx for description:\n";
                     print "on line: $config_name = $config_val\n";
                     print "\n\tINVALID syntax.  Check config file\n";
                     print "\tUse the format:  description = term = Description\n";
@@ -1029,27 +1036,27 @@ sub load_config_file {
 		$command_name = $1;
 		if (!defined($config->{'auth'}->{$command_name})) {
 		    $config->{'auth'}->{$command_name} = $config_val;
-		    if ($config_val =~ /disabled/i) { print "[*] !$command_name command is DISABLED\n"; }
-		    else { print "[*] Allowing $config_val to use the $command_name command\n"; }
+		    if ($config_val =~ /disabled/i) { print "!$command_name command is DISABLED\n"; }
+		    else { print "Allowing $config_val to use the $command_name command\n"; }
 		} else {
 		    $temp = $config->{'auth'}->{$command_name};
 		    $temp .= ',' . $config_val;
 		    $config->{'auth'}->{$command_name} = $temp;
 		    if ($config_val =~ /disabled/i) { 
-			print "\n[*] WARNING:  $command_name is disabled and enabled.  Which is it?\n\n";
+			print "\nWARNING:  $command_name is disabled and enabled.  Which is it?\n\n";
 		    }
 		    else {
-			print "[*] Also allowing $config_val to use the $command_name command\n";
+			print "Also allowing $config_val to use the $command_name command\n";
 		    }
 		}
 	    } 
 	    elsif ($config_name eq 'rcon_pass') { 
 		$config->{'rcon_pass'} = $config_val;
-		print "[*] RCON pass: $config->{'rcon_pass'}\n";
+		print "RCON pass: $config->{'rcon_pass'}\n";
 	    } 
 	    elsif ($config_name eq 'server_logfile') {
 		$config->{'server_logfile_name'} = $config_val;
-		print "[*] Server logfile name: $config->{'server_logfile_name'}\n";
+		print "Server logfile name: $config->{'server_logfile_name'}\n";
 		my $file;
 		if ($config_val =~ /ftp:\/\/([^\/]+)\/(.+)/) {
 		    # FTP url has been specified - remote FTP mode selected
@@ -1059,40 +1066,40 @@ sub load_config_file {
 	    } 
 	    elsif ($config_name eq 'ban_name') {
 		push @banned_names, $config_val;
-		print "[*] Banned player Name: $config_val\n";
+		print "Banned player Name: $config_val\n";
 	    }
 	    elsif ($config_name eq 'announcement') {
                 push @announcements, $config_val;
-                print "[*] Anouncement: $config_val\n";
+                print "Anouncement: $config_val\n";
             }
 	    elsif ($config_name eq 'affiliate_server') {
                 push @affiliate_servers, $config_val;
-                print "[*] Affiliate Server: $config_val\n";
+                print "Affiliate Server: $config_val\n";
             }
             elsif ($config_name eq 'affiliate_server_prenouncement') {
                 push @affiliate_server_prenouncements, $config_val;
-                print "[*] Affiliate Server Prenouncement: $config_val\n";
+                print "Affiliate Server Prenouncement: $config_val\n";
             }
             elsif ($config_name eq 'remote_server') {
                 push @remote_servers, $config_val;
-                print "[*] Remote Server: $config_val\n";
+                print "Remote Server: $config_val\n";
             }
-	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bullshit_calls|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp)$/) {
+	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bullshit_calls|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check)$/) {
 		if ($config_val =~ /yes|1|on|enable/i) { $config->{$config_name} = 1; }
                 else { $config->{$config_name} = 0; }
-                print "[*] $config_name: " . $config->{$config_name} . "\n";
+                print "$config_name: " . $config->{$config_name} . "\n";
             }
 	    elsif ($config_name =~ 'interval_m[ia][nx]|banned_name_warn_message_[12]|banned_name_kick_message|max_ping_average|glitch_kill_kick_message|anti(spam|idle)_warn_(level|message)_[12]|anti(spam|idle)_kick_(level|message)|ftp_(username|password|refresh_time)|mysql_(username|password|hostname|database)|affiliate_server_announcement_interval') {
                 $config->{$config_name} = $config_val;
-                print "[*] $config_name: " . $config->{$config_name} . "\n";
+                print "$config_name: " . $config->{$config_name} . "\n";
             }
 	    elsif ($config_name =~ /show_(joins|game_joins|game_quits|quits|kills|headshots|timestamps|talk|rcon)/) {
 		if ($config_val =~ /yes|1|on/i) { $config->{$config_name} = 1; }
 		else { $config->{$config_name} = 0; }
-                print "[*] $config_name: " . $config->{$config_name} . "\n";
+                print "$config_name: " . $config->{$config_name} . "\n";
             }
 	    else { 
-		print "\n[*] WARNING: unrecognized config file directive:\n";
+		print "\nWARNING: unrecognized config file directive:\n";
 		print "\toffending line: $config_name = $config_val\n\n";
 	    }
 	}
@@ -1109,7 +1116,7 @@ sub load_config_file {
 	&die_nice("Config File: rcon_pass is not defined\tCheck the config file: $config_file\n");
     }
     
-    print "\n[*] Finished parsing config: $config_file\n\n";
+    print "\nFinished parsing config: $config_file\n\n";
 
 }
 # END: load_config_file()
@@ -1121,10 +1128,10 @@ sub die_nice {
 	$message = 'default die_nice message.\n\n';
     }
     
-    print "\n[*] Critical Error: $message\n\n";
+    print "\nCritical Error: $message\n\n";
     
     if ($^O eq 'MSWin32') {
-	print "[*] Press <ENTER> to close this program\n"; 
+	print "Press <ENTER> to close this program\n"; 
 	my $who_cares = <STDIN>;
     }
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
@@ -1143,7 +1150,7 @@ sub open_server_logfile {
     if (!-e $log_file) { 
 	&die_nice("open_server_logfile() file does not exist: $log_file\n");
     }
-    print "[*] Opening $log_file for reading...\n\n"; 
+    print "Opening $log_file for reading...\n\n"; 
     if ($^O eq 'MSWin32') {
 	open (LOGFILE, "< :raw", $log_file) ||
 	    &die_nice("unable to :raw open $log_file: $!\n");
@@ -1193,7 +1200,7 @@ sub cache_guid_to_name {
 	if ($row[0]) { }
 	else { 
 	    &log_to_file('logs/guid.log', "Caching GUID to NAME mapping: $guid - $name");
-	    print "[*] Caching GUID to NAME mapping: $guid - $name\n";
+	    print "Caching GUID to NAME mapping: $guid - $name\n";
 	    $sth = $guid_to_name_dbh->prepare("INSERT INTO guid_to_name VALUES (NULL, ?, ?)");
 	    $sth->execute($guid, $name) or &die_nice("Unable to do insert\n");
 	}
@@ -1217,9 +1224,9 @@ sub initialize_databases {
     }
     
     # The GUID to NAME database
-    if ($tables{'guid_to_name'}) { print "[*] GUID <-> Name database brought online\n\n"; }
+    if ($tables{'guid_to_name'}) { print "GUID <-> Name database brought online\n\n"; }
     else {
-	print "[*] Creating guid_to_name database\n\n";
+	print "Creating guid_to_name database\n\n";
 	
 	$cmd = "CREATE TABLE guid_to_name (id INTEGER PRIMARY KEY, guid INT(8), name VARCHAR(64) );";
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
@@ -1236,7 +1243,7 @@ sub initialize_databases {
     #foreach ($sth->fetchrow_array) {
     #    $tables{$_} = $_;
     #}
-    #if ($tables{'region_names'}) { print "[*] Region Code <-> Region Name database brought online\n\n"; }
+    #if ($tables{'region_names'}) { print "Region Code <-> Region Name database brought online\n\n"; }
     #else {
 	#&die_nice("ERROR: Region name database does not exist.\nPlease run make_region_names in the databases folder\n");
     #}	
@@ -1247,9 +1254,9 @@ sub initialize_databases {
     foreach ($sth->fetchrow_array) {
         $tables{$_} = $_;
     }
-    if ($tables{'ip_to_guid'}) { print "[*] IP <-> GUID database brought online\n\n"; }
+    if ($tables{'ip_to_guid'}) { print "IP <-> GUID database brought online\n\n"; }
     else {
-	print "[*] Creating ip_to_guid database\n\n";
+	print "Creating ip_to_guid database\n\n";
 	
 	$cmd = "CREATE TABLE ip_to_guid (id INTEGER PRIMARY KEY, ip VARCHAR(15), guid INT(8) );";
 	$result_code = $ip_to_guid_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_guid_dbh->errstr\n");
@@ -1267,9 +1274,9 @@ sub initialize_databases {
     foreach ($sth->fetchrow_array) {
         $tables{$_} = $_;
     }
-    if ($tables{'ip_to_name'}) { print "[*] IP <-> NAME database brought online\n\n"; }
+    if ($tables{'ip_to_name'}) { print "IP <-> NAME database brought online\n\n"; }
     else {
-	print "[*] Creating ip_to_name database\n\n";
+	print "Creating ip_to_name database\n\n";
 	
 	$cmd = "CREATE TABLE ip_to_name (id INTEGER PRIMARY KEY, ip VARCHAR(15), name VARCHAR(64) );";
 	$result_code = $ip_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_name_dbh->errstr\n");
@@ -1287,9 +1294,9 @@ sub initialize_databases {
     foreach ($sth->fetchrow_array) {
         $tables{$_} = $_;
     }
-    if ($tables{'seen'}) { print "[*] !seen database brought online\n\n"; }
+    if ($tables{'seen'}) { print "!seen database brought online\n\n"; }
     else {
-	print "[*] Creating seen database\n\n";
+	print "Creating seen database\n\n";
 	
 	$cmd = "CREATE TABLE seen (id INTEGER PRIMARY KEY, name VARCHAR(64), time INTEGER, saying VARCHAR(128) );";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
@@ -1308,9 +1315,9 @@ sub initialize_databases {
         $tables{$_} = $_;
     }
 
-    if ($tables{'bans'}) { print "[*] ban database brought online\n\n"; }
+    if ($tables{'bans'}) { print "ban database brought online\n\n"; }
     else {
-        print "[*] Creating ban database\n\n";
+        print "Creating ban database\n\n";
 
         $cmd = "CREATE TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INTEGER, name VARCHAR(64) );";
         $result_code = $bans_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $bans_dbh->errstr\n");
@@ -1331,9 +1338,9 @@ sub initialize_databases {
         }
     }
     
-    if ($tables{'definitions'}) { print "[*] definitions database brought online\n\n"; }
+    if ($tables{'definitions'}) { print "definitions database brought online\n\n"; }
     else {
-        print "[*] Creating definitions database\n\n";
+        print "Creating definitions database\n\n";
 	
         $cmd = "CREATE TABLE definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250) );";
         $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
@@ -1344,9 +1351,9 @@ sub initialize_databases {
         if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
     
-    if ($tables{'cached'}) { print "[*] cached definitions index database brought online\n\n"; }
+    if ($tables{'cached'}) { print "cached definitions index database brought online\n\n"; }
     else {
-        print "[*] Creating cached database\n\n";
+        print "Creating cached database\n\n";
 
         $cmd = "CREATE TABLE cached (id INTEGER PRIMARY KEY, term VARCHAR(32));";
         $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
@@ -1357,9 +1364,9 @@ sub initialize_databases {
         if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
 
-    if ($tables{'cached_definitions'}) { print "[*] cached definitions data database brought online\n\n"; }
+    if ($tables{'cached_definitions'}) { print "cached definitions data database brought online\n\n"; }
     else {
-        print "[*] Creating cached_definitions database\n\n";
+        print "Creating cached_definitions database\n\n";
 
         $cmd = "CREATE TABLE cached_definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
         $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
@@ -1379,9 +1386,9 @@ sub initialize_databases {
 	    $tables{$_} = $_;
 	}
     }
-    if ($tables{'stats'}) { print "[*] !stats database brought online\n\n"; }
+    if ($tables{'stats'}) { print "!stats database brought online\n\n"; }
     else {
-	print "[*] Creating stats database\n\n";
+	print "Creating stats database\n\n";
 	
 	$cmd = "CREATE TABLE stats (id INTEGER PRIMARY KEY, name VARCHAR(64), kills INTEGER, deaths INTEGER, headshots INTEGER );";
 	$result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
@@ -1392,9 +1399,9 @@ sub initialize_databases {
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
 	
     }
-    if ($tables{'stats2'}) { print "[*] The other !stats database brought online\n\n"; }
+    if ($tables{'stats2'}) { print "The other !stats database brought online\n\n"; }
     else {
-        print "[*] Creating the other stats database\n\n";
+        print "Creating the other stats database\n\n";
 
         $cmd = "CREATE TABLE stats2 (id INTEGER PRIMARY KEY, name VARCHAR(64), pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bullshit_shots INTEGER);";
         $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
@@ -1412,7 +1419,7 @@ sub initialize_databases {
 					  $config->{'mysql_username'}, $config->{'mysql_password'})
 	    or die "MYSQL LOGGING: Couldn't connect to mysql database: $DBI::errstr\n";
 	
-	print "[*] MySQL Logging database brought online\n\n";
+	print "MySQL Logging database brought online\n\n";
 
 	$mysql_is_broken = 0;
 
@@ -1424,9 +1431,9 @@ sub initialize_databases {
 		$tables{$_} = $_;
 	    }
 	}
-	if ($tables{'chat_log'}) { print "[*] MySQL chat_log table already exists\n\n"; }
+	if ($tables{'chat_log'}) { print "MySQL chat_log table already exists\n\n"; }
 	else {
-	    print "[*] Creating chat_log table\n\n";
+	    print "Creating chat_log table\n\n";
 	    
 	    $cmd = "CREATE TABLE chat_log (id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64), timestamp INTEGER, message VARCHAR(250));";
 	    $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
@@ -1446,9 +1453,9 @@ sub initialize_databases {
 	}
 
 
-	if ($tables{'next_map'}) { print "[*] MySQL next_map table already exists\n\n"; }
+	if ($tables{'next_map'}) { print "MySQL next_map table already exists\n\n"; }
         else {
-            print "[*] Creating next_map table\n\n";
+            print "Creating next_map table\n\n";
 
             $cmd = "CREATE TABLE next_map (map VARCHAR(250), gametype VARCHAR(250));";
             $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
@@ -1469,7 +1476,7 @@ sub initialize_databases {
          CoD2 Server NannyBot
            version $version
             by smugllama
-
+			
          for Call of Duty 2
 
     rcon code provided by KKrcon
@@ -1485,9 +1492,8 @@ sub initialize_databases {
  The Latest Version of Nannybot is at:
    http://smaert.com/nannybot.zip
    
- 
          Перевод - VoroN
-
+		 
 =======================================
 ";
 
@@ -1500,7 +1506,7 @@ sub initialize_databases {
 sub idle_check {
     my $slot;
     my $idle_for;
-    print "[*] Checking for idle players...\n";
+    print "Checking for idle players...\n";
     foreach $slot (keys %last_activity_by_slot) {
 	if ($slot > 0) {
 	    if (($slot != -1) && ($last_activity_by_slot{$slot} ne 'gone')) {
@@ -1668,7 +1674,7 @@ sub chat{
             if (!defined($penalty_points{$slot})) { $penalty_points{$slot} = $penalty; }
             else { $penalty_points{$slot} += $penalty; }
 
-            print "[*] Penalty Points total for: $name:  $penalty_points{$slot}\n";
+            print "Penalty Points total for: $name:  $penalty_points{$slot}\n";
 
             if ($penalty_points{$slot} >= 100) {
                 &rcon_command("say ^1$name:^2 " . '"Я думаю мы услышали достаточно,убирайся отсюда!"');
@@ -2149,7 +2155,7 @@ sub chat{
 	    if (&check_access('version')) {
 		if (&flood_protection('version', 120, $slot)) { }
 		else {
-		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
+		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version^7/^5Perl $^V ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		    sleep 1;
 		    &rcon_command("say ... with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
 		    sleep 1;
@@ -3018,7 +3024,7 @@ sub rcon_status {
 		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
 		    $ip_by_slot{$slot} = $row[0] . '?';
-		    print "[*] Guessed an IP for: $name_by_slot{$slot} =  $ip_by_slot{$slot} \n";
+		    print "Guessed an IP for: $name_by_slot{$slot} =  $ip_by_slot{$slot} \n";
 		}
 	    }
 	    # extra noise - not needed now that we have full rcon output.
@@ -3081,7 +3087,7 @@ sub rcon_command {
 	# rcon timeout happens after the object has been in use for a long while.
 	# Try rebuilding the object
 	if ($error eq 'Rcon timeout') {
-	    print "[*] rebuilding rcon object\n";
+	    print "rebuilding rcon object\n";
 	    $rcon = new KKrcon(
 			       Host => $config->{'ip'},
 			       Port => $config->{'port'},
@@ -3089,7 +3095,7 @@ sub rcon_command {
 			       Type => 'old'
 			       );
 	    
-	} else { print "[*] WARNING: rcon_command error: $error\n"; }
+	} else { print "WARNING: rcon_command error: $error\n"; }
 	
 	return 1;
     } else {
@@ -3115,7 +3121,7 @@ sub rcon_query {
 	# rcon timeout happens after the object has been in use for a long while.
         # Try rebuilding the object
         if ($error eq 'Rcon timeout') {
-            print "[*] rebuilding rcon object\n";
+            print "rebuilding rcon object\n";
             $rcon = new KKrcon(
                                Host => $config->{'ip'},
                                Port => $config->{'port'},
@@ -3123,7 +3129,7 @@ sub rcon_query {
                                Type => 'old'
                                );
 	    
-        } else { print "[*] WARNING: rcon_command error: $error\n"; }
+        } else { print "WARNING: rcon_command error: $error\n"; }
 	
 	return $result;
     }
@@ -3267,7 +3273,7 @@ sub cache_ip_to_guid {
 	if ($row[0]) { }
 	else { 
 	    &log_to_file('logs/guid.log', "New IP to GUID mapping: $ip - $guid");
-	    print "[*] New IP to GUID mapping: $ip - $guid\n";
+	    print "New IP to GUID mapping: $ip - $guid\n";
 	    $sth = $ip_to_guid_dbh->prepare("INSERT INTO ip_to_guid VALUES (NULL, ?, ?)");
 	    $sth->execute($ip, $guid) or &die_nice("Unable to do insert\n");
 	}
@@ -3293,7 +3299,7 @@ sub cache_ip_to_name {
     if ($row[0]) { }
     else { 
 	&log_to_file('logs/guid.log', "Caching IP to NAME mapping: $ip - $name");
-	print "[*] Caching IP to NAME mapping: $ip - $name\n"; 
+	print "Caching IP to NAME mapping: $ip - $name\n"; 
 	$sth = $ip_to_name_dbh->prepare("INSERT INTO ip_to_name VALUES (NULL, ?, ?)");
 	$sth->execute($ip, $name) or &die_nice("Unable to do insert\n");
     }
@@ -3475,13 +3481,13 @@ sub check_access {
 			# Check if this is a GUID
 			if ($value =~ /^\d+$/) {
 			    if ($guid eq $value) {
-				print "[*] disabled command $attribute authenticated by GUID override access: $value\n";
+				print "disabled command $attribute authenticated by GUID override access: $value\n";
 				return 1;
 			    }
 			    # Check if this is an exact IP match
 			} elsif ($value =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 			    if ($ip_by_slot{$slot} eq $value) {
-				print "[*] disabled command $attribute authenticated by IP override access: $value\n";
+				print "disabled command $attribute authenticated by IP override access: $value\n";
 				return 1;
 			    }
 			    # Check if the IP is a wildcard match
@@ -3491,7 +3497,7 @@ sub check_access {
 				# no guessed IPs allowed
 				if ($ip_by_slot{$slot} =~ /\?$/) { print "Refusing to authenticate a guessed IP address\n"; }
 				else {
-				    print "[*] disabled command $attribute authenticated by wildcard IP override access: $value\n";
+				    print "disabled command $attribute authenticated by wildcard IP override access: $value\n";
 				    return 1;
 				}
 			    }
@@ -3509,13 +3515,13 @@ sub check_access {
 	    # Check if this is a GUID
 	    if ($value =~ /^\d+$/) {
 		if ($guid eq $value) {
-		    print "[*] $attribute command authenticated by GUID: $value\n";
+		    print "$attribute command authenticated by GUID: $value\n";
 		    return 1;
 		}
 		# Check if this is an exact IP match
 	    } elsif ($value =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 		if ($ip_by_slot{$slot} eq $value) {
-		    print "[*] $attribute command authenticated by IP: $value\n";
+		    print "$attribute command authenticated by IP: $value\n";
 		    return 1;
 		}
 		# Check if the IP is a wildcard match
@@ -3525,7 +3531,7 @@ sub check_access {
 		    # no guessed IPs allowed
 		    if ($ip_by_slot{$slot} =~ /\?$/) { print "Refusing to authenticate a guessed IP address\n"; }
 		    else {
-			print "[*] $attribute command authenticated by wildcard IP: $value\n";
+			print "$attribute command authenticated by wildcard IP: $value\n";
 			return 1;
 		    }
 		}
@@ -3543,13 +3549,13 @@ sub check_access {
 	    # Check if this is a GUID
 	    if ($value =~ /^\d+$/) {
 		if ($guid eq $value) {
-		    print "[*] global admin access for $attribute authenticated by GUID: $value\n";
+		    print "global admin access for $attribute authenticated by GUID: $value\n";
 		    return 1;
 		}
 		# Check if this is an exact IP match
 	    } elsif ($value =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 		if ($ip_by_slot{$slot} eq $value) {
-		    print "[*] global admin access for $attribute authenticated by IP: $value\n";
+		    print "global admin access for $attribute authenticated by IP: $value\n";
 		    return 1;
 		}
 		# Check if the IP is a wildcard match
@@ -3559,7 +3565,7 @@ sub check_access {
 		    # make sure that we dont let guessed IP's through
 		    if ($ip_by_slot{$slot} =~ /\?$/) { print "Refusing to authenticate a guessed IP address\n"; }
 		    else {
-			print "[*] global admin access for $attribute authenticated by wildcard IP: $value\n";
+			print "global admin access for $attribute authenticated by wildcard IP: $value\n";
 			return 1;
 		    }
 		}
@@ -3569,7 +3575,7 @@ sub check_access {
 	}
     }
     # Default = not allowed
-    # print "[*] WARNING:  No access attributes defined for $attribute\n";
+    # print "WARNING:  No access attributes defined for $attribute\n";
     # print "\tdefault access = disabled   Check the config file for auth_$attribute lines\n";
     return 0;
 }
@@ -4020,11 +4026,11 @@ sub nth {
 sub change_gametype {
     my $gametype = shift;
     if (!defined($gametype)) { 
-	print "[*] WARNING: change_gametype() was called without a game type\n";
+	print "WARNING: change_gametype() was called without a game type\n";
 	return;
     }
     if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper|phnt)$/) {
-	print "[*] WARNING: change_gametype() was called with an invalid game_type: $gametype\n";
+	print "WARNING: change_gametype() was called with an invalid game_type: $gametype\n";
         return;
     }
     if (&flood_protection('gametype', 120, $slot)) { return 1; }
@@ -4039,7 +4045,7 @@ sub change_gametype {
 
 # BEGIN: check_player_names()
 sub check_player_names {
-    print "[*] Checking for bad names...\n"; 
+    print "Checking for bad names...\n"; 
     my $match_string;
     my $warned;
     foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
@@ -4084,7 +4090,7 @@ sub make_announcement {
     my $total = $#announcements;
     sleep 1;
     my $announce = $announcements[int(rand($total))];
-    print "[*] Making Anouncement: $announce\n";
+    print "Making Anouncement: $announce\n";
     &rcon_command("say $announce");
     sleep 1;
     
@@ -4265,7 +4271,7 @@ sub guid_sanity_check {
     if ($config->{'guid_sanity_check'}) {}
     else { return 0; }
 
-    print "[*] Running GUID sanity check\n";
+    print "Running GUID sanity check\n";
     # check to make sure that IP -> GUID = last guid
     print "Look Up GUID for $ip and make sure it is $should_be_guid\n";
     # if guid is nonzero and is not last_guid, then we know sanity fails.
@@ -4285,10 +4291,10 @@ sub guid_sanity_check {
     my $portaddr;
     my ($session_id, $result, $reason, $guid);
 
-    print "\n[*] Asking $activision_master if $ip_address has provided a valid key recently.\n\n";
+    print "\nAsking $activision_master if $ip_address has provided a valid key recently.\n\n";
 
     socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
-	or die "[*] Socket error: $!";
+	or die "Socket error: $!";
 
     my $random = int(rand(7654321));
     my $send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_address  0";
@@ -4311,19 +4317,19 @@ sub guid_sanity_check {
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
 	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		or die "[*] Socket error: recv: $!";
+		or die "Socket error: recv: $!";
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
 	    $still_waiting = 0;
 	} else {
-	    print "[*] No response from $activision_master   Trying again...\n\n";
+	    print "No response from $activision_master   Trying again...\n\n";
 	}
     }
     if ($got_response) {
 	if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
 	    ($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
-	    print "[*] RESULTS:\n";
+	    print "RESULTS:\n";
 	    print "\tIP Address: $ip_address\n";
 	    print "\tAction: $result\n";
 	    print "\tReason: $reason\n";
@@ -4331,20 +4337,20 @@ sub guid_sanity_check {
 	    print "\n";
 
 	    if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
-		print "[*] Explaination of: $reason\n";
+		print "Explaination of: $reason\n";
 		print "\tThis IP Address has not provided any CD Keys to the activision server\n";
 		print "\tThis IP Address may not playing COD2 currently, or\n";
 		print "\t  Activision has not heard a key from this IP recently.\n";
 	    }
 	    if ($reason eq 'BANNED_CDKEY') {
-		print "[*] Explaination of: $reason\n";
+		print "Explaination of: $reason\n";
 		print "\tThis IP Address is using a well known stolen CD Key.\n";
 		print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
 		print "\tThis IP address is using a stolen copy of CoD2\n\n";
 	    }
 
 	    if ($reason eq 'INVALID_CDKEY') {
-		print "[*] Explaination of: $reason\n";
+		print "Explaination of: $reason\n";
 		print "\tThis IP Address is trying to use the same CD Key from multiple IPs.\n";
 		print "\tActivision has already seen this Key recently used by a different IP.\n";
 		print "\tThis is a valid CD Key, but is being used from multiple locations\n";
@@ -4354,12 +4360,12 @@ sub guid_sanity_check {
 	    # Now, check to make sure our GUID numbers match up.
 	    if ($guid) {
 		if ($guid == $should_be_guid) {
-		    print "\n[*] OK: GUID Sanity check: PASSED\n\n";
+		    print "\nOK: GUID Sanity check: PASSED\n\n";
 		} else {
 
 		    &rcon_command("say ^1WARNING: ^7GUID Sanity Check failed for $name_by_slot{$most_recent_slot}");
 
-		    print "\n[*] FAIL: GUID Sanity check: FAILED\n";
+		    print "\nFAIL: GUID Sanity check: FAILED\n";
 		    print "    IP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
 
 		    &log_to_file('logs/guid.log', 
@@ -4369,11 +4375,11 @@ sub guid_sanity_check {
 	    }
 
 	} else {
-	    print "\n[*] ERROR:\n\tGot a response, but not in the format expected\n";
+	    print "\nERROR:\n\tGot a response, but not in the format expected\n";
 	    print "\t$message\n\n";
 	}
     } else {
-	print "\n[*] ERROR:\n\t$activision_master is not currently responding to requests.\n";
+	print "\nERROR:\n\t$activision_master is not currently responding to requests.\n";
 	print "\n\tSorry.  Try again later.\n\n";
     }
 
@@ -4410,7 +4416,7 @@ sub flood_protection {
 	return 0;
     } else {
 	# Too soon,  flood protection triggured.
-	print "[*] Flood protection activated.  '$attribute' command not allowed to be run again yet.\n";
+	print "Flood protection activated.  '$attribute' command not allowed to be run again yet.\n";
 	print "\tNot allowed to run for another  " . &duration(($flood_protect{$key} - $time)) . "\n";
 	
 	&log_to_file('logs/flood_protect.log', 
@@ -4639,7 +4645,7 @@ sub check_guid_zero_players {
     my @possible;
     my $start_time = $time;
     my $max_time = 10;
-    print "[*] GUID ZERO audit in progress...\n\n";
+    print "GUID ZERO audit in progress...\n\n";
     foreach $slot (keys %guid_by_slot) {
 	if (
 	    (defined($guid_by_slot{$slot})) &&
@@ -4652,7 +4658,7 @@ sub check_guid_zero_players {
 	}
     }
     if ($#possible == -1) {
-	print "[*] GUID Zero Audit: PASSED, there are no GUID zero players.\n";
+	print "GUID Zero Audit: PASSED, there are no GUID zero players.\n";
 	return 1;
     }
     &fisher_yates_shuffle(\@possible);
@@ -4687,9 +4693,9 @@ sub check_guid_zero_players {
 	$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot}  0";
 	print "AUDITING: slot: $slot  ip: " . $ip_by_slot{$slot} . "  guid: " . $guid_by_slot{$slot} . "  name: " . $name_by_slot{$slot} . "\n";
 
-	print "\n[*] Asking $activision_master if $ip_by_slot{$slot} has provided a valid key recently.\n\n";
+	print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid key recently.\n\n";
 
-	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or die "[*] Socket error: $!";
+	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or die "Socket error: $!";
 
 	$selecta = IO::Select->new();
 	$selecta->add(\*SOCKET);
@@ -4705,20 +4711,20 @@ sub check_guid_zero_players {
 	    if (defined($ready[0])) {
 		# Yes, the socket is ready.
 		$portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		    or die "[*] Socket error: recv: $!";
+		    or die "Socket error: recv: $!";
 		# strip the 4 \xFF bytes at the begining.
 		$message =~ s/^.{4}//;
 		$got_response = 1;
 		$still_waiting = 0;
 	    } else {
-		print "[*] No response from $activision_master   Trying again...\n\n";
+		print "No response from $activision_master   Trying again...\n\n";
 	    }
 	}
 
 	if ($got_response) {
 	    if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
 		($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
-		print "[*] RESULTS:\n";
+		print "RESULTS:\n";
 		print "\tIP Address: $ip_by_slot{$slot}\n";
 		print "\tAction: $result\n";
 		print "\tReason: $reason\n";
@@ -4727,13 +4733,13 @@ sub check_guid_zero_players {
 
 		$dirtbag = 0;
 		if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
-		    print "[*] Explaination of: $reason\n";
+		    print "Explaination of: $reason\n";
 		    print "\tThis IP Address has not provided any CD Keys to the activision server\n";
 		    print "\tThis IP Address may not playing COD2 currently, or\n";
 		    print "\t  Activision has not heard a key from this IP recently.\n";
 		}
 		if ($reason eq 'BANNED_CDKEY') {
-		    print "[*] Explaination of: $reason\n";
+		    print "Explaination of: $reason\n";
 		    print "\tThis IP Address is using a well known stolen CD Key.\n";
 		    print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
 		    print "\tThis IP address is using a stolen copy of CoD2\n\n";
@@ -4741,7 +4747,7 @@ sub check_guid_zero_players {
 		    $kick_reason = "using a STOLEN CD-Key that Activision has BANNED.  ^1Go buy the game.";
 		}
 		if ($reason eq 'INVALID_CDKEY') {
-		    print "[*] Explaination of: $reason\n";
+		    print "Explaination of: $reason\n";
 		    print "\tThis IP Address is trying to use the same CD Key from multiple IPs.\n";
 		    print "\tActivision has already seen this Key recently used by a different IP.\n";
 		    print "\tThis is a valid CD Key, but is being used from multiple locations\n";
@@ -4751,7 +4757,7 @@ sub check_guid_zero_players {
 		    $kick_reason = "an ^4invalid CD-KEY^2.  Perhaps your CD-KEY is already in use?";
 		}
 		if (($dirtbag) && ($reason eq 'BANNED_CDKEY')) {
-		    print"[*] DIRTBAG: $name_by_slot{$slot} - $reason\n";
+		    print"DIRTBAG: $name_by_slot{$slot} - $reason\n";
 		    &rcon_command("say ^1$name_by_slot{$slot} ^2was kicked for $kick_reason");
 		    sleep 1;
 		    &rcon_command("tempbanclient $slot");
@@ -4921,7 +4927,7 @@ sub mysql_repair {
     print "  TIME: $time\n";
     if ($time > $next_mysql_repair) {
         $next_mysql_repair = $time + $mysql_repair_interval;
-        print "[*] Attempting to repair the mysql connection\n\n";
+        print "Attempting to repair the mysql connection\n\n";
         $mysql_logging_dbh->disconnect();
         $mysql_logging_dbh = DBI->connect('dbi:mysql:' . $config->{'mysql_database'} . ':' . $config->{'mysql_hostname'},
                                           $config->{'mysql_username'}, $config->{'mysql_password'})
@@ -5121,7 +5127,7 @@ sub get_server_info {
     }
 
     socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
-    or return "[*] Socket error: $!";
+    or return "Socket error: $!";
 
     my $send_message = "\xFF\xFF\xFF\xFFgetinfo xxx";
 
@@ -5142,18 +5148,18 @@ sub get_server_info {
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
 	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		or die "[*] Socket error: recv: $!";
+		or die "Socket error: recv: $!";
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
 	    $still_waiting = 0;
 	} else {
-	    print "[*] No response from $ip_address:$port ...  Trying again...\n\n";
+	    print "No response from $ip_address:$port ...  Trying again...\n\n";
 	}
     }
     if ($got_response) {
 	if ($message =~ /infoResponse/) {
-	    # print "[*] Response from $ip_address:$port\n";
+	    # print "Response from $ip_address:$port\n";
 	    $message = substr($message,14,length($message));
 	    my @parts = split(/\\/, $message);
 	    my $value;
@@ -5167,7 +5173,7 @@ sub get_server_info {
 	    # print "\n";
 	}
     } else {
-	print "\n[*] ERROR:\n\t$ip_address:$port is not currently responding to requests.\n";
+	print "\nERROR:\n\t$ip_address:$port is not currently responding to requests.\n";
 	print "\n\tSorry.  Try again later.\n\n";
     }
     return $return_text;
