@@ -85,7 +85,6 @@ use Net::FTP; # FTP support for remote logfiles
 use File::Basename; # ftptail support
 use File::Temp qw/ :POSIX /; # ftptail support
 use Carp; # ftptail support
-use IO::Socket::INET; # needed for detecting a local ip address. I added this because im tired of my Wi-Fi Router sometimes change my local ip address.
 
 # Connect to sqlite databases
 #my $region_names_dbh = DBI->connect("dbi:SQLite:dbname=databases/region_names.db","","");
@@ -212,12 +211,8 @@ my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
 
-# let's see which local ip address we have
-my $sock = IO::Socket::INET->new(
-PeerAddr=> "example.com",
-PeerPort=> 80,
-Proto   => "tcp");
-my $localip = $sock->sockhost;
+# if local ip address
+my $localip = '127.0.0.1';
 
 # print current perl version (debug message)
 print "Perl runtime version is $^V\n";
@@ -989,7 +984,7 @@ sub load_config_file {
 	    ($config_name,$config_val) = ($1,$2);
 	    if ($config_name eq 'ip_address') { 
 		$config->{'ip'} = $config_val;
-		if ($config_val eq 'localhost') {
+		if ($config_val eq 'localhost|loopback') {
 		$config->{'ip'} = $localip; }
 		print "Server IP address: $config->{'ip'}\n"; 
 	    }
