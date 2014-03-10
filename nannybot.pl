@@ -2105,7 +2105,7 @@ sub chat{
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0;
 		}
-		&rcon_command("say " . '"Хорошо, "' . "$name," . '"^7 перезапускаю себя..."');
+		&rcon_command("say " . '"Хорошо "' . "$name^7," . '" перезапускаю себя..."');
 		sleep 1;
 	    }
 	}
