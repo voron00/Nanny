@@ -2150,15 +2150,15 @@ sub chat{
 	    if (&check_access('version')) {
 		if (&flood_protection('version', 120, $slot)) { }
 		else {
-		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version^7/^5Perl $^V ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
+		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		    sleep 1;
 		    &rcon_command("say ... with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
 		    sleep 1;
-			&rcon_command("say " . '"доработка и перевод на русский язык- ^5V^0oro^5N"');
+			&rcon_command("say " . '"^3Downloadable at:^2 http://smaert.com/nannybot.zip"');
+			sleep 1;
+			&rcon_command("say " . '"Русская версия от ^5V^0oro^5N"');
 		    sleep 1;
-		    &rcon_command("say " . '"^3программу и исходный код моей русской версии можно найти тут:^2 https://github.com/alexey12424323/Nanny"');
-            sleep 1;
-			&rcon_command("say " . '"^3оригинал можно скачать тут:^2 http://smaert.com/nannybot.zip"');
+		    &rcon_command("say " . '"^3Программу и исходный код данной русской версии можно найти тут:^2 https://github.com/alexey12424323/Nanny"');
 		}	    
 	    }
 	}
