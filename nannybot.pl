@@ -1,6 +1,8 @@
 #!/usr/bin/perl -w
 
-my $version = '3.0.9 RU Perl '.$];
+my $version = '3.0.9 RU^7/^5Perl '.$^V;
+
+# VERSION 3.xx RU changelog is on github page https://github.com/voron00/Nanny/commits/master
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -67,7 +69,7 @@ use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 use IO::File; # IO-File is used for raw disk reads under windows
 use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
 use DBD::SQLite; # Perl2EXE is happier if we declare this.
-#use DBD::mysql; # Support for MySQL based logging.
+#use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
 use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
@@ -2147,15 +2149,15 @@ sub chat{
 	    if (&check_access('version')) {
 		if (&flood_protection('version', 120, $slot)) { }
 		else {
-		    &rcon_command("say CoD2 ^3Nanny^5Bot^7 version^2 $version ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
+		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		    sleep 1;
 		    &rcon_command("say ... with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
 		    sleep 1;
-			&rcon_command("say " . '"ƒоработка и перевод на русский €зык- ^5V^0oro^5N"');
+			&rcon_command("say " . '"доработка и перевод на русский €зык- ^5V^0oro^5N"');
 		    sleep 1;
-		    &rcon_command("say " . '"^3ѕрограмму и исходный код моей русской версии можно найти тут:^2 https://github.com/alexey12424323/Nanny"');
+		    &rcon_command("say " . '"^3программу и исходный код моей русской версии можно найти тут:^2 https://github.com/alexey12424323/Nanny"');
             sleep 1;
-			&rcon_command("say " . '"^3ќригинал можно скачать тут:^2 http://smaert.com/nannybot.zip"');
+			&rcon_command("say " . '"^3оригинал можно скачать тут:^2 http://smaert.com/nannybot.zip"');
 		}	    
 	    }
 	}
@@ -2587,7 +2589,7 @@ sub chat{
             ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
             $year = $year + 1900;
             $mon += 1;
-			&rcon_command("say " . '"^2ћосковское врем€^7:^3"' . "$hour:$min");
+			&rcon_command("say " . '"^2ћосковское врем€^7:^3"' . "$hour:$min MSK");
             sleep 1;
             }
         }
