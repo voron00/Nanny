@@ -1125,13 +1125,12 @@ sub die_nice {
     
     print "\nCritical Error: $message\n\n";
     
-    #if ($^O eq 'MSWin32') {
-	print "Press <ENTER> to close this program\n"; 
+  #  if ($^O eq 'MSWin32') {
+	print "Press <ENTER> to skip this message and close this program\n"; 
 	my $who_cares = <STDIN>;
-    }
+  #  }
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
-    exit 1;
-#}
+    exit 1; }
 # END: die_nice();
 
 
@@ -1873,6 +1872,19 @@ sub chat{
                 &rcon_command("say " . '"Снять бан можно при помощи BAN ID,проверьте !lastbans чтобы узнать ID игроков которые были забанены"');
             }
         }
+		
+		# !deletestats (search_string)
+        elsif ($message =~ /^!deletestats|clearstats\s+(.+)/i) {
+            if (&check_access('clear_stats')) {
+                &clear_stats($1);
+            } else {
+            }
+        }
+        elsif ($message =~ /^!deletestats|clearstats\s*$/i) {
+            if (&check_access('clear_stats')) {
+                &rcon_command("say " . '"!удалить статистику для кого?"');
+            }
+        }
 	
        # !define (word)
         elsif ($message =~ /^!(define|dictionary|dict|словарь)\s+(.+)/i) {
@@ -2471,7 +2483,7 @@ sub chat{
 
 	# !big red button
 	if ($message =~ /^!(big red button|nuke)/i) {
-	    if (&check_access('big_red_button')) {
+	    if (&check_access('nuke')) {
 		&big_red_button_command();
 	    }
 	}
@@ -2719,7 +2731,7 @@ sub chat{
 
 
 	# !assrape  (shh.)
-	elsif ($message =~ /^!(assrape|bitchslap|cornhole|daterape|hatefuck|hate-fuck|rape|fuck)\s+(.+)/i) {
+	elsif ($message =~ /^!(assrape|bitchslap|slap|cornhole|daterape|hatefuck|hate-fuck|rape|fuck)\s+(.+)/i) {
 	    if (&check_access('assrape')) {
 		&assrape($2);
             }
@@ -3359,19 +3371,19 @@ sub stats {
 	$kills = $row[2];
 	if ($row[3]) { 
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
-	    $stats_msg .= "" . '"^7 рейтинг -^7"' . " ^1 $k2d_ratio" . '"^7,"';
+	    $stats_msg .= "" . '"^7 рейтинг -^7"' . " ^1 $k2d_ratio" . '"^7"';
 	} else {
 	    $stats_msg .= "" . '"^7 рейтинг -^7"';
 	}
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	    $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
+	   # $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
 	} 
     }
     else {
 	$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?)");
 	$stats_sth->execute($name, 0, 0, 0) or &die_nice("Unable to do insert\n");
-	$stats_msg = '"Не найдено статистики для"' . " $name";
+	$stats_msg = '"Не найдено статистики для:"' . "$name";
     }
 
     &rcon_command("say $stats_msg");
@@ -3395,7 +3407,7 @@ sub stats {
 	my $grenade_ratio = ($row[3]) ? int($row[3] / $kills * 10000) / 100 : 0;
 	my $bash_ratio = ($row[4]) ? int($row[4] / $kills * 10000) / 100 : 0;
 	my $best_killspree = $row[9];
-	$stats_msg .= "^7... ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7баша"';
+	# $stats_msg .= "^7... ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7баша"';
 	
 	if (($row[2]) || ($row[3]) || ($row[4])) { 
 	    &rcon_command("say $stats_msg");
@@ -3409,7 +3421,7 @@ sub stats {
         my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
 	my $bullshit_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 1000000) / 10000 : 0;
-        $stats_msg = "^7... ^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтов.,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
+        # $stats_msg = "^7... ^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтов.,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
 
 	if (($row[5]) || ($row[6]) || ($row[7]) || ($row[8])) {
 	    &rcon_command("say $stats_msg");
@@ -3715,6 +3727,21 @@ sub kick_command {
     elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string"); }
 }
 
+# BEGIN: !clearstats command($search_string)
+sub clear_stats {
+    my $search_string = shift;
+    my $victim;
+	my $sth;
+	my @row;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say No matches for: $search_string"); }
+    elsif ($#matches == 0) {
+	my $victim = $name_by_slot{$matches[0]};
+	$sth = $stats_dbh->prepare('DELETE FROM stats where name=?;');
+    $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	&rcon_command("say " . '"Удалена статистика для:"' . "$victim"); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string");}}
 
 # BEGIN: tempban_command($search_string)
 sub tempban_command {
@@ -4210,7 +4237,7 @@ sub suk {
 
     $sth = $stats_dbh->prepare('SELECT * FROM stats ORDER BY deaths DESC LIMIT 10;');
     $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command('say' . '" ^1Наибольшее количество смертей^7:"');
+    &rcon_command('say' . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
         &rcon_command('say ^3' . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . "$row[3]" . '"^7смертями"' );
@@ -4581,7 +4608,7 @@ sub dictionary {
     } else {
 	$content = get("http://wordnetweb.princeton.edu/perl/webwn?s=" . $word);
 	if (!defined($content)) {
-	    &rcon_command("say " . '" Словарь английского языка в настоящее время недоступен, попробуйте позже"');
+	    &rcon_command("say " . '"Словарь английского языка в настоящее время недоступен, попробуйте позже"');
 	    sleep 1;
 	    return 1;
 	}
@@ -4605,13 +4632,13 @@ sub dictionary {
     }
     
     if (!$counter) {
-	&rcon_command("say ^1FAIL: ^7Sorry, there were no definitions found for: ^2$word");
+	&rcon_command("say " . '"^7К сожалению, не найдено определений для слова:"' . "^2$word");
         sleep 1;
     } else {
         if ($counter == 1) { 
-	    &rcon_command("say ^21 ^7definition found for: ^2$word");
+	    &rcon_command("say " . '"^21 ^7определение найдено для слова:"' . "^2$word");
 	} else { 
-	    &rcon_command("say ^2$counter ^7definition found for: ^2$word");
+	    &rcon_command("say ^2$counter " . '"^7определений найдено для слова:"' . "^2$word");
 	}
 	sleep 1;
         foreach $definition (@definitions) {
