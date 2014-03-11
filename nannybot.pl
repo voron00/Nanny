@@ -215,7 +215,7 @@ my @remote_servers;
 my $localip = '127.0.0.1';
 
 # print current perl version (debug message)
-print "Perl runtime version is $^V\n";
+print "Perl runtime version is $^V, running on $^O\n";
 
 # initialize time, print and format it
 my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
@@ -1125,13 +1125,13 @@ sub die_nice {
     
     print "\nCritical Error: $message\n\n";
     
-    if ($^O eq 'MSWin32') {
+    #if ($^O eq 'MSWin32') {
 	print "Press <ENTER> to close this program\n"; 
 	my $who_cares = <STDIN>;
     }
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
     exit 1;
-}
+#}
 # END: die_nice();
 
 
@@ -1146,31 +1146,31 @@ sub open_server_logfile {
 	&die_nice("open_server_logfile() file does not exist: $log_file\n");
     }
     print "Opening $log_file for reading...\n\n"; 
-    if ($^O eq 'MSWin32') {
-	open (LOGFILE, "< :raw", $log_file) ||
-	    &die_nice("unable to :raw open $log_file: $!\n");
-    } else {
+    #if ($^O eq 'MSWin32') {
+	#open (LOGFILE, "< :raw", $log_file) ||
+	#   &die_nice("unable to :raw open $log_file: $!\n");
+    #} else {
 	open (LOGFILE, $log_file) ||
 	    &die_nice("unable to open $log_file: $!\n");
     }
-}
+#}
 # END: open_server_logfile();
 
 
 # BEGIN: seek_to_end()
 # This will move the pointer all the way to the end of the LOGFILE handle
 sub seek_to_end {
-    if ($^O eq 'MSWin32') {
+    #if ($^O eq 'MSWin32') {
 	# windows likes it in the 2nd to the last place.
-	seek(LOGFILE, -2, 2);
+	#seek(LOGFILE, -2, 2);
 	
 	# perl2exe needs help with filehandles.
-	LOGFILE->clearerr();
+	#LOGFILE->clearerr();
 	
-    } else {
+    #} else {
 	seek(LOGFILE, 0, 2);
     }
-}
+#}
 # END: seek_to_end()
 
 # BEGIN: cache_guid_to_name(guid,name)
@@ -2590,7 +2590,7 @@ sub chat{
             ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
             $year = $year + 1900;
             $mon += 1;
-			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min MSK");
+			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min");
             sleep 1;
             }
         }
@@ -2600,7 +2600,7 @@ sub chat{
             ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
             $year = $year + 1900;
             $mon += 1;
-            &rcon_command("say " . '"^2Сегодняшняя дата^7:^3"' . "$mday/$mon/$year");
+            &rcon_command("say " . '"^2Текущая дата^7:^3"' . "$mday/$mon/$year");
             sleep 1;
             }
         }
@@ -2772,19 +2772,9 @@ sub chat{
 #                }
 #            }
 #        }
-
-
-
-
-
-
-
     }
     # END of  !commands 
-
-
 }
-
 # END: chat()
 
 
@@ -3138,10 +3128,11 @@ sub geolocate_ip_win32 {
     my $ip = shift;
     my $metric = 0;
     if (!defined($ip)) { return '"Неверный IP"'; }
+	
+	if ($ip =~ /^192\.168\.|^10\.|localhost|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
+	
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP адрес:  "' . "$ip"; }
-
-    if ($ip =~ /^192\.168\.|^10\.|^169\.254\./) { return '"^2своей локальной сети"'; }
-
+	
     my $gi = Geo::IP->open("databases/GeoLiteCity.dat", GEOIP_STANDARD);
 
     my $record = $gi->record_by_addr($ip);
@@ -5266,4 +5257,3 @@ sub rank {
     print "$stats_msg\n"; 
     sleep 1; 
 }
-
