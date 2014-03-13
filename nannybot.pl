@@ -2221,7 +2221,7 @@ sub chat{
 	}
 	elsif ($message =~ /^!killcam\s*$/i) {
 	    if (&check_access('killcam')) {
-		&rcon_command("say !killcam on  ... or !killcam off ... ?");
+		&rcon_command("say  " . '"!killcam on  ... или !killcam off ... ?"');
 	    }
 	}
 	
@@ -2237,19 +2237,19 @@ sub chat{
 	       ($message =~ /^!team[ _\-]?kill\s*$/i) ) {
 	    
             if (&check_access('friendlyfire')) {
-		&rcon_command("say ^1$name: ^7You can set ^1!friendlyfire ^50 ^7to turn OFF team damage");
+		&rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^50 ^7чтобы ВЫКЛЮЧИТЬ огонь по союзникам"');
 		sleep 1;
-		&rcon_command("say ^1$name: ^7You can set ^1!friendlyfire ^51 ^7to turn ON team damage");
+		&rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^51 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам"');
 		sleep 1; 
-                &rcon_command("say ^1$name: ^7You can set ^1!friendlyfire ^52 ^7to turn ON reflected team damage");
+                &rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^52 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам с рикошетным уроном"');
 		sleep 1;
-                &rcon_command("say ^1$name: ^7You can set ^1!friendlyfire ^53 ^7to turn ON shared team damage");
+                &rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^53 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам с совместным уроном"');
 		sleep 1;
 		my $state_string = 'unknown';
-		if ($friendly_fire == 0) { $state_string = 'Friendly Fire is currently DISABLED'; }
-		elsif ($friendly_fire == 1) { $state_string = 'Friendly Fire is currently ENABLED'; }
-		elsif ($friendly_fire == 2) { $state_string = 'Friendly Fire is ENABLED with reflective team damage'; }
-		elsif ($friendly_fire == 3) { $state_string = 'Friendly Fire is ENABLED with shared team damage'; }
+		if ($friendly_fire == 0) { $state_string = '"Огонь по союзникам в настоящий момент ВЫКЛЮЧЕН"'; }
+		elsif ($friendly_fire == 1) { $state_string = '"Огонь по союзникам в настоящий момент ВКЛЮЧЕН"'; }
+		elsif ($friendly_fire == 2) { $state_string = '"Огонь по союзникам в настоящий момент РИКОШЕТНЫЙ УРОН"'; }
+		elsif ($friendly_fire == 3) { $state_string = '"Огонь по союзникам в настоящий момент СОВМЕСТНЫЙ УРОН"'; }
 		if ($state_string ne 'unknown') {
 		    &rcon_command("say ^1$name: ^7 $state_string");
 		}
@@ -2318,23 +2318,23 @@ sub chat{
 	    if (&flood_protection('help', 120, $slot)) {}
 	    else {
 		if (&check_access('stats')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробую статистику."');
+		    &rcon_command("say " . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробую статистику"');
 		    sleep 1;
 		}
 		if (&check_access('seen')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!seen ^5игрок ^7чтобы узнать когда он был на сервере и что говорил."');
+		    &rcon_command("say " . '"^7Вы можете использовать ^1!seen ^5игрок ^7чтобы узнать когда он был на сервере и что говорил"');
 		    sleep 1;
 		}
 		if (&check_access('locate')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!locate ^5игрок ^7чтобы узнать его приблизительное местоположение."');
+		    &rcon_command("say " . '"^7Вы можете ^1!locate ^5игрок ^7чтобы узнать его приблизительное местоположение"');
 		    sleep 1;
 		}
 		if (&check_access('lastkill')) {
-                    &rcon_command("say " . '"^7Вы можете использовать ^1!lastkill ^7чтобы узнать кто в последний раз вас убил."');
+                    &rcon_command("say " . '"^7Вы можете использовать ^1!lastkill ^7чтобы узнать кто в последний раз вас убил"');
                     sleep 1;
                 }
 		if (&check_access('map_control')) {		
-		    &rcon_command("say " . '"^7Вы можете сменить тип игры при помощи: ^1!dm !tdm !ctf !sd ^7and ^1!hq"');
+		    &rcon_command("say " . '"^7Вы можете сменить тип игры при помощи: ^1!dm !tdm !ctf !sd !hq"');
 		    sleep 1;
 		    &rcon_command("say " . '"^7Вы можете ^1!restart ^7карты или ^1!rotate ^7чтобы перейти к следующей"');
 		    sleep 1;
@@ -2342,19 +2342,19 @@ sub chat{
 		    sleep 1;
 		}
 		if (&check_access('kick')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!kick ^5игрок ^7чтобы выкинуть его с сервера."');
+		    &rcon_command("say " . '"^7Вы можете ^1!kick ^5игрок ^7чтобы выкинуть его с сервера"');
 		    sleep 1;
 		}
 		if (&check_access('tempban')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!tempban ^5игрок ^7чтобы временно забанить игрока."');
+		    &rcon_command("say " . '"^7Вы можете ^1!tempban ^5игрок ^7чтобы временно забанить игрока"');
 		    sleep 1;
 		}
 		if (&check_access('ban')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!ban ^5игрок ^7чтобы навсегда забанить игрока."');
+		    &rcon_command("say " . '"^7Вы можете ^1!ban ^5игрок ^7чтобы навсегда забанить игрока"');
 		    sleep 1;
-		    &rcon_command("say " . '"^7Вы можете ^1!unban ^5игрок ^7или ^1!unban ^5banID# ^7чтобы снять бан."');
+		    &rcon_command("say " . '"^7Вы можете ^1!unban ^5игрок ^7или ^1!unban ^5banID# ^7чтобы снять бан"');
 		    sleep 1;
-		    &rcon_command("say " . '"^7Вы можете использовать  ^1!lastbans ^5номер ^7чтобы посмотреть список последних забаненных игроков."');
+		    &rcon_command("say " . '"^7Вы можете использовать  ^1!lastbans ^5номер ^7чтобы посмотреть список последних забаненных игроков"');
                     sleep 1;
 		}
 		if (&check_access('voting')) {
@@ -2366,67 +2366,67 @@ sub chat{
 		    sleep 1;
 		}
 		if (&check_access('teamkill')) {
-                    &rcon_command("say " . '"^7Вы можете ^1!friendlyfire ^5[0-4] ^7чтобы установить режим огня по союзникам."');
+                    &rcon_command("say " . '"^7Вы можете ^1!friendlyfire ^5[0-4] ^7чтобы установить режим огня по союзникам"');
                     sleep 1;
                 }
 		if (&check_access('fly')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!fly ^7чтобы выключить гравитацию на 20 секунд."');
+		    &rcon_command("say " . '"^7Вы можете ^1!fly ^7чтобы выключить гравитацию на 20 секунд"');
 		    sleep 1;
 		}
 		if (&check_access('gravity')) {
-                    &rcon_command("say " . '"^7Вы можете ^1!gravity ^5число ^7чтобы установить режим гравитации."');
+                    &rcon_command("say " . '"^7Вы можете ^1!gravity ^5число ^7чтобы установить режим гравитации"');
                     sleep 1;
                 }
 		if (&check_access('speed')) {
-                    &rcon_command("say " . '"^7Вы можете ^1!speed ^5число ^7чтобы установить режим скорости."');
+                    &rcon_command("say " . '"^7Вы можете ^1!speed ^5число ^7чтобы установить режим скорости"');
                     sleep 1;
                 }
 		if (&check_access('glitch')) {
-		    &rcon_command("say " . '"^7Вы можете включить ^1!glitch ^5on ^7чтобы включить режим не убивания ^1!glitch ^5off ^7чтобы вернуть нормальный режим."');
+		    &rcon_command("say " . '"^7Вы можете включить ^1!glitch ^5on ^7чтобы включить режим не убивания ^1!glitch ^5off ^7чтобы вернуть нормальный режим"');
 		    sleep 1;
 		}
 		if (&check_access('aliases')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!names ^5игрок ^7чтобы узнать с какими никами он играл."');
+		    &rcon_command("say " . '"^7Вы можете ^1!names ^5игрок ^7чтобы узнать с какими никами он играл"');
 		    sleep 1;
 		}
 		if (&check_access('awards')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!top ^7чтобы посмотреть список лучших десяти игроков на сервере."');
+		    &rcon_command("say " . '"^7Вы можете использовать ^1!top ^7чтобы посмотреть список лучших десяти игроков на сервере"');
 		    sleep 1;
 		}
 		if (&check_access('suk')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!deaths ^7чтобы посмотреть список лучших десяти игроков по количеству смертей."');
+		    &rcon_command("say " . '"^7Вы можете использовать ^1!deaths ^7чтобы посмотреть список лучших десяти игроков по количеству смертей"');
 		    sleep 1;
 		}
 		if (&check_access('uptime')) {
-		    &rcon_command("say " . '"^7Вы можете использовать  ^1!uptime ^7чтобы посмотреть сколько времени сервер работает."');
+		    &rcon_command("say " . '"^7Вы можете использовать  ^1!uptime ^7чтобы посмотреть сколько времени сервер работает"');
 		    sleep 1;
 		}
                 if (&check_access('define')) {
-                    &rcon_command("say " . '"^7Вы можете^1!define ^5слово ^7чтобы добавить его в словарь."');
+                    &rcon_command("say " . '"^7Вы можете^1!define ^5слово ^7чтобы добавить его в словарь"');
                     sleep 1;
                 }
 		if (&check_access('version')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!version ^7чтобы узнать версию программы и авторов а также ссылки на скачивание."');
+		    &rcon_command("say " . '"^7Вы можете использовать ^1!version ^7чтобы узнать версию программы и авторов а также ссылки на скачивание"');
 		    sleep 1;
 		}
 		if (&check_access('reset')) {
-                    &rcon_command("say " . '"^7Вы можете использовать  ^1!reset ^7чтобы перезапустить программу."');
+                    &rcon_command("say " . '"^7Вы можете использовать  ^1!reset ^7чтобы перезапустить программу"');
                     sleep 1;
                 }
 		if (&check_access('ignore')) {
-                    &rcon_command("say " . '"^7Вы можете ^1!ignore ^5игрок^7 чтобы запретить мне слушать что он сказал."');
+                    &rcon_command("say " . '"^7Вы можете ^1!ignore ^5игрок^7 чтобы запретить мне слушать что он сказал"');
                     sleep 1;
                 }
 		if (&check_access('broadcast')) {
-                    &rcon_command("say " . '"^7Вы можете ^1!broadcast ^5сообщение ^7чтобы отправить его на другие серверы."');
+                    &rcon_command("say " . '"^7Вы можете ^1!broadcast ^5сообщение ^7чтобы отправить его на другие серверы"');
                     sleep 1;
                 }
 		if (&check_access('hostname')) {
-                    &rcon_command("say " . '"^7Вы можете ^1!hostname ^5Имя ^7чтобы переименовать сервер."');
+                    &rcon_command("say " . '"^7Вы можете ^1!hostname ^5Имя ^7чтобы переименовать сервер"');
                     sleep 1;
                 }
 		if (&check_access('forgive')) {
-                    &rcon_command("say " . '"^7Вы можете ^1!forgive ^5игрок ^7чтобы простить игроку его выходки."');
+                    &rcon_command("say " . '"^7Вы можете ^1!forgive ^5игрок ^7чтобы простить игроку его выходки"');
                     sleep 1;
                 }
 	    }
@@ -3672,7 +3672,7 @@ sub forgive {
 
     if ($search_string =~ /^\#(\d+)$/) {
         my $slot = $1;
-        &rcon_command("say ^2$name_by_slot{$slot}" . '"^7пообещал вести себя хорошо и был прощен."');
+        &rcon_command("say ^2$name_by_slot{$slot}" . '"^7пообещал вести себя хорошо и был прощен админом"');
         # sleep 1;
         $ignore{$slot} = 0;
 	$idle_warn_level{$slot} = 0;
@@ -3684,7 +3684,7 @@ sub forgive {
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$search_string"); }
     elsif ($#matches == 0) {
-        &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7пообещал вести себя хорошо и был прощен."');
+        &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7пообещал вести себя хорошо и был прощен админом"');
         # sleep 1;
         $ignore{$matches[0]} = 0;
 	$idle_warn_level{$matches[0]} = 0;
@@ -3703,7 +3703,7 @@ sub kick_command {
     my $key;
     if ($search_string =~ /^\#(\d+)$/) {
 	my $slot = $1;
-	&rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был выкинут админом."');
+	&rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был выкинут админом"');
         sleep 1;
         &rcon_command("clientkick $slot");
         &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
@@ -3712,7 +3712,7 @@ sub kick_command {
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$search_string"); }
     elsif ($#matches == 0) {
-	&rcon_command("say ^2$name_by_slot{$matches[0]}" . '" ^7был выкинут админом."');
+	&rcon_command("say ^2$name_by_slot{$matches[0]}" . '" ^7был выкинут админом"');
 	sleep 1;
 	&rcon_command("clientkick $matches[0]");
 	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
@@ -3756,7 +3756,7 @@ sub tempban_command {
     
     my $ban_ip = 'undefined';
     my $unban_time = $time + 1200;
-    &rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был временно забанен админом."');
+    &rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был временно забанен админом"');
     sleep 1;
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot};
@@ -3785,7 +3785,7 @@ sub ban_command {
     }   
     my $ban_ip = 'undefined';
     my $unban_time = 2125091758;
-    &rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был забанен админом."');
+    &rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был забанен админом"');
     sleep 1;
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot};
@@ -3820,12 +3820,12 @@ sub unban_command {
     }
     $bans_sth->execute($unban) or &die_nice("Unable to do unban SELECT: $unban\n");
     while (@row = $bans_sth->fetchrow_array) {
-	&rcon_command("say UNBANNED: $row[5]" . '" был разбанен админом."' . "   (ban id#: $row[0]" . '" удален)"');
+	&rcon_command("say UNBANNED: $row[5]" . '" был разбанен админом"' . "   (ban id#: $row[0]" . '" удален)"');
 	sleep 1;
 	&rcon_command("unbanUser \"$row[5]\"");
 	sleep 1;
 	push (@unban_these, $row[0]);
-	&log_to_file('logs/commands.log', "UNBAN: $row[5]" . '" был разбанен админом."' . "   (ban id#: $row[0]" . '" удален)"');
+	&log_to_file('logs/commands.log', "UNBAN: $row[5]" . '" был разбанен админом"' . "   (ban id#: $row[0]" . '" удален)"');
     }
     # now clean up the database ID's.
     foreach $key (@unban_these) {
@@ -3866,15 +3866,15 @@ sub killcam_command {
    if ($state =~ /^(yes|1|on|enabled?)$/i) {
         &rcon_command("scr_killcam 1");
         # sleep 1;
-        &rcon_command("say the Kill-Cam was enabled by an admin.");
+        &rcon_command("say " . '"Показ гибели был ВКЛЮЧЕН админом"');
         &log_to_file('logs/admin.log', "!KILLCAM: the kill-cam was enabled by:  $name - GUID $guid");
     } elsif ($state =~ /^(off|0|no|disabled?)$/i) {
         &rcon_command("scr_killcam 0");
         # sleep 1;
-        &rcon_command("say the Kill-Cam was disabled by an admin.");
+        &rcon_command("say " . '"Показ гибели был ВЫКЛЮЧЕН админом"');
         &log_to_file('logs/admin.log', "!KILLCAM: the kill-cam was disabled by:  $name - GUID $guid");
     } else {
-        &rcon_command("say Unrcognized killcam state:  $state  ... Use: on or off");
+        &rcon_command("say " . '"Неизвстное значение команды !killcam:"' . "  $state  " . '" Используйте: on или off"');
         # sleep 1;
     }
 }
@@ -5013,28 +5013,28 @@ sub friendlyfire_command {
         &rcon_command("scr_friendlyfire 1");
 	$friendly_fire = 1;
         # sleep 1;
-        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам.  Будьте аккуратны, старайтесь не ранить своих товарищей по команде."');
+        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам. Будьте аккуратны, старайтесь не ранить своих товарищей по команде"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED by:  $name - GUID $guid");
     } elsif ($state =~ /^(off|0|no|disabled?)$/i) {
         &rcon_command("scr_friendlyfire 0");
         $friendly_fire = 0;
         # sleep 1;
-        &rcon_command("say " . '" Админ ^2ВЫКЛЮЧИЛ ^7Огонь по союзникам."');
+        &rcon_command("say " . '" Админ ^2ВЫКЛЮЧИЛ ^7Огонь по союзникам"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was DISABLED by:  $name - GUID $guid");
     } elsif ($state =~ /^2$/i) {
         &rcon_command("scr_friendlyfire 2");
 	$friendly_fire = 2;
         # sleep 1;
-        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с рикошетным уроном."');
+        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с рикошетным уроном"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED with reflective team damage by:  $name - GUID $guid");
     } elsif ($state =~ /^3$/i) {
         &rcon_command("scr_friendlyfire 3");
         $friendly_fire = 3;
         # sleep 1;
-        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с совместным уроном."');
+        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с совместным уроном"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED with shared team damage by:  $name - GUID $guid");
     } else {
-        &rcon_command("say " . '" Неверное значение команды !friendlyfire. Доступны значения от 0 до 3."');
+        &rcon_command("say " . '" Неверное значение команды !friendlyfire. Доступны значения от 0 до 3"');
         # sleep 1;
     }
 }
