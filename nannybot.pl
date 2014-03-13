@@ -70,10 +70,10 @@ my $version = '3.0.9 RU';
 use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-#use IO::File; # IO-File is used for raw disk reads under windows. No need anymore
+# use IO::File; # IO-File is used for raw disk reads under windows. No need anymore
 use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
 use DBD::SQLite; # Perl2EXE is happier if we declare this.
-#use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
+# use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
 use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
@@ -378,7 +378,7 @@ while (1) {
 			$best_spree{$reset_slot} = 0;
 			$ignore{$reset_slot} = 0;
 		    }
-		    &rcon_command("say " , '"^1*** ^2Похоже сервер упал,так что я перезапустила себя. ^1***"');
+		    &rcon_command("say " , '"^1*** ^2Похоже что сервер упал, перезапускаю себя... ^1***"');
 		    sleep 1;
 		}
 		$last_upmins = $now_upmins;
@@ -3371,13 +3371,13 @@ sub stats {
 	$kills = $row[2];
 	if ($row[3]) { 
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
-	    $stats_msg .= "" . '"^7 рейтинг -^7"' . " ^1 $k2d_ratio" . '"^7"';
+	    $stats_msg .= "" . '"^7 рейтинг -^7"' . " ^1 $k2d_ratio^7, ";
 	} else {
 	    $stats_msg .= "" . '"^7 рейтинг -^7"';
 	}
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	   # $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
+	    $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
 	} 
     }
     else {
@@ -3407,7 +3407,7 @@ sub stats {
 	my $grenade_ratio = ($row[3]) ? int($row[3] / $kills * 10000) / 100 : 0;
 	my $bash_ratio = ($row[4]) ? int($row[4] / $kills * 10000) / 100 : 0;
 	my $best_killspree = $row[9];
-	# $stats_msg .= "^7... ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7баша"';
+	$stats_msg .= "^7... ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7баша"';
 	
 	if (($row[2]) || ($row[3]) || ($row[4])) { 
 	    &rcon_command("say $stats_msg");
@@ -3421,7 +3421,7 @@ sub stats {
         my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
 	my $bullshit_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 1000000) / 10000 : 0;
-        # $stats_msg = "^7... ^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтов.,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
+        $stats_msg = "^7... ^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтов.,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
 
 	if (($row[5]) || ($row[6]) || ($row[7]) || ($row[8])) {
 	    &rcon_command("say $stats_msg");
@@ -3740,8 +3740,11 @@ sub clear_stats {
 	my $victim = $name_by_slot{$matches[0]};
 	$sth = $stats_dbh->prepare('DELETE FROM stats where name=?;');
     $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	$sth = $stats_dbh->prepare('DELETE FROM stats2 where name=?;');
+    $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	&rcon_command("say " . '"Удалена статистика для:"' . "$victim"); }
-	elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string");}}
+	elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string");}
+}
 
 # BEGIN: tempban_command($search_string)
 sub tempban_command {
@@ -3771,9 +3774,7 @@ sub tempban_command {
     
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
-
 }
-
 
 # BEGIN: ban_command($search_string)
 sub ban_command {
@@ -5243,7 +5244,7 @@ sub rank {
 
     if (&flood_protection('rank', 300, $slot)) { return 1; }
 
-   my $stats_msg = "$name: ";
+   my $rank_msg = "$name: ";
    my $kills = 1;
 
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
@@ -5257,30 +5258,30 @@ sub rank {
 	$kills = $row[2];
 	if ($row[2] > 99 && $row[2] < 500)
 	{
-	$stats_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
 	}
 	if ($row[2] > 9 && $row[2] < 50)
 	{
-	$stats_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
 	}
 	if ($row[2] > 499 && $row[2] < 1000)
 	{
-	$stats_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
 	}
 	if ($row[2] > 999)
 	{
-	$stats_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
 	}
 	if ($row[2] < 9)
 	{
-	$stats_msg .= '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
 	}
 	if ($row[2] > 49 && $row[2] < 100)
 	{
-	$stats_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '" убийств)"' . "";
 	}
     }
-    &rcon_command("say $stats_msg");
-    print "$stats_msg\n"; 
+    &rcon_command("say $rank_msg");
+    print "$rank_msg\n"; 
     sleep 1; 
 }
