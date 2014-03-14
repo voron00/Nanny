@@ -70,7 +70,7 @@ my $version = '3.0.9 RU';
 use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-# use IO::File; # IO-File is used for raw disk reads under windows. No need anymore
+# use IO::File; # IO-File is used for raw disk reads. No need for now
 use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
 use DBD::SQLite; # Perl2EXE is happier if we declare this.
 # use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
@@ -98,13 +98,13 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $idlecheck_interval = 90;
+my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 60;
 my %name_warn_level;
 my $last_namecheck;
-my $rconstatus_interval = 30;
-my $guid_sanity_check_interval = 1000;
+my $rconstatus_interval = 27;
+my $guid_sanity_check_interval = 100;
 my $problematic_characters = "\x86|\x99|\xAE|\xBB|\xAB";
 my $config;
 my $line;
@@ -201,7 +201,7 @@ my $freshen_next_map_prediction = 1;
 my $temporary;
 my %description;
 my $next_mysql_repair;
-my $mysql_repair_interval = 120;
+my $mysql_repair_interval = 137;
 my $mysql_is_broken = 1;
 my $now_upmins = 0;
 my $last_upmins = 0;
@@ -3825,7 +3825,7 @@ sub unban_command {
 	&rcon_command("unbanUser \"$row[5]\"");
 	sleep 1;
 	push (@unban_these, $row[0]);
-	&log_to_file('logs/commands.log', "UNBAN: $row[5]" . '" был разбанен админом"' . "   (ban id#: $row[0]" . '" удален)"');
+	&log_to_file('logs/commands.log', "UNBAN: $row[5] was unbanned by an admin.   (ban id#: $row[0] deleted)");
     }
     # now clean up the database ID's.
     foreach $key (@unban_these) {
@@ -5088,7 +5088,7 @@ sub make_affiliate_server_announcement {
 
     if (defined($results[0])) {
 	&rcon_command('say ' . $affiliate_server_prenouncements[int(rand() * $#affiliate_server_prenouncements)]);
-	# sleep 1;
+	sleep 1;
 	foreach $line (@results) {
 	    &rcon_command("say $line");
 	    # sleep 1;
@@ -5178,6 +5178,7 @@ sub get_server_info {
 }
 # END: &get_server_info($ip_address)
 
+
 # BEGIN: &broadcast_message($message)
 sub broadcast_message {
     my $message = shift;
@@ -5210,9 +5211,6 @@ sub broadcast_message {
 }
 
 
-
-
-
 # BEGIN: big_red_button_command()
 sub big_red_button_command {
     my @matches = &matching_users('.');
@@ -5227,6 +5225,7 @@ sub big_red_button_command {
 }
 
 #BEGIN !rank
+
 
 sub rank {
 
