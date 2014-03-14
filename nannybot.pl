@@ -277,7 +277,7 @@ $last_guid_sanity_check = $time;
 $timestring = scalar(localtime($time));
 $next_announcement = $time + 120;
 $next_mysql_repair = $time + $mysql_repair_interval;
-$next_affiliate_announcement = $time + 300;
+$next_affiliate_announcement = $time;
 
 
 # create the rcon control object - this is how we send commands to the console
@@ -2207,7 +2207,7 @@ sub chat{
 		&voting_command($2);
 	    }
 	}
-	elsif ($message =~ /^!(voting|vote|allowvote|allowvoting|)\s*$/i) {
+	elsif ($message =~ /^!(voting|vote|allowvote|allowvoting)\s*$/i) {
 	    if (&check_access('voting')) {
 		&rcon_command("say !voting on ... or !voting off ... ?");
 	    }
@@ -5078,8 +5078,8 @@ sub make_affiliate_server_announcement {
 	    }
 	}
 	if ($clients) {
-	    if ($clients == 1) { $line = "" . '"кто то играет на"' . " ^1$hostname ^5 ($mapname/$gametype)\n" }
-	    else { $line = "^3$clients " . '"^7игроков на"' . " ^1$hostname ^5 ($mapname/$gametype)\n"; }
+	    if ($clients == 1) { $line = "" . '"^7кто то играет на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n" }
+	    else { $line = "^1$clients " . '"^7игроков на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
 	    if ($clients < $maxclients) {
 		push @results, $line;
 	    }
