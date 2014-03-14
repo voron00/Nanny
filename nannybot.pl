@@ -3350,7 +3350,7 @@ sub stats {
     }
     # print "DEBUG: $name is set to: $name\n";
 
-    my $stats_msg = " " . '"Статистика^2"' . "$name^7: ^1";
+    my $stats_msg = " " . '"Статистика^2"' . "$name^7:";
     my $kills = 1;
 
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
@@ -3361,7 +3361,7 @@ sub stats {
 	@row = $stats_sth->fetchrow_array;
     }
     if ($row[0]) {
-	$stats_msg .= "$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7хедшотов,"';
+	$stats_msg .= " ^1$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7хедшотов,"';
 	$kills = $row[2];
 	if ($row[3]) { 
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
@@ -3371,7 +3371,7 @@ sub stats {
 	}
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	    $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
+	    $stats_msg .= "^1$headshot_percent" . '"^7процент хедшотов"';
 	} 
     }
     else {
@@ -3388,7 +3388,7 @@ sub stats {
     # 2nd generation stats;
     # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bullshit_shots
     # 0  1    2            3             4          5             6            7           8                9              10         11
-    $stats_msg = "";
+    $stats_msg = " " . '"Статистика^2"' . "$name^7:";
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
     $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     @row = $stats_sth->fetchrow_array;
@@ -3401,7 +3401,7 @@ sub stats {
 	my $grenade_ratio = ($row[3]) ? int($row[3] / $kills * 10000) / 100 : 0;
 	my $bash_ratio = ($row[4]) ? int($row[4] / $kills * 10000) / 100 : 0;
 	my $best_killspree = $row[9];
-	$stats_msg .= "^7... ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7ближнего боя"';
+	$stats_msg .= " ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7ближнего боя"';
 	
 	if (($row[2]) || ($row[3]) || ($row[4])) { 
 	    &rcon_command("say $stats_msg");
@@ -3410,12 +3410,13 @@ sub stats {
 	}
 
 	# shotgun_kills,sniper_kills,rifle_kills,machinegun_kills
+	$stats_msg = " " . '"Статистика^2"' . "$name^7:";
 	my $shotgun_ratio = (($row[5]) && ($kills)) ? int($row[5] / $kills * 10000) / 100 : 0;
         my $sniper_ratio = (($row[6]) && ($kills)) ? int($row[6] / $kills * 10000) / 100 : 0;
         my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
 	my $bullshit_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 1000000) / 10000 : 0;
-        $stats_msg = "^7... ^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
+        $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
 
 	if (($row[5]) || ($row[6]) || ($row[7]) || ($row[8])) {
 	    &rcon_command("say $stats_msg");
@@ -3425,14 +3426,16 @@ sub stats {
 
     # best killing spree 
 	if ($best_killspree) {
-	    $stats_msg = "^7" . '"Лучшая серия убийств -^1"' . "$best_killspree";
+	    $stats_msg = " " . '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= "^7" . '"Лучшая серия убийств -^1"' . "$best_killspree";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
 
 	if (($row[11]) && ($config->{'bullshit_calls'})) {
-	    $stats_msg = "^7... Bullshit kills: ^1$row[11] ^7calls (^1$bullshit_ratio ^7percent)";
+	    $stats_msg = " " . '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= " Bullshit kills: ^1$row[11] ^7calls (^1$bullshit_ratio ^7percent)";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
