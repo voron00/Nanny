@@ -2209,7 +2209,7 @@ sub chat{
 	}
 	elsif ($message =~ /^!(voting|vote|allowvote|allowvoting)\s*$/i) {
 	    if (&check_access('voting')) {
-		&rcon_command("say !voting on ... or !voting off ... ?");
+		&rcon_command("say " . '"!voting on или !voting off ?"');
 	    }
 	}
 	
@@ -4204,7 +4204,7 @@ sub suk {
     &rcon_command("say " . '"^1Худшие ^7игроки сервера:"');
 	
 #    sleep 1;
-#    &rcon_command('say . . . . . (the only award that really matters)');
+#    &rcon_command("say . . . . . (the only award that really matters)");
 #    sleep 1;
 #    my @ranks = (
 #		 "^0^o|*SUK*|^pvt^^^1F^7N^2G",
@@ -4218,7 +4218,7 @@ sub suk {
 #		 "^9[^8SUK^9]^1^cook^^3Accident"
 #		 );
  #   foreach my $nth (0..$#ranks) {
-#	&rcon_command('say ^3' . &nth($nth + 1) . "^7  place:^2  $ranks[$nth]");
+#	&rcon_command("say ^3" . &nth($nth + 1) . "^7  place:^2  $ranks[$nth]");
 #	sleep 1;
  #   }
     
@@ -4229,7 +4229,7 @@ sub suk {
     # Most deaths
     $sth = $stats_dbh->prepare('SELECT * FROM stats ORDER BY deaths DESC LIMIT 10;');
     $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command('say' . '"^1Наибольшее количество смертей^7:"');
+    &rcon_command("say" . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
         &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . "$row[3]" . '"^7смертями"');
@@ -5087,7 +5087,7 @@ sub make_affiliate_server_announcement {
     }
 
     if (defined($results[0])) {
-	&rcon_command('say ' . $affiliate_server_prenouncements[int(rand() * $#affiliate_server_prenouncements)]);
+	&rcon_command("say " . $affiliate_server_prenouncements[int(rand() * $#affiliate_server_prenouncements)]);
 	sleep 1;
 	foreach $line (@results) {
 	    &rcon_command("say $line");
@@ -5205,9 +5205,9 @@ sub broadcast_message {
 	    
 	} else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
     }
-    if ($num_servers == 0) { &rcon_command("say Sorry, there are no remote servers defined.  Check your nanny.cfg"); }
-    elsif ($num_servers == 1) { &rcon_command("say OK, your message was broadcast to the other server."); }
-    else { &rcon_command("say OK, your message was broadcast to $num_servers other servers"); }
+    if ($num_servers == 0) { &rcon_command("say " . '"К сожалению, не найдено настроенных удаленных серверов. Проверьте ваш конфигурационный файл."'); }
+    elsif ($num_servers == 1) { &rcon_command("say " . '"Ваше сообщение было успешно передано на другой сервер."'); }
+    else { &rcon_command("say " . '"Ваше сообщение было успешно передано на"' . "^1$num_servers" . '"других серверов"'); }
 }
 
 
@@ -5215,7 +5215,7 @@ sub broadcast_message {
 sub big_red_button_command {
     my @matches = &matching_users('.');
     my $slot;
-    &rcon_command("say " . '"О НЕТ!, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!"');
+    &rcon_command("say " . '"О НЕТ, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!"');
     sleep 1;
     foreach $slot (@matches) {
         &rcon_command("clientkick $slot");
