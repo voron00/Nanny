@@ -1653,7 +1653,7 @@ sub chat{
 
 		if ((!$flooded) && (!$ignore{$slot})) {
 		 #   sleep 1; 
-		    &rcon_command("say ^1$name:^7 $response");
+		    &rcon_command("say ^1$name^7: $response");
 		    &log_to_file('logs/response.log', "Rule: $rule_name  Match Text: $message");
 		 #   sleep 1;
 		}
@@ -1668,7 +1668,7 @@ sub chat{
             print "Penalty Points total for: $name:  $penalty_points{$slot}\n";
 
             if ($penalty_points{$slot} >= 100) {
-                &rcon_command("say ^1$name:^2 " . '"Я думаю мы услышали достаточно, убирайся отсюда!"');
+                &rcon_command("say ^1$name^7:^1" . '"Я думаю мы услышали достаточно, убирайся отсюда!"');
                 sleep 1;
                 &rcon_command("clientkick $slot");
                 &log_to_file('logs/kick.log', "PENALTY: $name was kicked for exceeding their penalty points.  Last Message: $message");
@@ -1815,8 +1815,8 @@ sub chat{
 	    if (&check_access('kick')) {
 		&kick_command($1);
 	    } else {
-		&rcon_command("clientkick $slot");
-		&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !kick others without access");
+		&rcon_command("say " . "^1$name_by_slot{$slot}^7:" . '"У вас нет разрешения на использование этой команды"');
+		#&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !kick others without access");
 	    }
 	}
 	elsif ($message =~ /^!kick\s*$/i) {
@@ -1831,8 +1831,8 @@ sub chat{
 	    if (&check_access('tempban')) {
 		&tempban_command($1);
 	    } else {
-		&rcon_command("clientkick $slot");
-		&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !tempban others without access");
+		&rcon_command("say " . "^1$name_by_slot{$slot}^7:" . '"У вас нет разрешения на использование этой команды"');
+		#&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !tempban others without access");
 	    }
 	}
 	elsif ($message =~ /^!tempban\s*$/i) {
@@ -1846,8 +1846,8 @@ sub chat{
 	    if (&check_access('ban')) {
 		&ban_command($1);
 	    } else {
-		&rcon_command("clientkick $slot");
-		&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !ban others without access");
+		&rcon_command("say " . "^1$name_by_slot{$slot}^7:" . '"У вас нет разрешения на использование этой команды"');
+		#&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !ban others without access");
 	    }
 	}
 	elsif ($message =~ /^!ban\s*$/i) {
@@ -1871,13 +1871,13 @@ sub chat{
         }
 		
 		# !deletestats (search_string)
-        elsif ($message =~ /^!deletestats|clearstats\s+(.+)/i) {
+        elsif ($message =~ /^!clearstats\s+(.+)/i) {
             if (&check_access('clear_stats')) {
                 &clear_stats($1);
             } else {
             }
         }
-        elsif ($message =~ /^!deletestats|clearstats\s*$/i) {
+        elsif ($message =~ /^!clearstats\s*$/i) {
             if (&check_access('clear_stats')) {
                 &rcon_command("say " . '"!удалить статистику для кого?"');
             }
@@ -2115,7 +2115,7 @@ sub chat{
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0;
 		}
-		&rcon_command("say " . '"Хорошо "' . "$name^7," . '" перезапускаю себя..."');
+		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" перезапускаю себя..."');
 		#sleep 1;
 	    }
 	}
@@ -2168,7 +2168,7 @@ sub chat{
 			sleep 1;
 			&rcon_command("say " . '"Русская версия от ^5V^0oro^5N"');
 		    sleep 1;
-		    &rcon_command("say " . '"^3Программу и исходный код данной русской версии можно найти тут:^2 https://github.com/alexey12424323/Nanny"');
+		    &rcon_command("say " . '"^3Программу и исходный код данной русской версии можно найти тут:^2 https://github.com/voron00/Nanny"');
 		}	    
 	    }
 	}
@@ -2832,7 +2832,7 @@ sub locate {
 
 		&rcon_command("say ^5#$key^7: $location");
 		print "$location\n"; 
-		#sleep 1;
+		sleep 1;
 	    } else {
 		# no valid IP for this slot.
 		# Sit on our hands?
@@ -2848,7 +2848,7 @@ sub locate {
 	}
 	&rcon_command("say $location");
 	print "$location\n";
-	# sleep 1;
+	sleep 1;
     }
 
         
@@ -3732,7 +3732,7 @@ sub clear_stats {
 	my @row;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) {
-    &rcon_command("say No matches for: $search_string"); }
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
     elsif ($#matches == 0) {
 	my $victim = $name_by_slot{$matches[0]};
 	$sth = $stats_dbh->prepare('DELETE FROM stats where name=?;');
@@ -3889,15 +3889,15 @@ sub speed_command {
     if ($speed =~ /^\d+$/) {
         &rcon_command("g_speed $speed");
         # sleep 1;
-        &rcon_command("say Speed was set to $speed by an admin.");
+        &rcon_command("say " . '"Скорость установлена на значение:"' . "^2$speed");
         &log_to_file('logs/admin.log', "!speed: speed was set to $speed by:  $name - GUID $guid");
     } else {
         my $query = &rcon_query("g_speed");
         if ($query =~ /\"g_speed\" is: \"(\d+)\^7\"/m) {
             $speed = $1;
-            &rcon_command("say ^2the ^1speed ^2is currently set to:^5 $speed");
+            &rcon_command("say " . '"Значение скорости сейчас установлено на:"' . "^2$speed");
         } else {
-            &rcon_command("say sorry, cant parse the speed results.");
+            &rcon_command("say " . '"К сожалению, не удалось установить значение скорости"');
         }
         # sleep 1;
     }
@@ -3911,15 +3911,15 @@ sub gravity_command {
     if ($gravity =~ /^\d+$/) {
         &rcon_command("g_gravity $gravity");
         # sleep 1;
-        &rcon_command("say Gravity was set to $gravity by an admin.");
+        &rcon_command("say " . '"Гравитация установлена на значение:"' . "^1$gravity");
         &log_to_file('logs/admin.log', "!gravity: gravity was set to $gravity by:  $name - GUID $guid");
     } else {
         my $query = &rcon_query("g_gravity");
         if ($query =~ /\"g_gravity\" is: \"(\d+)\^7\"/m) {
             $gravity = $1;
-            &rcon_command("say ^2the ^1gravity ^2is currently set to:^5 $gravity");
+            &rcon_command("say " . '"^7Значение гравитации сейчас установлено на:"' . "^1$gravity");
         } else {
-            &rcon_command("say sorry, cant parse the gravity results.");
+            &rcon_command("say " . '"К сожалению, не удалось установить значение гравитации"');
         }
 
     }
@@ -3934,16 +3934,16 @@ sub glitch_command {
     if (&flood_protection('glitch', 60, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	$config->{'glitch_server_mode'} = 1;
-        &rcon_command("say Glitch mode was enabled by an admin. ^1NO KILLING NOW.");
+        &rcon_command("say " . '"Дружелюбный режим включен. ^1УБИВАТЬ ТЕПЕРЬ ЗАПРЕЩЕНО!"');
 	# sleep 1;
         &log_to_file('logs/admin.log', "!GLITCH: glitch mode was enabled by:  $name - GUID $guid");
     } elsif ($state =~ /^(off|0|no|disabled?)$/i) {
 	$config->{'glitch_server_mode'} = 0;
-        &rcon_command("say Glitch mode was disabled by an admin. ^2Killing is permitted now.");
+        &rcon_command("say " . '"Дружелюбный режим выключен. ^2УБИВАТЬ ТЕПЕРЬ РАЗРЕШЕНО!"');
 	# sleep 1;
         &log_to_file('logs/admin.log', "!GLITCH: glitch mode was disabled by:  $name - GUID $guid");
     } else {
-        &rcon_command("say Unrcognized glitch state:  $state  ... Use: on or off");
+        &rcon_command("say " . '"Неизвестное значение команды glitch:"' . "$state" . '" Используйте: on или off"');
         # sleep 1;
     }
 }
@@ -4449,7 +4449,7 @@ sub tell {
 
     if ($#matches == -1) {
         if (&flood_protection('tell-nomatch', 15, $slot)) { return 1; }
-        &rcon_command("say No matches for: $search_string");
+        &rcon_command("say " . '"Нет совпадений с:"' . "$search_string");
     }
     else {
         if (&flood_protection('tell', 60, $slot)) { return 1; }
@@ -4471,7 +4471,7 @@ sub assrape {
     my @aliases;
     if ($#matches == -1) {
         if (&flood_protection('assrape-nomatch', 15, $slot)) { return 1; }
-        &rcon_command("say No matches for: $search_string");
+        &rcon_command("say " . '"Нет совпадений с:"' . "$search_string");
     }
     elsif ($#matches == 0) {
 	if (&flood_protection('assrape', 60, $slot)) { return 1; }
