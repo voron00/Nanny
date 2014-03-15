@@ -763,7 +763,7 @@ while (1) {
 		print "DEBUG: game_type is: $game_type\n";
 		if (($voting) && ($config->{'anti_vote_rush'}) && ($game_type ne 'sd')) {
 		    print "ANTI-VOTE-RUSH:  Turned off voting for 25 seconds...\n";
-		    &rcon_command("g_allowvote 0");
+		    &rcon_command("g_allowVote 0");
 		    # sleep 1;
 		    $reactivate_voting = $time + 25;
 		}
@@ -892,7 +892,7 @@ while (1) {
 	if (($reactivate_voting) && ($time >= $reactivate_voting)) {
 	    $reactivate_voting = 0;
 	    if ($voting) {
-		&rcon_command("g_allowvote 1");
+		&rcon_command("g_allowVote 1");
 		# sleep 1;
 		print "Reactivated voting...\n";
 	    }
@@ -1960,13 +1960,13 @@ sub chat{
 	}
 	
 	# !awards
-	elsif ($message =~ /^!(awards|top)\b/i) {
+	elsif ($message =~ /^!(awards|best)\b/i) {
 	    if (&check_access('awards')) {
 		&awards();
 	    }
 	}
 	# !suk
-        elsif ($message =~ /^!(suk|deaths)\b/i) {
+        elsif ($message =~ /^!(suk|worst)\b/i) {
             if (&check_access('suk')) {
                 &suk();
             }
@@ -2390,11 +2390,11 @@ sub chat{
 		    sleep 1;
 		}
 		if (&check_access('awards')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!top ^7чтобы посмотреть список лучших десяти игроков на сервере"');
+		    &rcon_command("say " . '"^7Вы можете использовать ^1!best ^7чтобы посмотреть список лучших десяти игроков на сервере"');
 		    sleep 1;
 		}
 		if (&check_access('suk')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!deaths ^7чтобы посмотреть список лучших десяти игроков по количеству смертей"');
+		    &rcon_command("say " . '"^7Вы можете использовать ^1!worst ^7чтобы посмотреть список худших десяти игроков на сервере"');
 		    sleep 1;
 		}
 		if (&check_access('uptime')) {
@@ -2613,21 +2613,21 @@ sub chat{
 
 	        elsif ($message =~ /^!guid\b/i) {
             {
-                &rcon_command("say " . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1GUID^7 - ^2 "' . "$guid");
+                &rcon_command("say " . "^2$name_by_slot{$slot}^7:" . '"^7Твой ^1GUID^7 - ^2"' . "$guid");
                 # sleep 1;
             }
         }
 		
 			elsif ($message =~ /^!id\b/i) {
             {
-                &rcon_command("say " . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1ID^7 - ^2 "' . "$slot");
+                &rcon_command("say " . "^2$name_by_slot{$slot}^7:" . '"^7Твой ^1ID^7 - ^2"' . "$slot");
                 # sleep 1;
             }
         }
 		
 			elsif ($message =~ /^!ip\b/i) {
             {
-                &rcon_command("say " . " $name_by_slot{$slot}^7:" . '" ^7Твой ^1IP Адрес^7 - ^2 "' . "$ip_by_slot{$slot}");
+                &rcon_command("say " . "^2$name_by_slot{$slot}^7:" . '"^7Твой ^1IP-Адрес^7 - ^2"' . "$ip_by_slot{$slot}");
                 # sleep 1;
             }
         }
@@ -3135,7 +3135,7 @@ sub geolocate_ip_win32 {
     my $metric = 0;
     if (!defined($ip)) { return '"Неверный IP"'; }
 	
-	if ($ip =~ /^192\.168\.|^10\.|localhost|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
+	if ($ip =~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
 	
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP адрес:  "' . "$ip"; }
 	
@@ -3416,7 +3416,7 @@ sub stats {
         my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
 	my $bullshit_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 1000000) / 10000 : 0;
-        $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7полу-автоматов"';
+        $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7автоматов"';
 
 	if (($row[5]) || ($row[6]) || ($row[7]) || ($row[8])) {
 	    &rcon_command("say $stats_msg");
@@ -3844,13 +3844,13 @@ sub voting_command {
     my $state = shift;
     if (&flood_protection('voting', 60, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
-	&rcon_command("g_allowvote 1");
+	&rcon_command("g_allowVote 1");
 	# sleep 1;
 	&rcon_command("say " . '"Голосование включено."');
 	$voting = 1;
         &log_to_file('logs/admin.log', "!VOTING: voting was enabled by:  $name - GUID $guid");
     } elsif ($state =~ /^(off|0|no|disabled?)$/i) {
-        &rcon_command("g_allowvote 0");
+        &rcon_command("g_allowVote 0");
         # sleep 1;
         &rcon_command("say " . '"Голосование выключено."');
 	$voting = 0;
@@ -3958,60 +3958,59 @@ sub awards {
     if (&flood_protection('awards', 900, $slot)) { return 1; }
     if (&flood_protection('awards', 300)) { return 1; }
 
-    
+    &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
+    sleep 1;
     # Most Kills
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" ORDER BY kills DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats ORDER BY kills DESC LIMIT 10;');
     $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command('say' . '"^2Лучшие 10 игроков сервера^7:"');
+    &rcon_command("say " . '"^2Наибольшее количество убийств^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-	&rcon_command('say ^3' . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . "$row[2]" . '"^7убийствами"' );
+	&rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . "$row[2]" . '"^7убийствами"');
 	sleep 1;
     }
 
     # Best Kill to Death ratio
-    #$counter = 1;
-    #sleep 1;
-    #$sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 1000 ORDER BY (kills * 10000 / deaths) DESC LIMIT 10;');
-    #$sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-   # &rcon_command('say Awards for ^2BEST KILL TO DEATH RATIO:');
-   # sleep 1;
-   # while (@row = $sth->fetchrow_array) {
+    $counter = 1;
+    sleep 1;
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 1 ORDER BY (kills * 10000 / deaths) DESC LIMIT 10;');
+    $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    &rcon_command("say " . '"^2Игроки с лучшим рейтингом^7:"');
+    sleep 1;
+    while (@row = $sth->fetchrow_array) {
 
 	# Cut point - Everything below this point was restored from a slightly older backup
 	# The file was damaged and partly destroyed.  
 	# Everything below this point was reconstructed from the slightly-older emacs turd.
 	# Remind me to teach you about free disk space, Laz.  -smug
 	
-#        &rcon_command('say ^3' . &nth($counter++) . "^7  place: (#$row[0])^2  $row[1]  ^7with^1  " . 
-#		      ( int($row[2] / $row[3] * 100) / 100 ) . "  ^7kills per deaths" );
-   #     sleep 1;
-   # }
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7рейтингом убийств/смертей"');
+        sleep 1;
+    }
 
     # Best Headshot Percentages
-    #$counter = 1;
-    #sleep 1;
-    #$sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 1000 ORDER BY (headshots * 10000 / kills) DESC LIMIT 10;');
-    #$sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-   # &rcon_command('say Awards for ^2HIGHEST HEADSHOT PERCENTAGES:');
-    #sleep 1;
-    #while (@row = $sth->fetchrow_array) {
-     #   &rcon_command('say ^3' . &nth($counter++) . "^7  place: (#$row[0])^2  $row[1]  ^7with^1  " .
-     #                 ( int($row[4] / $row[2] * 10000) / 100 ) . "  ^7percent headshots" );
-    #    sleep 1;
-  # }
+    $counter = 1;
+    sleep 1;
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 1 ORDER BY (headshots * 10000 / kills) DESC LIMIT 10;');
+    $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    &rcon_command("say " . '"^2Лучший процент хедшотов^7:"');
+    sleep 1;
+    while (@row = $sth->fetchrow_array) {
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
+        sleep 1;
+   }
 
     # Best Kill Spree
-    #$counter = 1;
-    #sleep 1;
-    #$sth = $stats_dbh->prepare('SELECT * FROM stats2 ORDER BY best_killspree DESC LIMIT 10;');
-    #$sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    #&rcon_command('say Awards for ^2LONGEST KILLING SPREE:');
-    #sleep 1;
-    #while (@row = $sth->fetchrow_array) {
-      #  &rcon_command('say ^3' . &nth($counter++) . "^7  place: (#$row[0])^2  $row[1]  ^7with^1 $row[9] ^7kills in a row" );
-    #    sleep 1;
-   # }
+    $counter = 1;
+    sleep 1;
+    $sth = $stats_dbh->prepare('SELECT * FROM stats2 ORDER BY best_killspree DESC LIMIT 10;');
+    $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    &rcon_command("say " . '"^2Лучшие серии убийств^7:"');
+    sleep 1;
+    while (@row = $sth->fetchrow_array) {
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' .  "$row[9]" . '"^7убийствами подряд"');
+        sleep 1;
+    }
 }
 
 
@@ -4202,10 +4201,11 @@ sub suk {
     if (&flood_protection('suk', 600, $slot)) { return 1; }
     if (&flood_protection('suk', 300)) { return 1; }
 
-#    &rcon_command('say The ^3SUK^7 Awards:');
-#    sleep 2;
+    &rcon_command("say " . '"^1Худшие ^7игроки сервера:"');
+	
+#    sleep 1;
 #    &rcon_command('say . . . . . (the only award that really matters)');
-#    sleep 2;
+#    sleep 1;
 #    my @ranks = (
 #		 "^0^o|*SUK*|^pvt^^^1F^7N^2G",
 #		 "^1Bad^9robot^4 exSGT",
@@ -4217,49 +4217,46 @@ sub suk {
 #		 "Doug",
 #		 "^9[^8SUK^9]^1^cook^^3Accident"
 #		 );
-#    foreach my $nth (0..$#ranks) {
+ #   foreach my $nth (0..$#ranks) {
 #	&rcon_command('say ^3' . &nth($nth + 1) . "^7  place:^2  $ranks[$nth]");
-#	sleep 2;
-#    }
+#	sleep 1;
+ #   }
     
     my @row;
     my $sth;
     my $counter = 1;
-
-    # sleep 1;
-
+    sleep 1;
+    # Most deaths
     $sth = $stats_dbh->prepare('SELECT * FROM stats ORDER BY deaths DESC LIMIT 10;');
     $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command('say' . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command('say ^3' . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . "$row[3]" . '"^7смертями"' );
+        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . "$row[3]" . '"^7смертями"');
         sleep 1;
     }
-
-    #$counter = 1;
-   # sleep 1;
-    #$sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 1000) and (deaths > 1)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
-    #$sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    #&rcon_command('say ^3SUK^7 Awards for ^2WORST KILL TO DEATH RATIO:');
-    #sleep 1;
-    #while (@row = $sth->fetchrow_array) {
-      #  &rcon_command('say ^3' . &nth($counter++) . "^7  place:^2  $row[1]  ^7with^1  " .
-       #               ( int($row[2] / $row[3] * 100) / 100 ) . "  ^7kills per deaths" );
-     #   sleep 1;
-    #}
-
-   # $counter = 1;
-   # sleep 1;
-    #$sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 1000) and (headshots > 1)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
-    #$sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-   # &rcon_command('say ^3SUK^7 Awards for ^2LOWEST HEADSHOT PERCENTAGES:');
-   # sleep 1;
-   # while (@row = $sth->fetchrow_array) {
-      #  &rcon_command('say ^3' . &nth($counter++) . "^7  place:^2  $row[1]  ^7with^1  " .
-    #   #               ( int($row[4] / $row[2] * 10000) / 100 ) . "  ^7percent headshots" );
-    #    sleep 1;
-    #}
+    # Worst k2d ratio
+    $counter = 1;
+    sleep 1;
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 1) and (deaths > 1)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 10;');
+    $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    &rcon_command("say " . '"^1Игроки с худшим рейтингом^7:"');
+    sleep 1;
+    while (@row = $sth->fetchrow_array) {
+        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7рейтингом убийств/смертей"');
+        sleep 1;
+    }
+    # Worst headshot percentages
+    $counter = 1;
+    sleep 1;
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 1) and (headshots > 1)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 10;');
+    $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    &rcon_command("say " . '"^1Худший процент хедшотов^7:"');
+    sleep 1;
+    while (@row = $sth->fetchrow_array) {
+        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' .  "$row[1]" . '"^7c^1"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
+        sleep 1;
+    }
 }
 
 # BEGIN:  &guid_sanity_check($guid,$ip);
@@ -5081,7 +5078,7 @@ sub make_affiliate_server_announcement {
 	    }
 	}
 	if ($clients) {
-	    if ($clients == 1) { $line = "" . '"^7кто то играет на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n" }
+	    if ($clients == 1) { $line = "" . '"^7кто-то играет на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n" }
 	    else { $line = "^1$clients " . '"^7игроков на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
 	    if ($clients < $maxclients) {
 		push @results, $line;
