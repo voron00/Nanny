@@ -71,8 +71,8 @@ use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
 # use IO::File; # IO-File is used for raw disk reads. No need for now
-use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently.
-use DBD::SQLite; # Perl2EXE is happier if we declare this.
+# use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently. We dont use Perl2exe, so no need for that.
+# use DBD::SQLite; # Perl2EXE is happier if we declare this. We dont use Perl2exe, so no need for that.
 # use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
 use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
@@ -214,7 +214,7 @@ my @remote_servers;
 # if local ip address
 my $localip = '127.0.0.1';
 
-# print current perl version (debug message)
+# print current perl version and OS (debug message)
 print "Perl runtime version is $^V, running on $^O\n";
 
 # initialize time, print and format it
@@ -277,7 +277,7 @@ $last_guid_sanity_check = $time;
 $timestring = scalar(localtime($time));
 $next_announcement = $time + 120;
 $next_mysql_repair = $time + $mysql_repair_interval;
-$next_affiliate_announcement = $time;
+$next_affiliate_announcement = $time + 20;
 
 
 # create the rcon control object - this is how we send commands to the console
@@ -1408,7 +1408,7 @@ sub initialize_databases {
     if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
 	$mysql_logging_dbh = DBI->connect('dbi:mysql:' . $config->{'mysql_database'} . ':' . $config->{'mysql_hostname'}, 
 					  $config->{'mysql_username'}, $config->{'mysql_password'})
-	    or die "MYSQL LOGGING: Couldn't connect to mysql database: $DBI::errstr\n";
+	    or &die_nice("MYSQL LOGGING: Couldn't connect to mysql database: $DBI::errstr\n");
 	
 	print "MySQL Logging database brought online\n\n";
 
@@ -1750,7 +1750,7 @@ sub chat{
     if ((!$ignore{$slot}) && ($message =~ /^!/)) {
     
 	# !locate (search_string)
-	if ($message =~ /^!(locate|stalk)\s+(.+)/i) {
+	if ($message =~ /^!(locate|geolocate)\s+(.+)/i) {
 	    if (&check_access('locate')) {
 		&locate($2);
 	    }
@@ -2029,36 +2029,36 @@ sub chat{
 	# !smoke
         elsif ($message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s+(.+)/i) {
 	    if (&check_access('weapon_control')) {
-		&toggle_weapon('scr_allow_smokegrenades', 'Smoke Grenades', $2);
+		&toggle_weapon('scr_allow_smokegrenades', '"Дымовые гранаты"', $2);
 	    }
 	}
 	elsif ($message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s*$/i) {
 	    if (&check_access('weapon_control')) {
-		&rcon_command("say ^1$name: ^7You can turn^1 !$1 ^5on ^7or turn ^1 !$1 ^5off^7.  Which is it?");
+		&rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off");
 	    }
 	}
 
         # !grenades
         elsif ($message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s+(.+)/i) {
             if (&check_access('weapon_control')) {
-                &toggle_weapon('scr_allow_fraggrenades', 'Frag Grenades', $2);
+                &toggle_weapon('scr_allow_fraggrenades', '"Осколочные гранаты"', $2);
             }
         }
         elsif ($message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s*$/i) {
             if (&check_access('weapon_control')) {
-                &rcon_command("say ^1$name: ^7You can turn^1 !$1 ^5on ^7or turn ^1 !$1 ^5off^7.  Which is it?");
+                &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off");
             }
         }
 
         # !shotguns
         elsif ($message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s+(.+)/i) {
             if (&check_access('weapon_control')) {
-                &toggle_weapon('scr_allow_shotgun', 'Shotguns', $2);
+                &toggle_weapon('scr_allow_shotgun', '"Дробовики"', $2);
             }
         }
         elsif ($message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s*$/i) {
             if (&check_access('weapon_control')) {
-                &rcon_command("say ^1$name: ^7You can turn^1 !$1 ^5on ^7or turn ^1 !$1 ^5off^7.  Which is it?");
+                &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off");
             }
         }
 
@@ -2132,11 +2132,11 @@ sub chat{
                 $sth = $guid_to_name_dbh->prepare('DELETE FROM guid_to_name;');
                 $sth->execute() or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
                 if ($row[0] == 1) {
-                    &rcon_command("say ^2Deleted the only record for GUID <-> NAME");
+                    &rcon_command("say " . '"^7Удалена одна запись из базы ^2GUID <-> NAME"');
                 } elsif ($row[0] > 1) {
-                    &rcon_command("say ^2Deleted $row[0] GUID <-> NAME records");
+                    &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2GUID <-> NAME"');
                 } else {
-                    &rcon_command("say ^2hey dip-shit, there are no aliases to purge");
+                    &rcon_command("say " . '"^7В базе данных не найдено нужных записей для удаления"');
                 }
 
                 $sth = $ip_to_name_dbh->prepare('SELECT count(*) FROM ip_to_name WHERE length(name) > 31;');
@@ -2146,9 +2146,9 @@ sub chat{
                 $sth = $ip_to_name_dbh->prepare('DELETE FROM ip_to_name WHERE length(name) > 31;');
                 $sth->execute() or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
                 if ($row[0] == 1) {
-                    &rcon_command("say ^2Deleted the only record for IP <-> NAME");
+                    &rcon_command("say " . '"^7Удалена одна запись из базы ^2IP <-> NAME"');
                 } elsif ($row[0] > 1) {
-                    &rcon_command("say ^2Deleted $row[0] IP <-> NAME records that were too long");
+                    &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2IP <-> NAME^7 которые имели слишком длинный формат"');
                 }
             }
         }
@@ -2468,7 +2468,9 @@ sub chat{
 		# sleep 1;
 	    }
         }
-        # !speed (number)
+		
+		
+    # !speed (number)
         if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
             if (&check_access('speed')) {
                 &speed_command($2);
@@ -2839,7 +2841,7 @@ sub locate {
 	    }
 	}
     }
-    if ($search_string =~ /^console$|^nanny$|^Nanny$/) {
+    if ($search_string =~ /^console$|^nanny$|^Nanny$|^server$|^Server$/) {
 	$location = &geolocate_ip_win32($config->{'ip'});
 	if ($location =~ /,.* - .+/) {
 	    $location = '"Этот сервер находится в районе ^2"' . $location;
@@ -3432,7 +3434,8 @@ sub stats {
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
-
+	
+    # bullshit kills
 	if (($row[11]) && ($config->{'bullshit_calls'})) {
 	    $stats_msg = " " . '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= " Bullshit kills: ^1$row[11] ^7calls (^1$bullshit_ratio ^7percent)";
@@ -4293,7 +4296,7 @@ sub guid_sanity_check {
     print "\nAsking $activision_master if $ip_address has provided a valid key recently.\n\n";
 
     socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
-	or die "Socket error: $!";
+	or &die_nice("Socket error: $!");
 
     my $random = int(rand(7654321));
     my $send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_address  0";
@@ -4309,14 +4312,14 @@ sub guid_sanity_check {
     # Send the packet
 	$portaddr = sockaddr_in($port, $d_ip);
 	send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
-	    or die "cannot send to $ip_address($port): $!\n\n";
+	    or &die_nice("Cannot send to $ip_address($port): $!\n\n");
 	
 	# Check to see if there is a response yet.
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
 	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		or die "Socket error: recv: $!";
+		or &die_nice("Socket error: recv: $!");
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
@@ -4693,7 +4696,7 @@ sub check_guid_zero_players {
 
 	print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid key recently.\n\n";
 
-	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or die "Socket error: $!";
+	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
 
 	$selecta = IO::Select->new();
 	$selecta->add(\*SOCKET);
@@ -4702,14 +4705,14 @@ sub check_guid_zero_players {
 	    # Send the packet
 	    $portaddr = sockaddr_in($port, $d_ip);
 	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
-		or die "cannot send to $ip_address($port): $!\n\n";
+		or &die_nice("cannot send to $ip_address($port): $!\n\n");
 	    
 	    # Check to see if there is a response yet.
 	    @ready = $selecta->can_read($read_timeout);
 	    if (defined($ready[0])) {
 		# Yes, the socket is ready.
 		$portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		    or die "Socket error: recv: $!";
+		    or &die_nice("Socket error: recv: $!");
 		# strip the 4 \xFF bytes at the begining.
 		$message =~ s/^.{4}//;
 		$got_response = 1;
@@ -4892,19 +4895,19 @@ sub toggle_weapon {
 	&log_to_file('logs/admin.log', "$description $is_was enabled by:  $name - GUID $guid");
 	&rcon_command("set $attribute \"1\"");
 	# sleep 1;
-	&rcon_command("say ^2 $description ^7 $is_was ^1ENABLED^7 by an admin.");
+	&rcon_command("say " . "^2$description" .  '"^7были ^2ВКЛЮЧЕНЫ^7 админом."');
 	# sleep 1;
     } elsif ($requested_state =~ /no|0|off|disable/i) {
         &log_to_file('logs/admin.log', "$description $is_was disabled by:  $name - GUID $guid");
         &rcon_command("set $attribute \"0\"");
         # sleep 1;
-        &rcon_command("say ^2 $description ^7 $is_was ^1DISABLED^7 by an admin.");
+        &rcon_command("say " . "^2$description" .  '"^7были ^1ВЫКЛЮЧЕНЫ^7 админом."');
         # sleep 1;
     } else {
 	&log_to_file('logs/admin.log', "$description $is_was set to $requested_state:  $name - GUID $guid");
         &rcon_command("set $attribute \"$requested_state\"");
         # sleep 1;
-        &rcon_command("say ^2 $description ^7 $is_was set to ^1set $requested_state^7 by an admin.");
+        &rcon_command("say " . "^2$description" . '"^7были установлены в режим"' . "^1$requested_state" . '"^7админом."');
         # sleep 1;
 
     }
@@ -5139,14 +5142,14 @@ sub get_server_info {
 	# Send the packet
 	$portaddr = sockaddr_in($port, $d_ip);
 	send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
-	    or die "cannot send to $ip_address($port): $!\n\n";
+	    or &die_nice("cannot send to $ip_address($port): $!\n\n");
 	
 	# Check to see if there is a response yet.
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
 	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		or die "Socket error: recv: $!";
+		or &die_nice("Socket error: recv: $!");
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
