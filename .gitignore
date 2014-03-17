@@ -214,6 +214,7 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 # Nanny
+nanny.cfg
 logs/admin.log
 logs/chat.log
 logs/commands.log

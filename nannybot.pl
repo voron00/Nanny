@@ -4,7 +4,7 @@
 print "Initializing NannyBot...\n";
 sleep 1;
 
-my $version = '3.0.9 RU';
+my $version = '3.1 RU';
 
 # VERSION 3.xx RU changelog is on github page https://github.com/voron00/Nanny/commits/master
 

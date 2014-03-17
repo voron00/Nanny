@@ -88,7 +88,7 @@ sub load_config_file {
     my $rule_name = 'undefined';
     my $response_count = 1;
 
-    print "\n[*] Parsing config file: $config_file...\n\n";
+    print "\nParsing config file: $config_file...\n\n";
 
     while (defined($line = <CONFIG>)) {
         $line =~ s/\s+$//;
@@ -96,16 +96,16 @@ sub load_config_file {
             ($config_name,$config_val) = ($1,$2);
             if ($config_name eq 'ip_address') {
                 $address = $config_val;
-                print "[*] Server IP address: $address\n";
+                print "Server IP address: $address\n";
             }
             elsif ($config_name eq 'port') {
                 $port = $config_val;
-		print "[*] Server port number: $port\n";
+		print "Server port number: $port\n";
             }
 
             elsif ($config_name eq 'rcon_pass') {
                 $password = $config_val;
-                print "[*] RCON pass: $password\n";
+                print "RCON pass: $password\n";
             }
  	}
     }
