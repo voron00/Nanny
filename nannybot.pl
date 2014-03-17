@@ -4,7 +4,7 @@
 print "Initializing NannyBot...\n";
 sleep 1;
 
-my $version = '3.1 RU';
+my $version = '3.1.1 RU';
 
 # VERSION 3.xx RU changelog is on github page https://github.com/voron00/Nanny/commits/master
 
@@ -1870,16 +1870,29 @@ sub chat{
             }
         }
 		
-		# !deletestats (search_string)
+		# !clearstats(search_string)
         elsif ($message =~ /^!clearstats\s+(.+)/i) {
-            if (&check_access('clear_stats')) {
+            if (&check_access('clearstats')) {
                 &clear_stats($1);
             } else {
             }
         }
         elsif ($message =~ /^!clearstats\s*$/i) {
-            if (&check_access('clear_stats')) {
-                &rcon_command("say " . '"!удалить статистику для кого?"');
+            if (&check_access('clearstats')) {
+                &rcon_command("say " . '"!clearstats для кого?"');
+            }
+        }
+		
+			# !report (search_string)
+        elsif ($message =~ /^!report\s+(.+)/i) {
+            if (&check_access('report')) {
+                &report_player($1);
+            } else {
+            }
+        }
+        elsif ($message =~ /^!report\s*$/i) {
+            if (&check_access('report')) {
+                &rcon_command("say " . '"!report кого?"');
             }
         }
 	
@@ -2753,7 +2766,7 @@ sub chat{
 			    }
 
 			}
-			elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много данных на: "' . "$lastkill_search"); }
+			elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$lastkill_search"); }
 		    } else {
 			if ((defined( $last_killed_by{$slot} )) && ($last_killed_by{$slot} ne '... ummm .... Sorry, I forgot.')) {
 			    &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком ^1"' . $last_killed_by{$slot} );
@@ -3661,9 +3674,8 @@ sub ignore {
         &log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$matches[0]} was ignored by $name - GUID $guid - (Search: $search_string)");
 	
     }
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много данных на: "' . "$search_string"); }
+    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$search_string"); }
 }
-
 
 # BEGIN: forgive($search_string)
 sub forgive {
@@ -3699,9 +3711,8 @@ sub forgive {
         &log_to_file('logs/admin.log', "!FORGIVE: $name_by_slot{$matches[0]} was forgiven by $name - GUID $guid - (Search: $search_string)");
 
     }
-    elsif ($#matches > 0) { &rcon_command("say " . '" Слишком много данных на: "' . "$search_string"); }
+    elsif ($#matches > 0) { &rcon_command("say " . '" Слишком много совпадений с: "' . "$search_string"); }
 }
-
 
 # BEGIN: kick_command($search_string)
 sub kick_command {
@@ -3724,7 +3735,7 @@ sub kick_command {
 	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
 	
     }
-    elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string"); }
+    elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string"); }
 }
 
 # BEGIN: !clearstats command($search_string)
@@ -3737,13 +3748,31 @@ sub clear_stats {
     if ($#matches == -1) {
     &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
     elsif ($#matches == 0) {
-	my $victim = $name_by_slot{$matches[0]};
+	$victim = $name_by_slot{$matches[0]};
 	$sth = $stats_dbh->prepare('DELETE FROM stats where name=?;');
     $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	$sth = $stats_dbh->prepare('DELETE FROM stats2 where name=?;');
     $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	&rcon_command("say " . '"Удалена статистика для:"' . "$victim"); }
-	elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string");}
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !report command($search_string)
+sub report_player {
+    if (&flood_protection('report_player', 60, $slot)) { return 1; }
+    my $search_string = shift;
+    my $target_player;
+	my $target_player_guid;
+	my @row;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$target_player = $name_by_slot{$matches[0]};
+	$target_player_guid = $guid_by_slot{$matches[0]};
+	&rcon_command("say " . '"Жалоба на игрока"' . "$target_player" . '"отправлена."');
+    &log_to_file('logs/report.log', "!report: Player $name_by_slot{$slot} - GUID $guid reported player $target_player - GUID $target_player_guid  via the !report command. (Search: $search_string)");	}
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
 }
 
 # BEGIN: tempban_command($search_string)
@@ -3757,7 +3786,7 @@ sub tempban_command {
 	my @matches = &matching_users($search_string);
 	if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$search_string"); return 0; }
 	elsif ($#matches == 0) { $slot = $matches[0]; }
-	elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string"); return 0; }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string"); return 0; }
     }
     
     my $ban_ip = 'undefined';
@@ -3787,7 +3816,7 @@ sub ban_command {
         my @matches = &matching_users($search_string);
         if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$search_string"); return 0; }
         elsif ($#matches == 0) { $slot = $matches[0]; }
-        elsif ($#matches > 0) { &rcon_command("say Слишком много данных на: " . "$search_string"); return 0; }
+        elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string"); return 0; }
     }   
     my $ban_ip = 'undefined';
     my $unban_time = 2125091758;
@@ -3806,7 +3835,6 @@ sub ban_command {
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
 }
-
 
 # BEGIN: &unban_command($target);
 #  where $target = a ban ID # or a partial string match for names. 
@@ -5232,7 +5260,7 @@ sub big_red_button_command {
 
 sub rank {
 
-   if (&flood_protection('rank', 300, $slot)) { return 1; }
+   if (&flood_protection('rank', 60, $slot)) { return 1; }
 
    my $rank_msg = "$name: ";
    my $kills = 1;
