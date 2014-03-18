@@ -85,6 +85,7 @@ use Net::FTP; # FTP support for remote logfiles
 use File::Basename; # ftptail support
 use File::Temp qw/ :POSIX /; # ftptail support
 use Carp; # ftptail support
+use Time::HiRes; # needs to perform sleep events above 1
 
 # Connect to sqlite databases
 #my $region_names_dbh = DBI->connect("dbi:SQLite:dbname=databases/region_names.db","","");
@@ -180,7 +181,6 @@ my $last_guid0_audit = time;
 my $guid0_audit_interval = 70;
 my %ignore;
 my $ftp_lines = 0;
-my $ftp_sleepInterval = 1;
 my $ftp_inbandSignaling = 0;
 my $ftp_verbose = 1;
 my $ftp_host = '';
@@ -259,7 +259,7 @@ if ($logfile_mode eq 'local') {
     $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
     
     if ($config->{'use_passive_ftp'}) {
-	print "Using PASV ftp mode...\n\n";
+	print "Using Passive ftp mode...\n\n";
 	$ftp->pasv() || die $ftp->message;
     }
     $ftp_lines && &ftp_getNlines;
@@ -841,9 +841,9 @@ while (1) {
 
 	# Delay for a second so we aren't constantly hammering this loop
 	if ($logfile_mode eq 'local') {
-	    sleep 1;
+	    Time::HiRes::sleep(0.1);
 	} elsif ($logfile_mode eq 'ftp') {
-	    sleep $ftp_sleepInterval;
+	    Time::HiRes::sleep(0.1);
 	}
 	
 	# Windows IO::File needs this to work correctly in perl2exe
@@ -3249,10 +3249,10 @@ sub geolocate_ip_win32 {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($metric) {
                     $dist = int($dist/1000);
-                    $geo_ip_info .= " ^7, ^2$dist^7" . '"километров до сервера"';
+                    $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"';
 		} else {
 		    $dist = int($dist/1609.344);
-                    $geo_ip_info .= " ^7, ^2$dist^7" . '"миль до сервера"';
+                    $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"';
 		}
 	    }
 	}
