@@ -217,6 +217,9 @@ my $localip = '127.0.0.1';
 # print current perl version and OS (debug message)
 print "Perl runtime version is $^V, running on $^O\n";
 
+# print current nanny version
+print "Nannybot version is $version\n";
+
 # initialize time, print and format it
 my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
 my $retval = time();
@@ -3183,14 +3186,14 @@ sub geolocate_ip_win32 {
             # and we know the region name
             if ($record->city ne $region_name) {
                 # the city and region name are different, all three are relevant.
-                $geo_ip_info = $record->city . ', ' . $region_name . ' - ' . $record->country_name;
+                $geo_ip_info = $record->city . '^7,^2 ' . $region_name . ' - ' . $record->country_name;
             } else {
                 # the city and region name are the same.  Use city and country.
-                $geo_ip_info = $record->city . ', ' . $record->country_name;
+                $geo_ip_info = $record->city . '^7,^2 ' . $record->country_name;
             }
         } else {
             # Only two pieces we have are city and country.
-            $geo_ip_info = $record->city . ', ' . $record->country_name;
+            $geo_ip_info = $record->city . '^7,^2 ' . $record->country_name;
         }
     } elsif (defined($region_name)) {
         # don't know the city, but we know the region name and country.  close enough.
@@ -3207,7 +3210,7 @@ sub geolocate_ip_win32 {
     }
 
     # debugging
-    print "
+    print"
         Country Code: " . $record->country_code . "
         Country Code 3: " . $record->country_code3 . "
         Country Name: " . $record->country_name . "
@@ -3223,14 +3226,16 @@ sub geolocate_ip_win32 {
 		Metro Code " . $record->metro_code . "
 		\n";
 
-
     if ((defined($record->country_code)) && ($record->country_code eq 'US')) { $metric = 0 }
     else { $metric = 1; }
-    print "DEBUG: country code = " . $record->country_code . "\n";
-    print "DEBUG: metric = $metric\n"; 
+    print "DEBUG: country code is " . $record->country_code . "\n";
+	if ($metric == 1) {
+    print "DEBUG: Metric is Kilometers\n"; }
+    elsif ($metric == 0) {
+	print "DEBUG: Metric is Miles\n";	}
 
     # GPS Coordinates
-    if (($config->{'ip'} !~ /^192\.168\.|^10\.|^169\.254\./))
+    if (($config->{'ip'} !~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./))
     {
 	if ((defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
 	    my ($player_lat, $player_lon) = ($record->latitude, $record->longitude);
@@ -3244,10 +3249,10 @@ sub geolocate_ip_win32 {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($metric) {
                     $dist = int($dist/1000);
-                    $geo_ip_info .= " ^7$dist" . '" километров до сервера"';
+                    $geo_ip_info .= " ^7, ^2$dist^7" . '"километров до сервера"';
 		} else {
 		    $dist = int($dist/1609.344);
-                    $geo_ip_info .= " ^7$dist" . '" миль до сервера"';
+                    $geo_ip_info .= " ^7, ^2$dist^7" . '"миль до сервера"';
 		}
 	    }
 	}
@@ -3770,8 +3775,8 @@ sub report_player {
     elsif ($#matches == 0) {
 	$target_player = $name_by_slot{$matches[0]};
 	$target_player_guid = $guid_by_slot{$matches[0]};
-	&rcon_command("say " . '"Жалоба на игрока"' . "$target_player" . '"отправлена."');
-    &log_to_file('logs/report.log', "!report: Player $name_by_slot{$slot} - GUID $guid reported player $target_player - GUID $target_player_guid  via the !report command. (Search: $search_string)");	}
+	&rcon_command("say " . '"Жалоба на игрока"' . "$target_player" . '"^7отправлена."');
+    &log_to_file('logs/report.log', "!report: $name_by_slot{$slot} - GUID $guid reported player $target_player - GUID $target_player_guid  via the !report command. (Search: $search_string)");	}
 	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
 }
 
