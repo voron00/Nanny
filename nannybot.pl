@@ -101,10 +101,10 @@ my $mysql_logging_dbh;
 # Global variable declarations
 my $idlecheck_interval = 45;
 my %idle_warn_level;
-my $namecheck_interval = 60;
+my $namecheck_interval = 40;
 my %name_warn_level;
 my $last_namecheck;
-my $rconstatus_interval = 27;
+my $rconstatus_interval = 30;
 my $guid_sanity_check_interval = 100;
 my $problematic_characters = "\x86|\x99|\xAE|\xBB|\xAB";
 my $config;
@@ -4099,17 +4099,17 @@ sub check_player_names {
 		    
 		    if ($name_warn_level{$slot} == 0) {
 			print "NAME_WARN1: $name_by_slot{$slot} is using a banned name.  Match: $match_string\n";
-			&rcon_command("tell $slot ^7[^3pm^7] ^1$name_by_slot{$slot} ^7" . $config->{'banned_name_warn_message_1'} );
+			&rcon_command("say ^1$name_by_slot{$slot}^7" . $config->{'banned_name_warn_message_1'} );
 			# sleep 1;
 			$name_warn_level{$slot} = 1;
 		    } elsif ($name_warn_level{$slot} == 1) {
 			print "NAME_WARN2: $name_by_slot{$slot} is using a banned name.  (2nd warning) Match: $match_string\n";
-                        &rcon_command("tell $slot ^7[^3pm^7] ^1$name_by_slot{$slot} ^7" . $config->{'banned_name_warn_message_2'} );
+                        &rcon_command("say ^1$name_by_slot{$slot}^7" . $config->{'banned_name_warn_message_2'} );
                         # sleep 1;
                         $name_warn_level{$slot} = 2;
                     } elsif ($name_warn_level{$slot} == 2) {
                         print "NAME_KICK: $name_by_slot{$slot} is using a banned name.  (3rd strike) Match: $match_string\n";
-                        &rcon_command("tell $slot ^7[^3pm^7] ^1$name_by_slot{$slot} ^7" . $config->{'banned_name_kick_message'} );
+                        &rcon_command("say ^1$name_by_slot{$slot}^7" . $config->{'banned_name_kick_message'} );
                         sleep 1;
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
@@ -5267,41 +5267,42 @@ sub rank {
 
    if (&flood_protection('rank', 60, $slot)) { return 1; }
 
-   my $rank_msg = "$name: ";
+   my $rank_msg = "^2$name^7:";
    my $kills = 1;
+   my $rank_sth;
 
-    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
-    $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    @row = $stats_sth->fetchrow_array;
+    $rank_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
+    $rank_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    @row = $rank_sth->fetchrow_array;
     if ((!$row[0]) && ($name ne &strip_color($name))) {
-	$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-	@row = $stats_sth->fetchrow_array;
+	$rank_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	@row = $rank_sth->fetchrow_array;
     }
     if ($row[0]) {
 	$kills = $row[2];
 	if ($row[2] > 99 && $row[2] < 500)
 	{
-	$rank_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '"убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '"убийств)"';
 	}
 	if ($row[2] > 9 && $row[2] < 50)
 	{
-	$rank_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '"убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '"убийств)"';
 	}
 	if ($row[2] > 499 && $row[2] < 1000)
 	{
-	$rank_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '"убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '"убийств)"';
 	}
 	if ($row[2] > 999)
 	{
-	$rank_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '"убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '"убийств)"';
 	}
 	if ($row[2] < 9)
 	{
-	$rank_msg .= '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '"убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '"убийств)"';
 	}
 	if ($row[2] > 49 && $row[2] < 100)
 	{
-	$rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '"убийств)"' . "";
+	$rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '"убийств)"';
 	}
     }
     &rcon_command("say $rank_msg");
