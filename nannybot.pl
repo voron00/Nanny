@@ -4,7 +4,7 @@
 print "Initializing NannyBot...\n";
 sleep 1;
 
-my $version = '3.1.1 RU';
+my $version = '3.1.2 RUS';
 
 # VERSION 3.xx RU changelog is on github page https://github.com/voron00/Nanny/commits/master
 
@@ -88,7 +88,6 @@ use Carp; # ftptail support
 use Time::HiRes; # needs to perform sleep events above 1
 
 # Connect to sqlite databases
-#my $region_names_dbh = DBI->connect("dbi:SQLite:dbname=databases/region_names.db","","");
 my $guid_to_name_dbh = DBI->connect("dbi:SQLite:dbname=databases/guid_to_name.db","","");
 my $ip_to_guid_dbh = DBI->connect("dbi:SQLite:dbname=databases/ip_to_guid.db","","");
 my $ip_to_name_dbh = DBI->connect("dbi:SQLite:dbname=databases/ip_to_name.db","","");
@@ -376,7 +375,7 @@ while (1) {
 			$last_ping{$reset_slot} = 0;
 			$ping_average{$reset_slot} = 0;
 			$penalty_points{$reset_slot} = 0;
-			$last_killed_by{$reset_slot} = '... ummm .... Sorry, I forgot.';
+			$last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла."';
 			$kill_spree{$reset_slot} = 0;
 			$best_spree{$reset_slot} = 0;
 			$ignore{$reset_slot} = 0;
@@ -591,7 +590,7 @@ while (1) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) 
 				or &die_nice("Unable to update stats2\n");
-				&rcon_command("say ^1$attacker_name^7" . '"остановил серию убийств игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"');
+				&rcon_command("say ^1$attacker_name^7" . '"остановил рекордную серию убийств игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"');
 			    } else {
 				&rcon_command("say ^1$attacker_name^7" . '"остановил серию убийств игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"');
 				}
@@ -670,7 +669,7 @@ while (1) {
                 $last_ping{$slot} = 0;
                 $ping_average{$slot} = 0;
 		$penalty_points{$slot} = 0;
-		$last_killed_by{$slot} = '... ummm .... Sorry, I forgot.';
+		$last_killed_by{$slot} = '"...Хмм... Прости, но я забыла."';
 		$kill_spree{$slot} = 0;
 		$best_spree{$slot} = 0;
 		$ignore{$slot} = 0;
@@ -1230,18 +1229,7 @@ sub initialize_databases {
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code rows were inserted\n"; }
     }
-        
-    # The region code lookup table
-    #$sth = $region_names_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    #$sth->execute or &die_nice("Unable to execute query: $region_names_dbh->errstr\n");
-    #foreach ($sth->fetchrow_array) {
-    #    $tables{$_} = $_;
-    #}
-    #if ($tables{'region_names'}) { print "Region Code <-> Region Name database brought online\n\n"; }
-    #else {
-	#&die_nice("ERROR: Region name database does not exist.\nPlease run make_region_names in the databases folder\n");
-    #}	
-    
+	
     # The IP to GUID mapping table
     $sth = $ip_to_guid_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
@@ -2126,7 +2114,7 @@ sub chat{
 		    $last_ping{$reset_slot} = 0;
 		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
-		    $last_killed_by{$reset_slot} = '... ummm .... Sorry, I forgot.';
+		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла."';
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0;
@@ -2762,7 +2750,7 @@ sub chat{
 			my @matches = &matching_users($lastkill_search);
 			if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$lastkill_search"); }
 			elsif ($#matches == 0) {
-			    if ((defined( $last_killed_by{$matches[0]} )) && ($last_killed_by{$matches[0]} ne '... ummm .... Sorry, I forgot.')) {
+			    if ((defined( $last_killed_by{$matches[0]} )) && ($last_killed_by{$matches[0]} ne '"...Хмм... Прости, но я забыла."')) {
 				&rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^3 ^7был убит игроком ^1"' . $last_killed_by{$matches[0]} );
 			    } else {
 				&rcon_command("say ^2$name^3:" . '"^7К сожалению, не удалось найти результат..."');
@@ -2771,7 +2759,7 @@ sub chat{
 			}
 			elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$lastkill_search"); }
 		    } else {
-			if ((defined( $last_killed_by{$slot} )) && ($last_killed_by{$slot} ne '... ummm .... Sorry, I forgot.')) {
+			if ((defined( $last_killed_by{$slot} )) && ($last_killed_by{$slot} ne '"...Хмм... Прости, но я забыла."')) {
 			    &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком ^1"' . $last_killed_by{$slot} );
 			} else { 
 			    &rcon_command("say ^2$name^3:" . '"^7К сожалению, не удалось найти результат..."');
@@ -3168,16 +3156,7 @@ sub geolocate_ip_win32 {
 
     # check the database for this region code
     my $region_name = $record->region_name;
-    #my $sth = $region_names_dbh->prepare("SELECT region_name FROM region_names WHERE region_code=?");
-    #$sth->execute($region_code) or &die_nice("Unable to execute query: $region_names_dbh->errstr\n");
-    #my @row = $sth->fetchrow_array;
-    #if ($row[0]) {
-    #    $region_name = $row[0];
-    #} else {
-    #    print "DEBUG: no region code for $region_code\n";
-    #}
-    # end of database region lookup
-
+	
     my $geo_ip_info;
 
     if (defined($record->city) ) {
@@ -3249,10 +3228,12 @@ sub geolocate_ip_win32 {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($metric) {
                     $dist = int($dist/1000);
-                    $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"';
+					if ($dist == 0) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
+					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
 		} else {
-		    $dist = int($dist/1609.344);
-                    $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"';
+		            $dist = int($dist/1609.344);
+					if ($dist == 0) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
+					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 	    }
 	}
@@ -5014,7 +4995,7 @@ sub update_name_by_slot {
 		    }		
 		    
 		    if (($old_name_stolen) && ($new_name_stolen)) {
-			&rcon_command("say ^1NAME THIEF DETECTED: ^3Slot \#^2 $slot ^3 was ^1perma^3banned for being a name stealing ^1BITCH!");
+			&rcon_command("say " . '"^1ОБНАРУЖЕНА КРАЖА НИКНЕЙМОВ:"' . "^3Slot \#^2 $slot" . '"^7был перманентно забанен за кражу никнеймов!"');
 			# sleep 1;
 			my $ban_ip = 'undefined';
 			my $unban_time = 2125091758;
@@ -5027,7 +5008,7 @@ sub update_name_by_slot {
 			sleep 1;
 			&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip / $guid_by_slot{$slot} was permanently for being a name thief:  $name / $name_by_slot{$slot} ");
 			my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-			$bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, '^1NAME STEALING BITCH!!!') or &die_nice("Unable to do insert\n");
+			$bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, 'NAME STEALING') or &die_nice("Unable to do insert\n");
 						
 		    }  
 		}
