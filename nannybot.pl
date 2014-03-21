@@ -1563,12 +1563,12 @@ sub chat{
 		
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_1'}) {
 		    &rcon_command("say $name_by_slot{$slot}: " . $config->{'antispam_warn_message_1'});
-		    $penalty_points{$slot} += 10;
+		    # $penalty_points{$slot} += 10;
 		    # sleep 1;
 		}
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_2'}) {
                     &rcon_command("say $name_by_slot{$slot}: " . $config->{'antispam_warn_message_2'});
-		    $penalty_points{$slot} += 20;
+		    # $penalty_points{$slot} += 20;
 		    # sleep 1;
                 }
 		if (($spam_count{$slot} >= $config->{'antispam_kick_level'}) 
@@ -1672,7 +1672,7 @@ sub chat{
     if (($config->{'bullshit_calls'}) && (!$ignore{$slot})) {
 	if ($message =~ /^!?bs\W*$|^!?bull\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that was (bs|bullshit)\W*$/i) {
 	    if ((defined($last_killed_by{$slot})) && (&strip_color($last_killed_by{$slot}) ne $name)) {
-		if (&flood_protection('bullshit', 90, $slot)) {
+		if (&flood_protection('bullshit', 60, $slot)) {
 		    # bullshit abuse
 		    if (&flood_protection('bullshit-two', 30, $slot)) { }
 		    else {
@@ -1680,7 +1680,7 @@ sub chat{
 			# sleep 1;
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bullshit_shots = bullshit_shots + 1 WHERE name=?");
 			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
-			$penalty_points{$slot} += 12;
+			# $penalty_points{$slot} += 12;
 		    }
 		}
 		else {
@@ -1690,7 +1690,7 @@ sub chat{
 		    
 		    &rcon_command("say ^2$name ^7called ^1BULLSHIT ^7on^2 $last_killed_by{$slot}");
 		    # sleep 1;
-		    $penalty_points{$slot} += 1;
+		    # $penalty_points{$slot} += 1;
 		}
 	    }  
 	} 
@@ -2162,7 +2162,7 @@ sub chat{
 	# !version
 	elsif ($message =~ /^!version\b/i) {
 	    if (&check_access('version')) {
-		if (&flood_protection('version', 120, $slot)) { }
+		if (&flood_protection('version', 60, $slot)) { }
 		else {
 		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		    sleep 1;
@@ -2180,7 +2180,7 @@ sub chat{
         # !nextmap  (not to be confused with !rotate)
         elsif ($message =~ /^!(nextmap|next|nextlevel|next_map|next_level)\b/i) {
             if (&check_access('nextmap')) {
-		if (&flood_protection('nextmap', 120, $slot)) { }
+		if (&flood_protection('nextmap', 60, $slot)) { }
 		else {
 		    &rcon_command("say " . " ^2$name^7" . '": Следующая карта будет: ^1"' . $description{$next_map} .  " ^7(^2" .  
 				  $description{$next_gametype} . "^7)");
@@ -2306,7 +2306,7 @@ sub chat{
         # !uptime
         elsif ($message =~ /^!uptime\b/i) {
             if (&check_access('uptime')) {
-		if (&flood_protection('uptime', 120, $slot)) { }
+		if (&flood_protection('uptime', 60, $slot)) { }
 		else {
 		    if ($uptime =~ /(\d+):(\d+)/) {
 			my $duration = &duration( ( $1 * 60 ) + $2 );
@@ -2319,7 +2319,7 @@ sub chat{
 
 	# !help
 	elsif ($message =~ /^!help|^!помощь\b/i) {
-	    if (&flood_protection('help', 120, $slot)) {}
+	    if (&flood_protection('help', 60, $slot)) {}
 	    else {
 		if (&check_access('stats')) {
 		    &rcon_command("say " . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробую статистику"');
@@ -2438,7 +2438,7 @@ sub chat{
 	# !fly
 	elsif ($message =~ /^!(fly|ufo)\b/i) {
 	    if (&check_access('fly')) {
-		if (&flood_protection('fly', 300, $slot)) { }
+		if (&flood_protection('fly', 60, $slot)) { }
 		elsif (&flood_protection('fly', 60)) { }
 		else {
 		    &rcon_command("say " . '"Летите как птицы!!!"');
@@ -2809,7 +2809,7 @@ sub locate {
     my $ip;
     my $guessed;
     my $spoof_match;
-    if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 300))) { return 1; }
+    if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 60))) { return 1; }
     if (&flood_protection('locate', 60, $slot)) { return 1; }
     foreach $key (@matches) {
 	if ((&strip_color($name_by_slot{$key}))) {
@@ -3334,7 +3334,7 @@ sub stats {
     my $name = shift;
     my $search_string = shift;
 
-    if (&flood_protection('stats', 300, $slot)) { return 1; }
+    if (&flood_protection('stats', 60, $slot)) { return 1; }
 
     if ($search_string ne '') {
 	
@@ -3972,8 +3972,8 @@ sub awards {
     my $sth;
     my $counter = 1;
 
-    if (&flood_protection('awards', 900, $slot)) { return 1; }
-    if (&flood_protection('awards', 300)) { return 1; }
+    if (&flood_protection('awards', 300, $slot)) { return 1; }
+    if (&flood_protection('awards', 60)) { return 1; }
 
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
@@ -4052,7 +4052,7 @@ sub change_gametype {
 	print "WARNING: change_gametype() was called with an invalid game_type: $gametype\n";
         return;
     }
-    if (&flood_protection('gametype', 120, $slot)) { return 1; }
+    if (&flood_protection('gametype', 60, $slot)) { return 1; }
     &rcon_command("say " . '"^2Смена режима игры на:"' . " ^3$gametype");
     &rcon_command("g_gametype $gametype");
     sleep 1;
@@ -4215,8 +4215,8 @@ sub aliases {
 }
 
 sub suk {
-    if (&flood_protection('suk', 600, $slot)) { return 1; }
-    if (&flood_protection('suk', 300)) { return 1; }
+    if (&flood_protection('suk', 300, $slot)) { return 1; }
+    if (&flood_protection('suk', 60)) { return 1; }
 
     &rcon_command("say " . '"^1Худшие ^7игроки сервера:"');
 	
@@ -4440,10 +4440,10 @@ sub flood_protection {
 	    &duration(($flood_protect{$key} - $time)) );
 
 	# impart a small penalty for triggering the flood protection
-	if ($slot ne 'global') {
-	    if (!defined($penalty_points{$slot})) { $penalty_points{$slot} = 1; }
-            else { $penalty_points{$slot} += 1; }
-	}
+	#if ($slot ne 'global') {
+	#    if (!defined($penalty_points{$slot})) { $penalty_points{$slot} = 1; }
+    #        else { $penalty_points{$slot} += 1; }
+	#}
 	return 1;
     }
 }
