@@ -590,14 +590,14 @@ while (1) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) 
 				or &die_nice("Unable to update stats2\n");
-				&rcon_command("say ^1$attacker_name^7" . '"остановил рекордную серию убийств игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"');
-			    } else {
-				&rcon_command("say ^1$attacker_name^7" . '"остановил серию убийств игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"');
-				}
+				&rcon_command("say ^1$attacker_name^7" . '"остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
+                else {
+				&rcon_command("say ^1$attacker_name^7" . '"остановил серию убийств игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
 			    # sleep 1;
 			}
 		    }
 		    $kill_spree{$victim_slot} = 0;
+			$best_spree{$victim_slot} = 0;
 		}
 		# End of Kill-Spree section
 		
@@ -644,7 +644,7 @@ while (1) {
 		$last_ping{$slot} = 0;
 		$ping_average{$slot} = 0;
 		$penalty_points{$slot} = 0;
-		# $ignore{$slot} = 0;
+		$ignore{$slot} = 0;
 
 		if ($config->{'show_game_joins'}) {
 			&rcon_command("say " . '"Игрок "' . "$name" . '" ^7присоединился к игре"');
@@ -1564,7 +1564,7 @@ sub chat{
     }
 
     # Anti-Spam functions
-    if ($config->{'antispam'}) {
+    if (($config->{'antispam'}) && (!$ignore{$slot})) {
 	if (!defined($spam_last_said{$slot})) { $spam_last_said{$slot} = $message; }
 	else {
 	    if ($spam_last_said{$slot} eq $message) {
@@ -2823,7 +2823,7 @@ sub strip_color {
 # BEGIN: locate($search_string)
 sub locate {
     my $search_string = shift;
-    my $key;
+    my $slot;
     my $location;
     my @matches = &matching_users($search_string);
     my $ip;
@@ -2831,10 +2831,10 @@ sub locate {
     my $spoof_match;
     if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 60))) { return 1; }
     if (&flood_protection('locate', 60, $slot)) { return 1; }
-    foreach $key (@matches) {
-	if ((&strip_color($name_by_slot{$key}))) {
-	    print "MATCH: $name_by_slot{$key}   IP = $ip_by_slot{$key}\n";
-	    $ip = $ip_by_slot{$key};
+    foreach $slot (@matches) {
+	if ((&strip_color($name_by_slot{$slot}))) {
+	    print "MATCH: $name_by_slot{$slot}   IP = $ip_by_slot{$slot}\n";
+	    $ip = $ip_by_slot{$slot};
 	    if ($ip =~ /\?$/) {
 		$guessed = 1;
 		$ip =~ s/\?$//;
@@ -2842,21 +2842,21 @@ sub locate {
 	    if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/) { 
 		$location = &geolocate_ip_win32($ip);
 		if ($location =~ /,.* - .+/) {
-		    if ($guessed) { $location = $name_by_slot{$key} . '"^7 вероятно зашел к нам из районов около ^2"' . $location; }
-		    else { $location = $name_by_slot{$key} . '"^7 зашел к нам из^2"' . $location; }
+		    if ($guessed) { $location = $name_by_slot{$slot} . '"^7 вероятно зашел к нам из районов около ^2"' . $location; }
+		    else { $location = $name_by_slot{$slot} . '"^7 зашел к нам из^2"' . $location; }
 		} else {
-		    if ($guessed) { $location = $name_by_slot{$key} . '"^7 вероятно зашел к нам из ^2"' . $location; }
-		    else { $location = $name_by_slot{$key} . '"^7 зашел к нам из ^2"' . $location; }
+		    if ($guessed) { $location = $name_by_slot{$slot} . '"^7 вероятно зашел к нам из ^2"' . $location; }
+		    else { $location = $name_by_slot{$slot} . '"^7 зашел к нам из ^2"' . $location; }
 		}
 
 		# location spoofing
 		foreach $spoof_match (keys(%location_spoof)) {
-		    if ($name_by_slot{$key} =~ /$spoof_match/i) {
-			$location = $name_by_slot{$key} . '^7 ' . $location_spoof{$spoof_match};
+		    if ($name_by_slot{$slot} =~ /$spoof_match/i) {
+			$location = $name_by_slot{$slot} . '^7 ' . $location_spoof{$spoof_match};
 		    }
 		}
 
-		&rcon_command("say ^5#$key^7: $location");
+		&rcon_command("say $location");
 		print "$location\n"; 
 		sleep 1;
 	    } else {
@@ -3386,13 +3386,13 @@ sub stats {
 	$kills = $row[2];
 	if ($row[3]) { 
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
-	    $stats_msg .= '"^7 рейтинг"' . "^1$k2d_ratio^7,";
+	    $stats_msg .= "^1$k2d_ratio^7" . '"^7рейтинга,"';
 	} else {
-	    $stats_msg .= '"^7 рейтинг не определен"';
+	    $stats_msg .= '"^7рейтинг не определен,"';
 	}
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	    $stats_msg .= "^1 $headshot_percent" . '"^7процентов хедшотов"';
+	    $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
 	} 
     }
     else {
@@ -3458,7 +3458,7 @@ sub stats {
     # badshot kills
 	if (($row[11]) && ($config->{'bad_shots'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Не понравившихся убийств:"' . ": ^1$row[11] ^7(^1$badshot_ratio" . '"^7процентов)"';
+	    $stats_msg .= '"Не понравившихся убийств:"' . "^1$row[11] ^7(^1$badshot_ratio" . '"^7процентов)"';
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
