@@ -4,9 +4,9 @@
 print "Initializing NannyBot...\n";
 sleep 1;
 
-my $version = '3.1.2 RUS';
+my $version = '3.1.3 RUS';
 
-# VERSION 3.xx RU changelog is on github page https://github.com/voron00/Nanny/commits/master
+# VERSION 3.xx RUS changelog is on github page https://github.com/voron00/Nanny/commits/master
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -216,7 +216,7 @@ my $localip = '127.0.0.1';
 # print current perl version and OS (debug message)
 print "Perl runtime version is $^V, running on $^O\n";
 
-# print current nanny version
+# print current nanny version (debug message)
 print "Nannybot version is $version\n";
 
 # initialize time, print and format it
@@ -375,12 +375,12 @@ while (1) {
 			$last_ping{$reset_slot} = 0;
 			$ping_average{$reset_slot} = 0;
 			$penalty_points{$reset_slot} = 0;
-			$last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла."';
+			$last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
 			$kill_spree{$reset_slot} = 0;
 			$best_spree{$reset_slot} = 0;
 			$ignore{$reset_slot} = 0;
 		    }
-		    &rcon_command("say " , '"^1*** ^2Похоже что сервер упал, перезапускаю себя... ^1***"');
+		    &rcon_command("say " , '"^1*** ^7Похоже что сервер упал, перезапускаю себя... ^1***"');
 		    # sleep 1;
 		}
 		$last_upmins = $now_upmins;
@@ -426,14 +426,14 @@ while (1) {
 		
 		# Glitch Server Mode.   Beat the Germans down.
 		if ($config->{'glitch_server_mode'}) {
-		    if (($attacker_team eq 'axis') && ($victim_team eq 'allies')) {
+		    # if (($attacker_team eq 'axis') && ($victim_team eq 'allies')) {
 			print "Murderer:  " . &strip_color($attacker_name) . " killed someone.  Kicking!\n";
 			&rcon_command("say ^1" . $attacker_name . ":^1 " . $config->{'glitch_kill_kick_message'});
 			print &strip_color($attacker_name) . ": " . $config->{'glitch_kill_kick_message'} . "\n"; 
 			sleep 1;
 			&rcon_command("clientkick $attacker_slot");
 			&log_to_file('logs/kick.log', "GLITCH_KILL: Murderer!  Kicking $attacker_name for being german and killing an allie");
-		    }
+		    # }
 		}
 
 		# Track the kill stats for the killer
@@ -470,7 +470,7 @@ while (1) {
 			$stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to do insert\n");
                     }
 
-# name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bullshit_shots
+# name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots
 		    # Grenade Kills
 		    if ($damage_type eq 'MOD_GRENADE_SPLASH') {
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET grenade_kills = grenade_kills + 1 WHERE name=?");
@@ -669,7 +669,7 @@ while (1) {
                 $last_ping{$slot} = 0;
                 $ping_average{$slot} = 0;
 		$penalty_points{$slot} = 0;
-		$last_killed_by{$slot} = '"...Хмм... Прости, но я забыла."';
+		$last_killed_by{$slot} = '"...Хмм... Прости, но я забыла"';
 		$kill_spree{$slot} = 0;
 		$best_spree{$slot} = 0;
 		$ignore{$slot} = 0;
@@ -707,10 +707,10 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
-		if ($message !~ /QUICKMESSAGE_/) {
+		# if ($message !~ /QUICKMESSAGE_/) {
 		    &chat();
 		}
-	    } #else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }
+	    # } else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }
 	    
 	}
 	elsif ($first_char eq 't') {
@@ -1078,7 +1078,7 @@ sub load_config_file {
                 push @remote_servers, $config_val;
                 print "Remote Server: $config_val\n";
             }
-	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bullshit_calls|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check)$/) {
+	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check)$/) {
 		if ($config_val =~ /yes|1|on|enable/i) { $config->{$config_name} = 1; }
                 else { $config->{$config_name} = 0; }
                 print "$config_name: " . $config->{$config_name} . "\n";
@@ -1219,7 +1219,8 @@ sub initialize_databases {
     # The GUID to NAME database
     if ($tables{'guid_to_name'}) { print "GUID <-> Name database brought online\n\n"; }
     else {
-	print "Creating guid_to_name database\n\n";
+	print "Creating guid_to_name database...\n\n";
+	sleep 1;
 	
 	$cmd = "CREATE TABLE guid_to_name (id INTEGER PRIMARY KEY, guid INT(8), name VARCHAR(64) );";
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
@@ -1238,7 +1239,8 @@ sub initialize_databases {
     }
     if ($tables{'ip_to_guid'}) { print "IP <-> GUID database brought online\n\n"; }
     else {
-	print "Creating ip_to_guid database\n\n";
+	print "Creating ip_to_guid database...\n\n";
+	sleep 1;
 	
 	$cmd = "CREATE TABLE ip_to_guid (id INTEGER PRIMARY KEY, ip VARCHAR(15), guid INT(8) );";
 	$result_code = $ip_to_guid_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_guid_dbh->errstr\n");
@@ -1258,7 +1260,8 @@ sub initialize_databases {
     }
     if ($tables{'ip_to_name'}) { print "IP <-> NAME database brought online\n\n"; }
     else {
-	print "Creating ip_to_name database\n\n";
+	print "Creating ip_to_name database...\n\n";
+	sleep 1;
 	
 	$cmd = "CREATE TABLE ip_to_name (id INTEGER PRIMARY KEY, ip VARCHAR(15), name VARCHAR(64) );";
 	$result_code = $ip_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_name_dbh->errstr\n");
@@ -1278,7 +1281,8 @@ sub initialize_databases {
     }
     if ($tables{'seen'}) { print "!seen database brought online\n\n"; }
     else {
-	print "Creating seen database\n\n";
+	print "Creating seen database...\n\n";
+	sleep 1;
 	
 	$cmd = "CREATE TABLE seen (id INTEGER PRIMARY KEY, name VARCHAR(64), time INTEGER, saying VARCHAR(128) );";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
@@ -1299,7 +1303,8 @@ sub initialize_databases {
 
     if ($tables{'bans'}) { print "ban database brought online\n\n"; }
     else {
-        print "Creating ban database\n\n";
+        print "Creating ban database...\n\n";
+		sleep 1;
 
         $cmd = "CREATE TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INTEGER, name VARCHAR(64) );";
         $result_code = $bans_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $bans_dbh->errstr\n");
@@ -1322,7 +1327,8 @@ sub initialize_databases {
     
     if ($tables{'definitions'}) { print "definitions database brought online\n\n"; }
     else {
-        print "Creating definitions database\n\n";
+        print "Creating definitions database...\n\n";
+		sleep 1;
 	
         $cmd = "CREATE TABLE definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250) );";
         $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
@@ -1335,7 +1341,8 @@ sub initialize_databases {
     
     if ($tables{'cached'}) { print "cached definitions index database brought online\n\n"; }
     else {
-        print "Creating cached database\n\n";
+        print "Creating cached database...\n\n";
+		sleep 1;
 
         $cmd = "CREATE TABLE cached (id INTEGER PRIMARY KEY, term VARCHAR(32));";
         $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
@@ -1348,7 +1355,8 @@ sub initialize_databases {
 
     if ($tables{'cached_definitions'}) { print "cached definitions data database brought online\n\n"; }
     else {
-        print "Creating cached_definitions database\n\n";
+        print "Creating cached_definitions database...\n\n";
+		sleep 1;
 
         $cmd = "CREATE TABLE cached_definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
         $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
@@ -1371,6 +1379,7 @@ sub initialize_databases {
     if ($tables{'stats'}) { print "!stats database brought online\n\n"; }
     else {
 	print "Creating stats database\n\n";
+	sleep 1;
 	
 	$cmd = "CREATE TABLE stats (id INTEGER PRIMARY KEY, name VARCHAR(64), kills INTEGER, deaths INTEGER, headshots INTEGER );";
 	$result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
@@ -1383,13 +1392,14 @@ sub initialize_databases {
     }
     if ($tables{'stats2'}) { print "The other !stats database brought online\n\n"; }
     else {
-        print "Creating the other stats database\n\n";
+        print "Creating the other stats database...\n\n";
+		sleep 1;
 
-        $cmd = "CREATE TABLE stats2 (id INTEGER PRIMARY KEY, name VARCHAR(64), pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bullshit_shots INTEGER);";
+        $cmd = "CREATE TABLE stats2 (id INTEGER PRIMARY KEY, name VARCHAR(64), pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bad_shots INTEGER);";
         $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
         if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
 
-        $cmd = "CREATE INDEX stats2_index ON stats2 (name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bullshit_shots)";
+        $cmd = "CREATE INDEX stats2_index ON stats2 (name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots)";
         $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
         if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
 
@@ -1415,7 +1425,8 @@ sub initialize_databases {
 	}
 	if ($tables{'chat_log'}) { print "MySQL chat_log table already exists\n\n"; }
 	else {
-	    print "Creating chat_log table\n\n";
+	    print "Creating chat_log table...\n\n";
+		sleep 1;
 	    
 	    $cmd = "CREATE TABLE chat_log (id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64), timestamp INTEGER, message VARCHAR(250));";
 	    $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
@@ -1437,7 +1448,7 @@ sub initialize_databases {
 
 	if ($tables{'next_map'}) { print "MySQL next_map table already exists\n\n"; }
         else {
-            print "Creating next_map table\n\n";
+            print "Creating next_map table...\n\n";
 
             $cmd = "CREATE TABLE next_map (map VARCHAR(250), gametype VARCHAR(250));";
             $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
@@ -1478,7 +1489,6 @@ sub initialize_databases {
 		 
 =======================================
 ";
-
 
 }
 # END: initialize_databases()
@@ -1668,41 +1678,54 @@ sub chat{
     }
     #  End of Server Response / Penalty System
 
-    # Call Bullshit
-    if (($config->{'bullshit_calls'}) && (!$ignore{$slot})) {
-	if ($message =~ /^!?bs\W*$|^!?bull\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that was (bs|bullshit)\W*$/i) {
+    # Call Bad shot
+    if (($config->{'bad_shots'}) && (!$ignore{$slot})) {
+	if ($message =~ /^!?bs\W*$|^!?bad\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that was (bs|badshot)\W*$/i) {
 	    if ((defined($last_killed_by{$slot})) && (&strip_color($last_killed_by{$slot}) ne $name)) {
-		if (&flood_protection('bullshit', 60, $slot)) {
-		    # bullshit abuse
-		    if (&flood_protection('bullshit-two', 30, $slot)) { }
+		if (&flood_protection('badshot', 60, $slot)) {
+		    # bad shot abuse
+		    if (&flood_protection('badshot-two', 30, $slot)) { }
 		    else {
-			&rcon_command("say ^2$name ^7is being a ^1WHINEY BITCH.");
+			&rcon_command("say " . "^1$name:" . '"^7Твое ^1нытье^7 уже всех достало"');
 			# sleep 1;
-			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bullshit_shots = bullshit_shots + 1 WHERE name=?");
+			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
 			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
 			# $penalty_points{$slot} += 12;
 		    }
 		}
 		else {
-		    # update the bullshit counter.
-		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bullshit_shots = bullshit_shots + 1 WHERE name=?");
-		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");
-		    
-		    &rcon_command("say ^2$name ^7called ^1BULLSHIT ^7on^2 $last_killed_by{$slot}");
+		    # update the Bad Shot counter.
+		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
+		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");	
+		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7 не понравилось то как его убил^1"' . "$last_killed_by{$slot}");
 		    # sleep 1;
 		    # $penalty_points{$slot} += 1;
 		}
 	    }  
 	} 
     }
-    # End of Bullshit
+    # End of Bad Shot
 
     # Call Nice Shot
-    if ($message =~ /\bnice\W? (one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
-	print "NICE SHOT: " . &strip_color($last_killed_by{$slot}) . "\n"; 
+    if (($config->{'nice_shots'}) && (!$ignore{$slot})) {
+	if ($message =~ /\bnice\W? (one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
+	    if ((defined($last_killed_by{$slot})) && (&strip_color($last_killed_by{$slot}) ne $name)) {
+		if (&flood_protection('niceshot', 60, $slot)) {
+			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
+			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
+		}
+		else {
+		    # update the niceshot counter.
+		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
+		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");
+		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7 понравилось ^7то как его убил^1"' . "$last_killed_by{$slot}");
+		    # sleep 1;
+		    # $penalty_points{$slot} += 1;
+		}
+	    }  
+	} 
     }
-    # End Nice Shot
-
+    # End of Nice Shot
 
     # Auto-define questions (my most successful if statement evar?)
     if ((!$ignore{$slot}) && ($message =~ /(.*)\?$/) || ($message =~ /^!(.*)/)){
@@ -1730,10 +1753,7 @@ sub chat{
 	}
     }
 
-
-
-
-    
+	
     # #####################
     # Check for !commands #
     # #####################
@@ -2114,7 +2134,7 @@ sub chat{
 		    $last_ping{$reset_slot} = 0;
 		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
-		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла."';
+		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0;
@@ -2750,7 +2770,7 @@ sub chat{
 			my @matches = &matching_users($lastkill_search);
 			if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$lastkill_search"); }
 			elsif ($#matches == 0) {
-			    if ((defined( $last_killed_by{$matches[0]} )) && ($last_killed_by{$matches[0]} ne '"...Хмм... Прости, но я забыла."')) {
+			    if ((defined( $last_killed_by{$matches[0]} )) && ($last_killed_by{$matches[0]} ne '"...Хмм... Прости, но я забыла"')) {
 				&rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^3 ^7был убит игроком ^1"' . $last_killed_by{$matches[0]} );
 			    } else {
 				&rcon_command("say ^2$name^3:" . '"^7К сожалению, не удалось найти результат..."');
@@ -2759,7 +2779,7 @@ sub chat{
 			}
 			elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$lastkill_search"); }
 		    } else {
-			if ((defined( $last_killed_by{$slot} )) && ($last_killed_by{$slot} ne '"...Хмм... Прости, но я забыла."')) {
+			if ((defined( $last_killed_by{$slot} )) && ($last_killed_by{$slot} ne '"...Хмм... Прости, но я забыла"')) {
 			    &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком ^1"' . $last_killed_by{$slot} );
 			} else { 
 			    &rcon_command("say ^2$name^3:" . '"^7К сожалению, не удалось найти результат..."');
@@ -3351,7 +3371,7 @@ sub stats {
     }
     # print "DEBUG: $name is set to: $name\n";
 
-    my $stats_msg = " " . '"Статистика^2"' . "$name^7:";
+    my $stats_msg = '"Статистика^2"' . "$name^7:";
     my $kills = 1;
 
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
@@ -3366,13 +3386,13 @@ sub stats {
 	$kills = $row[2];
 	if ($row[3]) { 
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
-	    $stats_msg .= "" . '"^7 рейтинг -^7"' . " ^1 $k2d_ratio^7, ";
+	    $stats_msg .= '"^7 рейтинг"' . "^1$k2d_ratio^7,";
 	} else {
-	    $stats_msg .= "" . '"^7 рейтинг -^7"';
+	    $stats_msg .= '"^7 рейтинг не определен"';
 	}
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	    $stats_msg .= "^1$headshot_percent" . '"^7процент хедшотов"';
+	    $stats_msg .= "^1 $headshot_percent" . '"^7процентов хедшотов"';
 	} 
     }
     else {
@@ -3387,9 +3407,9 @@ sub stats {
 
 
     # 2nd generation stats;
-    # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bullshit_shots
+    # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots
     # 0  1    2            3             4          5             6            7           8                9              10         11
-    $stats_msg = " " . '"Статистика^2"' . "$name^7:";
+    $stats_msg = '"Статистика^2"' . "$name^7:";
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
     $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     @row = $stats_sth->fetchrow_array;
@@ -3411,12 +3431,13 @@ sub stats {
 	}
 
 	# shotgun_kills,sniper_kills,rifle_kills,machinegun_kills
-	$stats_msg = " " . '"Статистика^2"' . "$name^7:";
+	$stats_msg = '"Статистика^2"' . "$name^7:";
 	my $shotgun_ratio = (($row[5]) && ($kills)) ? int($row[5] / $kills * 10000) / 100 : 0;
-        my $sniper_ratio = (($row[6]) && ($kills)) ? int($row[6] / $kills * 10000) / 100 : 0;
-        my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
+    my $sniper_ratio = (($row[6]) && ($kills)) ? int($row[6] / $kills * 10000) / 100 : 0;
+    my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
-	my $bullshit_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 1000000) / 10000 : 0;
+	my $niceshot_ratio = (($row[10]) && ($kills)) ? int($row[10] / $kills * 10000) / 100 : 0;
+	my $badshot_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 10000) / 100 : 0;
         $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7автоматов"';
 
 	if (($row[5]) || ($row[6]) || ($row[7]) || ($row[8])) {
@@ -3427,17 +3448,26 @@ sub stats {
 
     # best killing spree 
 	if ($best_killspree) {
-	    $stats_msg = " " . '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= "^7" . '"Лучшая серия убийств -^1"' . "$best_killspree";
+	    $stats_msg = '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= '"Лучшая серия убийств -^1"' . "$best_killspree";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
 	
-    # bullshit kills
-	if (($row[11]) && ($config->{'bullshit_calls'})) {
-	    $stats_msg = " " . '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= " Bullshit kills: ^1$row[11] ^7calls (^1$bullshit_ratio ^7percent)";
+    # badshot kills
+	if (($row[11]) && ($config->{'bad_shots'})) {
+	    $stats_msg = '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= '"Не понравившихся убийств:"' . ": ^1$row[11] ^7(^1$badshot_ratio" . '"^7процентов)"';
+	    &rcon_command("say $stats_msg");
+	    print "$stats_msg\n";
+	    sleep 1;
+	}
+
+    # niceshot kills
+	if (($row[10]) && ($config->{'nice_shots'})) {
+	    $stats_msg = '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= '"Понравившихся убийств:"' . "^1$row[10] ^7(^1$niceshot_ratio" . '"^7процентов)"';
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -5095,7 +5125,7 @@ sub make_affiliate_server_announcement {
 	    }
 	}
 	if ($clients) {
-	    if ($clients == 1) { $line = "" . '"^7кто-то играет на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n" }
+	    if ($clients == 1) { $line = "" . '"^7Одинокий воин играет на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n" }
 	    else { $line = "^1$clients " . '"^7игроков на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
 	    if ($clients < $maxclients) {
 		push @results, $line;
@@ -5241,9 +5271,8 @@ sub big_red_button_command {
     }  
 }
 
+
 #BEGIN !rank
-
-
 sub rank {
 
    if (&flood_protection('rank', 60, $slot)) { return 1; }
