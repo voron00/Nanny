@@ -366,20 +366,19 @@ while (1) {
 		    # use this to trigger an auto-reset.
 		    my $reset_slot;
 		    foreach $reset_slot (keys %last_activity_by_slot) {
-			$last_activity_by_slot{$reset_slot} = 'gone';
-			$idle_warn_level{$reset_slot} = 0;
-			&update_name_by_slot('SLOT_EMPTY', $reset_slot);
-			$ip_by_slot{$reset_slot} = 'SLOT_EMPTY';
-			$guid_by_slot{$reset_slot} = 0;
-			$spam_count{$reset_slot} = 0;
-			$last_ping{$reset_slot} = 0;
-			$ping_average{$reset_slot} = 0;
-			$penalty_points{$reset_slot} = 0;
-			$last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
-			$kill_spree{$reset_slot} = 0;
-			$best_spree{$reset_slot} = 0;
-			$ignore{$reset_slot} = 0;
-		    }
+		    $last_activity_by_slot{$reset_slot} = 'gone';
+		    $idle_warn_level{$reset_slot} = 0;
+		    &update_name_by_slot('SLOT_EMPTY', $reset_slot);
+		    $ip_by_slot{$reset_slot} = 'SLOT_EMPTY';
+		    $guid_by_slot{$reset_slot} = 0;
+		    $spam_count{$reset_slot} = 0;
+		    $last_ping{$reset_slot} = 0;
+		    $ping_average{$reset_slot} = 0;
+		    $penalty_points{$reset_slot} = 0;
+		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
+		    $kill_spree{$reset_slot} = 0;
+		    $best_spree{$reset_slot} = 0;
+		    $ignore{$reset_slot} = 0; }
 		    &rcon_command("say " , '"^1*** ^7Похоже что сервер упал, перезапускаю себя... ^1***"');
 		    # sleep 1;
 		}
@@ -800,9 +799,24 @@ while (1) {
             if ($line =~ /\\sv_voice\\([^\\]+)/) { $voice = $1; }
 
 	    print "MAP STARTING: $map_name $game_type\n";
-	    
-	    $freshen_next_map_prediction = 1;
-	    $last_rconstatus = 0;
+	    my $reset_slot;
+		foreach $reset_slot (keys %last_activity_by_slot) {
+		    $last_activity_by_slot{$reset_slot} = 'gone';
+		    $idle_warn_level{$reset_slot} = 0;
+		    &update_name_by_slot('SLOT_EMPTY', $reset_slot);
+		    $ip_by_slot{$reset_slot} = 'SLOT_EMPTY';
+		    $guid_by_slot{$reset_slot} = 0;
+		    $spam_count{$reset_slot} = 0;
+		    $last_ping{$reset_slot} = 0;
+		    $ping_average{$reset_slot} = 0;
+		    $penalty_points{$reset_slot} = 0;
+		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
+		    $kill_spree{$reset_slot} = 0;
+		    $best_spree{$reset_slot} = 0;
+		    $ignore{$reset_slot} = 0; }
+	        $freshen_next_map_prediction = 1;
+	        $last_rconstatus = 0;
+		print "MAP CHANGE/RESTART DETECTED. RESETTING VALUES TO PREVENT THEIR USAGE IN NEW MAP\n";
 	}
 	elsif ($first_char eq 'S') {
 	    # Server Shutdown - Triggers when the server shuts down?
@@ -2281,8 +2295,7 @@ sub chat{
 		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
-		    $ignore{$reset_slot} = 0;
-		}
+		    $ignore{$reset_slot} = 0; }
 		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" перезапускаю себя..."');
 		#sleep 1;
 	    }
@@ -3880,7 +3893,7 @@ sub kick_command {
     my $key;
     if ($search_string =~ /^\#(\d+)$/) {
 	my $slot = $1;
-	&rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был выкинут админом"');
+	&rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был выкинут админом"');
         sleep 1;
         &rcon_command("clientkick $slot");
         &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
@@ -3889,7 +3902,7 @@ sub kick_command {
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$search_string"); }
     elsif ($#matches == 0) {
-	&rcon_command("say ^2$name_by_slot{$matches[0]}" . '" ^7был выкинут админом"');
+	&rcon_command("say ^1$name_by_slot{$matches[0]}" . '" ^7был выкинут админом"');
 	sleep 1;
 	&rcon_command("clientkick $matches[0]");
 	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
@@ -4127,7 +4140,7 @@ sub ban_command {
     }   
     my $ban_ip = 'undefined';
     my $unban_time = 2125091758;
-    &rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был забанен админом"');
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был забанен админом"');
     sleep 1;
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot};
