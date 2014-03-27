@@ -4,7 +4,7 @@
 print "Initializing NannyBot...\n";
 sleep 1;
 
-my $version = '3.1.3 RUS';
+my $version = '3.1.4 RUS';
 
 # VERSION 3.xx RUS changelog is on github page https://github.com/voron00/Nanny/commits/master
 
@@ -1078,7 +1078,7 @@ sub load_config_file {
                 push @remote_servers, $config_val;
                 print "Remote Server: $config_val\n";
             }
-	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check)$/) {
+	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check|use_admin_mod)$/) {
 		if ($config_val =~ /yes|1|on|enable/i) { $config->{$config_name} = 1; }
                 else { $config->{$config_name} = 0; }
                 print "$config_name: " . $config->{$config_name} . "\n";
@@ -1826,8 +1826,8 @@ sub chat{
 	    if (&check_access('kick')) {
 		&kick_command($1);
 	    } else {
-		&rcon_command("say " . "^1$name_by_slot{$slot}^7:" . '"У вас нет разрешения на использование этой команды"');
-		#&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !kick others without access");
+		# &rcon_command("clientkick $slot");
+		# &log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !kick others without access");
 	    }
 	}
 	elsif ($message =~ /^!kick\s*$/i) {
@@ -1842,8 +1842,8 @@ sub chat{
 	    if (&check_access('tempban')) {
 		&tempban_command($1);
 	    } else {
-		&rcon_command("say " . "^1$name_by_slot{$slot}^7:" . '"У вас нет разрешения на использование этой команды"');
-		#&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !tempban others without access");
+		# &rcon_command("clientkick $slot");
+		# &log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !tempban others without access");
 	    }
 	}
 	elsif ($message =~ /^!tempban\s*$/i) {
@@ -1857,8 +1857,8 @@ sub chat{
 	    if (&check_access('ban')) {
 		&ban_command($1);
 	    } else {
-		&rcon_command("say " . "^1$name_by_slot{$slot}^7:" . '"У вас нет разрешения на использование этой команды"');
-		#&log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !ban others without access");
+		# &rcon_command("clientkick $slot");
+		# &log_to_file('logs/kick.log', "ACCESS_DENIED: $name was kicked for trying to !ban others without access");
 	    }
 	}
 	elsif ($message =~ /^!ban\s*$/i) {
@@ -1881,7 +1881,7 @@ sub chat{
             }
         }
 		
-		# !clearstats(search_string)
+		# !clearstats (search_string)
         elsif ($message =~ /^!clearstats\s+(.+)/i) {
             if (&check_access('clearstats')) {
                 &clear_stats($1);
@@ -1893,8 +1893,138 @@ sub chat{
                 &rcon_command("say " . '"!clearstats для кого?"');
             }
         }
+
+		# !disarm (search_string) (admin mod)
+        elsif (($message =~ /^!disarm\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('disarm')) {
+                &disarm_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!disarm\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('disarm')) {
+                &rcon_command("say " . '"!disarm кого?"');
+            }
+        }
 		
-			# !report (search_string)
+		# !explode (search_string) (admin mod)
+        elsif (($message =~ /^!explode\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('explode')) {
+                &explode_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!explode\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('explode')) {
+                &rcon_command("say " . '"!explode кого?"');
+            }
+        }
+		
+		# !swapteam (search_string) (admin mod)
+        elsif (($message =~ /^!swapteam\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('swapteam')) {
+                &swapteam_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!swapteam\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('swapteam')) {
+                &rcon_command("say " . '"!swapteam кого?"');
+            }
+        }
+		
+		# !tospec (search_string) (admin mod)
+        elsif (($message =~ /^!tospec\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('tospec')) {
+                &tospec_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!tospec\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('tospec')) {
+                &rcon_command("say " . '"!tospec кого?"');
+            }
+        }
+		
+		# !burn (search_string) (admin mod)
+        elsif (($message =~ /^!burn\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('burn')) {
+                &burn_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!burn\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('burn')) {
+                &rcon_command("say " . '"!burn кого?"');
+            }
+        }
+		
+		# !mortar (search_string) (admin mod)
+        elsif (($message =~ /^!mortar\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('mortar')) {
+                &mortar_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!mortar\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('mortar')) {
+                &rcon_command("say " . '"!mortar кого?"');
+            }
+        }
+		
+		# !lock (search_string) (admin mod)
+        elsif (($message =~ /^!lock\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('lock')) {
+                &lock_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!lock\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('lock')) {
+                &rcon_command("say " . '"!lock кого?"');
+            }
+        }
+		
+		# !cow (search_string) (admin mod)
+        elsif (($message =~ /^!cow\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('cow')) {
+                &cow_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!cow\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('cow')) {
+                &rcon_command("say " . '"!cow кого?"');
+            }
+        }
+		
+		# !kill (search_string) (admin mod)
+        elsif (($message =~ /^!kill\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('kill')) {
+                &kill_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!kill\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('kill')) {
+                &rcon_command("say " . '"!kill кого?"');
+            }
+        }
+		
+		# !unlock (search_string) (admin mod)
+        elsif (($message =~ /^!unlock\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('unlock')) {
+                &unlock_command($1);
+            } else {
+            }
+        }
+        elsif (($message =~ /^!unlock\s*$/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('unlock')) {
+                &rcon_command("say " . '"!unlock кого?"');
+            }
+        }
+		
+		# !report (search_string)
         elsif ($message =~ /^!report\s+(.+)/i) {
             if (&check_access('report')) {
                 &report_player($1);
@@ -2091,6 +2221,20 @@ sub chat{
         elsif ($message =~ /^!say\s+(.+)/i) {
             if (&check_access('say')) {
                 &rcon_command("say $1");
+            }
+        }
+
+	# !saybold
+        elsif (($message =~ /^!saybold\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('saybold')) {
+                &rcon_command("set saybold $1");
+            }
+        }
+		
+	# !sayline
+        elsif (($message =~ /^!sayline\s+(.+)/i) && ($config->{'use_admin_mod'})) {
+            if (&check_access('sayline')) {
+                &rcon_command("set say $1");
             }
         }
 
@@ -2658,22 +2802,22 @@ sub chat{
             }
         }
 		
-		    # bash mode only works when bash mod is installed
-			elsif ($message =~ /^!bash on\b/i) {
+		    # bash mode (admin mod)
+			elsif (($message =~ /^!bash on\b/i) && ($config->{'use_admin_mod'})) {
 			
 			if (&check_access('bash_mode'))
             {
                 &rcon_command("set bash_mode 1");
-                # sleep 1;
+				&rcon_command("say " . '"На прикладах - ^1ВКЛ"');
             }
         }
 		
-			elsif ($message =~ /^!bash off\b/i) {
+			elsif (($message =~ /^!bash off\b/i) && ($config->{'use_admin_mod'})) {
 			
 			if (&check_access('bash_mode'))
             {
                 &rcon_command("set bash_mode 0");
-                # sleep 1;
+				&rcon_command("say " . '"На прикладах - ^2ВЫКЛ"');
             }
         }
 		
@@ -3759,7 +3903,6 @@ sub clear_stats {
     my $search_string = shift;
     my $victim;
 	my $sth;
-	my @row;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) {
     &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
@@ -3779,7 +3922,6 @@ sub report_player {
     my $search_string = shift;
     my $target_player;
 	my $target_player_guid;
-	my @row;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) {
     &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
@@ -3788,6 +3930,156 @@ sub report_player {
 	$target_player_guid = $guid_by_slot{$matches[0]};
 	&rcon_command("say " . '"Жалоба на игрока"' . "$target_player" . '"^7отправлена."');
     &log_to_file('logs/report.log', "!report: $name_by_slot{$slot} - GUID $guid reported player $target_player - GUID $target_player_guid  via the !report command. (Search: $search_string)");	}
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !disarm command($search_string)
+sub disarm_command {
+    if (&flood_protection('disarm_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set disarm $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был обезоружен админом"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !explode command($search_string)
+sub explode_command {
+    if (&flood_protection('explode_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set explode $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был взорван админом"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !swapteam command($search_string)
+sub swapteam_command {
+    if (&flood_protection('swapteam_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set swapteam $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был перемещен в другую команду"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !tospec command($search_string)
+sub tospec_command {
+    if (&flood_protection('tospec_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set tospec $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был перемещен в наблюдатели"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !burn command($search_string)
+sub burn_command {
+    if (&flood_protection('burn_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set burn $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был подожжен админом"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !mortar command($search_string)
+sub mortar_command {
+    if (&flood_protection('mortar_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set mortar $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был атакован минометами"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !lock command($search_string)
+sub lock_command {
+    if (&flood_protection('lock_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set lock $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был заблокирован админом"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !cow command($search_string)
+sub cow_command {
+    if (&flood_protection('cow_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set cow $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был превращен в корову админом"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !kill command($search_string)
+sub kill_command {
+    if (&flood_protection('kill_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set kill $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был убит админом"'); }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
+}
+
+# BEGIN: !unlock command($search_string)
+sub unlock_command {
+    if (&flood_protection('unlock_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("set unlock $slot");
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был разблокирован админом"'); }
 	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string");}
 }
 
@@ -3802,12 +4094,11 @@ sub tempban_command {
 	my @matches = &matching_users($search_string);
 	if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$search_string"); return 0; }
 	elsif ($#matches == 0) { $slot = $matches[0]; }
-	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string"); return 0; }
-    }
+	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string"); return 0; } }
     
     my $ban_ip = 'undefined';
     my $unban_time = $time + 1200;
-    &rcon_command("say ^2$name_by_slot{$slot}" . '" ^7был временно забанен админом"');
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом"');
     sleep 1;
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot};
@@ -4323,8 +4614,8 @@ sub guid_sanity_check {
     # if guid is nonzero and is not last_guid, then we know sanity fails.
 
     # begin import from ip_to_guid.pl
-    my $total_tries = 5; # The total number of attempts to get an answer out of activision.
-    my $read_timeout = 4; # Number of seconds to wait for activison to respond to a packet.
+    my $total_tries = 3; # The total number of attempts to get an answer out of activision.
+    my $read_timeout = 5; # Number of seconds to wait for activison to respond to a packet.
     my $activision_master = 'cod2master.activision.com';
     my $port = 20700;
     my $ip_address = $ip;
@@ -4709,8 +5000,8 @@ sub check_guid_zero_players {
     &fisher_yates_shuffle(\@possible);
 
 
-    my $total_tries = 5; # The total number of attempts to get an answer out of activision.
-    my $read_timeout = 4; # Number of seconds to wait for activison to respond to a packet.
+    my $total_tries = 3; # The total number of attempts to get an answer out of activision.
+    my $read_timeout = 5; # Number of seconds to wait for activison to respond to a packet.
     my $activision_master = 'cod2master.activision.com';
     my $port = 20700;
     my $ip_address;
@@ -5149,8 +5440,8 @@ sub make_affiliate_server_announcement {
 sub get_server_info {
     # ripped from my getinfo.pl
     my $ip_address = shift;
-    my $total_tries = 2; # The total number of attempts to get an answer out of the server.
-    my $read_timeout = 2; # Number of seconds per attempt to wait for the response packet.
+    my $total_tries = 3; # The total number of attempts to get an answer out of the server.
+    my $read_timeout = 5; # Number of seconds per attempt to wait for the response packet.
     my $port = 28960;
     my $d_ip;
     my $message;
