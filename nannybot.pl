@@ -779,22 +779,11 @@ while (1) {
 	    print "MAP STARTING: $map_name $game_type\n";
 	    my $reset_slot;
 		foreach $reset_slot (keys %last_activity_by_slot) {
-		    $last_activity_by_slot{$reset_slot} = 'gone';
-		    $idle_warn_level{$reset_slot} = 0;
-		    &update_name_by_slot('SLOT_EMPTY', $reset_slot);
-		    $ip_by_slot{$reset_slot} = 'SLOT_EMPTY';
-		    $guid_by_slot{$reset_slot} = 0;
 		    $spam_count{$reset_slot} = 0;
-		    $last_ping{$reset_slot} = 0;
-		    $ping_average{$reset_slot} = 0;
-		    $penalty_points{$reset_slot} = 0;
-		    $last_killed_by{$reset_slot} = '"...Õלל... Ïנמסעט, םמ ÿ חאבûכא"';
 		    $kill_spree{$reset_slot} = 0;
-		    $best_spree{$reset_slot} = 0;
-		    $ignore{$reset_slot} = 0; }
+		    $best_spree{$reset_slot} = 0; }
 	        $freshen_next_map_prediction = 1;
 	        $last_rconstatus = 0;
-		print "MAP CHANGE/RESTART DETECTED. RESETTING VALUES TO PREVENT THEIR USAGE IN NEW MAP\n";
 	}
 	elsif ($first_char eq 'S') {
 	    # Server Shutdown - Triggers when the server shuts down?
