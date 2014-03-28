@@ -1075,7 +1075,7 @@ sub die_nice {
 	my $who_cares = <STDIN>;
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
     exit 1; }
-# END: die_nice();
+# END: die_nice()
 
 # BEGIN: open_server_logfile(logfile)
 sub open_server_logfile {
@@ -4887,8 +4887,7 @@ sub mysql_fail {
     my $message = $_[0];
     print $message;
     $mysql_is_broken = 1;
-    &mysql_repair();
-}
+    &mysql_repair(); }
 
 sub mysql_repair {
     print "Next Repair Time in " . &duration(($time - $next_mysql_repair)) . "\n";
@@ -5177,13 +5176,12 @@ sub big_red_button_command {
         &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !big red button command"); }  
 }
 
-#BEGIN !rank
+#BEGIN !rnk
 sub rank {
 
    if (&flood_protection('rank', 60, $slot)) { return 1; }
 
    my $rank_msg = "^2$name^7:";
-   my $kills = 1;
    my $rank_sth;
 
     $rank_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
@@ -5191,33 +5189,11 @@ sub rank {
     @row = $rank_sth->fetchrow_array;
     if ((!$row[0]) && ($name ne &strip_color($name))) {
 	$rank_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-	@row = $rank_sth->fetchrow_array;
-    }
-    if ($row[0]) {
-	$kills = $row[2];
-	if ($row[2] > 99 && $row[2] < 500)
-	{
-	$rank_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '"убийств)"';
-	}
-	if ($row[2] > 9 && $row[2] < 50)
-	{
-	$rank_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '"убийств)"';
-	}
-	if ($row[2] > 499 && $row[2] < 1000)
-	{
-	$rank_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '"убийств)"';
-	}
-	if ($row[2] > 999)
-	{
-	$rank_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '"убийств)"';
-	}
-	if ($row[2] < 9)
-	{
-	$rank_msg .= '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '"убийств)"';
-	}
-	if ($row[2] > 49 && $row[2] < 100)
-	{
-	$rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '"убийств)"';
-	}
-    }
+	@row = $rank_sth->fetchrow_array; }
+	if ($row[2] > 99 && $row[2] < 500) { $rank_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '"убийств)"'; }
+	if ($row[2] > 9 && $row[2] < 50) { $rank_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '"убийств)"'; }
+	if ($row[2] > 499 && $row[2] < 1000) { $rank_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '"убийств)"'; }
+	if ($row[2] > 999) { $rank_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '"убийств)"'; }
+	if ($row[2] < 9) { $rank_msg .=  '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '"убийств)"'; }
+	if ($row[2] > 49 && $row[2] < 100) { $rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '"убийств)"'; }
     &rcon_command("say $rank_msg"); }
