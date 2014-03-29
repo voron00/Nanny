@@ -361,6 +361,7 @@ while (1) {
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0; }
+	        print ("SERVER CRASH/RESTART DETECTED, RESETTING...\n");
 		    &rcon_command("say " , '"^1*** ^7Похоже что сервер упал, перезапускаю себя... ^1***"');
 		}
 		$last_upmins = $now_upmins;
@@ -613,7 +614,7 @@ while (1) {
 		$ping_average{$slot} = 0;
 		$penalty_points{$slot} = 0;
 		$ignore{$slot} = 0;
-		
+
 		if ($config->{'show_game_joins'}) {
 			&rcon_command("say " . '"Игрок ^2"' . &strip_color($name) . '" ^7присоединился к игре"'); }
 		if ($config->{'show_joins'}) {
