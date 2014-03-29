@@ -1767,7 +1767,7 @@ sub chat{
         }
         elsif ($message =~ /^!unban\s*$/i) {
             if (&check_access('ban')) {
-                &rcon_command("say " . '"Снять бан можно при помощи BAN ID,проверьте !lastbans чтобы узнать ID игроков которые были забанены"');
+                &rcon_command("say " . '"Снять бан можно при помощи BAN ID, проверьте !lastbans чтобы узнать ID игроков которые были забанены"');
             }
         }
 		
@@ -3851,13 +3851,13 @@ sub tempban_command {
     my $slot = 'undefined';
     if ($search_string =~ /^\#(\d+)$/) {
     $slot = $1;
-    } else {    
+    } else {
 	my @matches = &matching_users($search_string);
 	if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . "$search_string"); return 0; }
 	elsif ($#matches == 0) { $slot = $matches[0]; }
 	elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: " . "$search_string"); return 0; } }
     my $ban_ip = 'undefined';
-    my $unban_time = $time + 1200;
+    my $unban_time = $time + 1800;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом"');
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot}; }
@@ -4496,23 +4496,19 @@ sub tell {
 sub last_bans {
     my $number = shift;
     # keep some sane limits.
-    if ($number > 50) { $number = 50; }
+    if ($number > 10) { $number = 10; }
     if ($number < 0) { $number = 1; }
     $number = int($number);
     if (&flood_protection('lastbans', 60, $slot)) { return 1; }
-
-    my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time=2125091758 ORDER BY id DESC LIMIT $number");
-    $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
-    
+    my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > 0 ORDER BY id DESC LIMIT $number");
+    $bans_sth->execute or &die_nice("Unable to do select recent bans\n"); 
     my @row;
     my ($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name);
-    
     while (@row = $bans_sth->fetchrow_array) {
 	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
 	my $txt_time = &duration($time - $ban_time);
         &rcon_command("say ^2$ban_name" . '"^7был забанен"' . " $txt_time" . '" назад"' . " (ban id#: ^1$ban_id^7)");
-        sleep 1;
-    }
+        sleep 1; }
 }
 # END: &last_bans($number);
 
