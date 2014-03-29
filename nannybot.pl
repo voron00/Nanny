@@ -248,7 +248,7 @@ if ($logfile_mode eq 'local') {
     $ftp_tmpFileName = tmpnam();
     $ftp_verbose && warn "FTP $ftp_host\n";
     $ftp=Net::FTP->new($ftp_host,Timeout=>240) || &die_nice("FTP: Cannot ftp to $ftp_host: $!");
-    $ftp_verbose && warn "USER: " . $config->{'ftp_username'} . " \t PASS: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
+    $ftp_verbose && warn "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
     $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) || &die_nice("FTP: Can't login to $ftp_host: $!");
     $ftp_verbose && warn "CWD: $ftp_dirname\n";
     $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
@@ -561,9 +561,9 @@ while (1) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) 
 				or &die_nice("Unable to update stats2\n");
-				&rcon_command("say ^1$attacker_name^7" . '"остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
                 else {
-				&rcon_command("say ^1$attacker_name^7" . '"остановил серию убийств игрока"' . "^2$victim_name^7" . '"который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
 			}
 		    }
 		    $kill_spree{$victim_slot} = 0;
@@ -613,15 +613,13 @@ while (1) {
 		$ping_average{$slot} = 0;
 		$penalty_points{$slot} = 0;
 		$ignore{$slot} = 0;
-
+		
 		if ($config->{'show_game_joins'}) {
-			&rcon_command("say " . '"Игрок "' . "$name" . '" ^7присоединился к игре"');
-		}
+			&rcon_command("say " . '"Игрок ^2"' . &strip_color($name) . '" ^7присоединился к игре"'); }
 		if ($config->{'show_joins'}) {
-		    print "JOIN: " . &strip_color($name) . " has joined the game\n";
-		}
+		    print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
 	    } else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
-	} 
+	}
 	elsif ($first_char eq 'Q') {
 	    # A "QUIT" Event has happened
 	    if ($line =~ /^Q;(\d+);(\d+);(.*)/) {
@@ -650,7 +648,7 @@ while (1) {
         if ($config->{'show_quits'}) {
 		    print "QUIT: " . &strip_color($name) . " has left the game\n"; }
 		if ($config->{'show_game_quits'}) {
-			&rcon_command("say " . '"Игрок "' . "$name" . '" ^7покинул игру"'); }
+			&rcon_command("say " . '"Игрок ^1"' . &strip_color($name) . '" ^7покинул игру"'); }
 	    } else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	}
 	elsif ($first_char eq 's') {
@@ -673,7 +671,7 @@ while (1) {
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
 		&chat();
-	    } else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
+	    } # else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
 	}
 	elsif ($first_char eq 't') {
             # say / sayteam
@@ -702,9 +700,7 @@ while (1) {
 		($attacker_team,$guid,$name) = ($1,$2,$3);
 		if ((defined($attacker_team)) && ($attacker_team =~ /./)) {
 		    print "GAME OVER: $attacker_team have WON this game of $game_type on $map_name\n"; 
-		} else  {
-		    print "GAME OVER: $name has WON this game of $game_type on $map_name\n";
-		}
+		} else { print "GAME OVER: $name has WON this game of $game_type on $map_name\n"; }
 
 		# Buy some time so we don't do an rcon status during a level change
 		$last_rconstatus = $time;
@@ -729,9 +725,7 @@ while (1) {
 		    &rcon_command("g_allowVote 0");
 		    $reactivate_voting = $time + 25;
 		}
-	    } else {
-		print "WARNING: unrecognized syntax for Weapon/Round Win line:\n\t$line\n";
-	    }
+	    } # else { print "WARNING: unrecognized syntax for Weapon/Round Win line:\n\t$line\n"; }
 	}
 	elsif ($first_char eq 'L') {
 	    # Round Losers
@@ -795,8 +789,8 @@ while (1) {
 	elsif (($first_char eq chr(13)) || ($first_char eq '')) { 
 	    # Empty Line
 	} else { 
-	    # WTF?!
-	    print "WTF: $first_char and $line\n";
+	    # Unknown line
+	    print "UNKNOWN LINE: $first_char and $line\n";
 	}
 	
     } else { 
@@ -996,7 +990,7 @@ sub load_config_file {
 	    } 
 	    elsif ($config_name eq 'rcon_pass') { 
 		$config->{'rcon_pass'} = $config_val;
-		print "RCON pass: $config->{'rcon_pass'}\n";
+		print "RCON password: $config->{'rcon_pass'}\n";
 	    } 
 	    elsif ($config_name eq 'server_logfile') {
 		$config->{'server_logfile_name'} = $config_val;
@@ -1071,7 +1065,7 @@ sub die_nice {
     if ((!defined($message)) || ($message !~ /./)) {
 	$message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
-	print "Press <ENTER> to skip this message and close this program\n"; 
+	print "Press <ENTER> to close this program\n"; 
 	my $who_cares = <STDIN>;
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
     exit 1; }
@@ -1482,11 +1476,11 @@ sub chat{
 		else { $spam_count{$slot} += 1; }
 		
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_1'}) {
-		    &rcon_command("say $name_by_slot{$slot}: " . $config->{'antispam_warn_message_1'});
+		    &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_1'});
 		    # $penalty_points{$slot} += 10;
 		}
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_2'}) {
-                    &rcon_command("say $name_by_slot{$slot}: " . $config->{'antispam_warn_message_2'});
+                    &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_2'});
 		    # $penalty_points{$slot} += 20;
                 }
 		if (($spam_count{$slot} >= $config->{'antispam_kick_level'}) 
@@ -1496,7 +1490,7 @@ sub chat{
 			# some douchebag flooded the engine.  (turning it off for a while.)
 		    } else { 
 
-			&rcon_command("say $name_by_slot{$slot}: " . $config->{'antispam_kick_message'});
+			&rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_kick_message'});
 			sleep 1;
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "SPAM: $name_by_slot{$slot} was kicked for spamming: $message");
@@ -2185,7 +2179,7 @@ sub chat{
             if (&check_access('nextmap')) {
 		if (&flood_protection('nextmap', 60, $slot)) { }
 		else {
-		    &rcon_command("say " . " ^2$name^7" . '": Следующая карта будет: ^1"' . $description{$next_map} .  " ^7(^2" .  
+		    &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" .  
 				  $description{$next_gametype} . "^7)");
 		}
             }
@@ -2194,7 +2188,7 @@ sub chat{
 	# !rotate
 	elsif ($message =~ /^!rotate\b/i) {
 	    if (&check_access('map_control')) {
-		&rcon_command("say " . '"^2Смена карты..."');
+		&rcon_command("say " . '"^2Смена карты^7..."');
 		sleep 1;
 		&rcon_command('map_rotate');
 	    }
@@ -2202,9 +2196,17 @@ sub chat{
 	# !restart
 	elsif ($message =~ /^!restart\b/i) {
 	    if (&check_access('map_control')) {
-		&rcon_command("say " . '"^2Перезагрузка карты..."');
+		&rcon_command("say " . '"^2Перезагрузка карты^7..."');
 		sleep 1;
 		&rcon_command('map_restart');
+	    }
+	}
+	# !fastrestart
+	elsif ($message =~ /^!quickrestart|fastrestart\b/i) {
+	    if (&check_access('map_control')) {
+		&rcon_command("say " . '"^2Быстрая перезагрузка карты^7..."');
+		sleep 1;
+		&rcon_command('fast_restart');
 	    }
 	}
 	# !voting
@@ -2537,8 +2539,8 @@ sub chat{
 	    }
 	}
 	
-	# !el-alamein !egypt  
-	elsif ($message =~ /^!(el.?alamein|egypt)\b/i) {
+	# !el-alamein !egypt !decoy
+	elsif ($message =~ /^!(el.?alamein|egypt|decoy)\b/i) {
 	    if (&check_access('map_control')) {
 		&rcon_command("say " . '"^2Смена на: ^3El Alamein, Egypt      ^7(mp_decoy)"');
 		sleep 1;
@@ -2939,16 +2941,15 @@ sub rcon_status {
 	    }
 	    
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
+		if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
+	    if (!defined($ping)) { $ping = 0; }
 	    if ($ping ne 'CNCT') {
-		if ($ping == 999) {
-		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
-		    if (($last_ping{$slot} == 999) && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
-			print "999 ping for $name\n";
+		    if (($last_ping{$slot} == 999) && ($ping == 999) && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
+			print "PING ENFORCEMENT: 999 ping for $name\n";
 			&rcon_command("say " . "$name" . '" ^7был выкинут за 999 пинг."');
 			sleep 1;
 			&rcon_command("clientkick $slot");
-			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long");
-		    }
+			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long"); }
 		} else {
 		    if (!defined($ping_average{$slot})) { $ping_average{$slot} = 0; }
 		    $ping_average{$slot} = int ( ( $ping_average{$slot} * 0.85  ) + ( $ping * 0.15 ) );
@@ -2956,13 +2957,10 @@ sub rcon_status {
 			&rcon_command("say $name " . '"^7 был выкинут за слишком высокий пинг."' . " ($ping_average{$slot} / 350)");
 			&log_to_file('logs/kick.log', "$name was kicked for having too high of an average ping. ($ping_average{$slot} / 350)");
 			sleep 1;
-			&rcon_command("clientkick $slot");
-		    }
+			&rcon_command("clientkick $slot"); }
 		}
-
 		# we need to remember this for the next ping we check.
 		$last_ping{$slot} = $ping;
-	    }
 	    # End of Ping Checks.
 	}
     }
@@ -2987,30 +2985,30 @@ sub rcon_status {
     # BEGIN: Check for Banned IP addresses
     my $stripped;
 
-    # TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INTEGER, name VARCHAR(64) );
     $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
         if ($slot >= 0) {
 	    $stripped = $ip_by_slot{$slot};
-	    # $stripped =~ s/\?$//;
 	    $sth->execute($stripped);
+		if (!defined($ping)) { $ping = 0; }
+		if ($ping ne 999) {
 	    while (@row = $sth->fetchrow_array) {
-		&rcon_command("say ^1$name_by_slot{$slot}^7: " . '"Вы забанены.  Вы не можете остатся на этом сервере."');
+		&rcon_command("say ^1$name_by_slot{$slot}^7: " . '"Вы забанены. Вы не можете остатся на этом сервере."');
 		sleep 1;
-		&rcon_command("say " . '"игрок"' .  "^1$row[5]" . '"^7был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: $row[0])");
+		&rcon_command("say ^1$row[5]^7:" . '"был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: $row[0])");
 		sleep 1;
 		if ($row[2] == 2125091758) {
 		    &rcon_command("say ^1$name_by_slot{$slot}^7: " . '"У вас перманентный бан."');
 		} else {		    
-		    &rcon_command("say ^1$name_by_slot{$slot}^7:" . '" Вы будете разбанены "' . &duration( ( $row[2]) - $time ) );
+		    &rcon_command("say ^1$name_by_slot{$slot}^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) );
 		}
 		sleep 1;
 		&rcon_command("clientkick $slot");
-		sleep 1;
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
 	    }
 	}
-    }    
+    }
+	}
     # END: Banned IP Address check  
 }
 # END: rcon_status()
@@ -3860,15 +3858,12 @@ sub tempban_command {
     my $ban_ip = 'undefined';
     my $unban_time = $time + 1200;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом"');
-    sleep 1;
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot}; }
-    # TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INTEGER, name VARCHAR(64) );
-    &rcon_command("tempbanclient $slot");
-    sleep 1;
     &log_to_file('logs/kick.log', "!TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
+	&rcon_command("clientkick $slot");
 }
 
 # BEGIN: ban_command($search_string)
@@ -3886,17 +3881,12 @@ sub ban_command {
     my $ban_ip = 'undefined';
     my $unban_time = 2125091758;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был забанен админом"');
-    sleep 1;
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot}; }
-    # TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INTEGER, name VARCHAR(64) );	
-    &rcon_command("banclient $slot");
-    sleep 1;
-    &rcon_command("clientkick $slot");
-    sleep 1;
     &log_to_file('logs/kick.log', "!BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");	   
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
+	&rcon_command("clientkick $slot");
 }
 
 # BEGIN: &unban_command($target);
@@ -3916,10 +3906,7 @@ sub unban_command {
 	$bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE name LIKE ?"); }
     $bans_sth->execute($unban) or &die_nice("Unable to do unban SELECT: $unban\n");
     while (@row = $bans_sth->fetchrow_array) {
-	&rcon_command("say UNBANNED: $row[5]" . '" был разбанен админом"' . "   (ban id#: $row[0]" . '" удален)"');
-	sleep 1;
-	&rcon_command("unbanUser \"$row[5]\"");
-	sleep 1;
+	&rcon_command("say $row[5]" . '" был разбанен админом"' . "   (ban id#: $row[0]" . '" удален)"');
 	push (@unban_these, $row[0]);
 	&log_to_file('logs/commands.log', "UNBAN: $row[5] was unbanned by an admin.   (ban id#: $row[0] deleted)"); }
     # now clean up the database ID's.
@@ -4118,14 +4105,12 @@ sub change_gametype {
     my $gametype = shift;
     if (!defined($gametype)) { 
 	print "WARNING: change_gametype() was called without a game type\n";
-	return;
-    }
+	return; }
     if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper|phnt)$/) {
 	print "WARNING: change_gametype() was called with an invalid game_type: $gametype\n";
-        return;
-    }
+    return; }
     if (&flood_protection('gametype', 60, $slot)) { return 1; }
-    &rcon_command("say " . '"^2Смена режима игры на:"' . " ^3$gametype");
+    &rcon_command("say " . '"^2Смена режима игры на^7:^3"' . ($description{$gametype}));
     &rcon_command("g_gametype $gametype");
     sleep 1;
     &rcon_command("map_restart");
@@ -4524,7 +4509,7 @@ sub last_bans {
     while (@row = $bans_sth->fetchrow_array) {
 	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
 	my $txt_time = &duration($time - $ban_time);
-        &rcon_command("say ^2$ban_name" . '" ^7был забанен"' . " $txt_time" . '" назад"' . " (ban id#: ^1$ban_id^7)");
+        &rcon_command("say ^2$ban_name" . '"^7был забанен"' . " $txt_time" . '" назад"' . " (ban id#: ^1$ban_id^7)");
         sleep 1;
     }
 }
@@ -4750,8 +4735,8 @@ sub check_guid_zero_players {
 		    print"DIRTBAG: $name_by_slot{$slot} - $reason\n";
 		    &rcon_command("say ^1$name_by_slot{$slot} ^2was kicked for $kick_reason");
 		    sleep 1;
-		    &rcon_command("tempbanclient $slot");
-		    &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was tempbanned for: $kick_reason");
+		    &rcon_command("clientkick $slot");
+		    &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
 
 		    my $ban_ip = 'undefined';
 		    my $unban_time = $time + 28800;
@@ -4951,10 +4936,7 @@ sub update_name_by_slot {
 			if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 			    $ban_ip = $ip_by_slot{$slot};
 			}
-			&rcon_command("banclient $slot");
-			sleep 1;
 			&rcon_command("clientkick $slot");
-			sleep 1;
 			&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip / $guid_by_slot{$slot} was permanently for being a name thief:  $name / $name_by_slot{$slot} ");
 			my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
 			$bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, 'NAME STEALING') or &die_nice("Unable to do insert\n");					
