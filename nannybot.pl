@@ -2579,9 +2579,6 @@ sub chat{
 	        # !time
 	        elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-			my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
-            my $local_time = localtime(time);
-            print "Local time = $local_time\n";
             my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
             $year = $year + 1900;
             $mon += 1;
