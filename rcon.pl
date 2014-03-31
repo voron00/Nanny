@@ -2,8 +2,8 @@
 
 use warnings;
 use strict;
+use diagnostics;
 use Rcon::KKrcon;
-
 
 &load_config_file('nanny.cfg');
 my $address;
@@ -12,7 +12,6 @@ my $password;
 my $type = 'old';
 $| = 1;
 my $VERSION = "2.12 CoD2";
-
 
 my  $command = join(" ", @ARGV);
 
@@ -35,7 +34,6 @@ if ($interactive)
                 . "Type 'q' to quit.\n\n";
 }
 
-
 while (1)
 {
         if ($interactive)
@@ -46,7 +44,7 @@ while (1)
 
                 if (!defined($command))
                 {
-                        # catch Ctrl+D
+            # catch Ctrl+D
 		    print "\n";
 		    exit(0);
                 }
@@ -63,10 +61,6 @@ while (1)
 
         exit($result) unless ($interactive);
 }
-
-
-
-
 
 sub load_config_file {
     my $config_file = shift;

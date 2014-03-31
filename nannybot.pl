@@ -1,11 +1,5 @@
 #!/usr/bin/perl -w
 
-# debug message
-print "Initializing NannyBot...\n";
-sleep 1;
-
-my $version = '3.1.5 RUS';
-
 # VERSION 3.xx RUS changelog is on github page https://github.com/voron00/Nanny/commits/master
 
 # VERSION 2.99 changelog
@@ -65,10 +59,8 @@ my $version = '3.1.5 RUS';
 # List of modules
 use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
+use diagnostics; # good for detailed explanations about any problems in code
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-# use IO::File; # IO-File is used for raw disk reads. No need for now
-# use Carp::Heavy;  # DBI seems to need this.  Perl2Exe Needs help, apparently. We dont use Perl2exe, so no need for that.
-# use DBD::SQLite; # Perl2EXE is happier if we declare this. We dont use Perl2exe, so no need for that.
 # use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
 use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
@@ -94,6 +86,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
+my $version = '3.1.5 RUS';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -797,12 +790,8 @@ while (1) {
     } else { 
 	# We have reached the end of the logfile.
 
-	# Delay for a second so we aren't constantly hammering this loop
-	if ($logfile_mode eq 'local') {
-	    Time::HiRes::sleep(0.1);
-	} elsif ($logfile_mode eq 'ftp') {
-	    Time::HiRes::sleep(0.1);
-	}
+	# Delay some time so we aren't constantly hammering this loop
+	Time::HiRes::sleep(0.1);
 	
 	# cache the time to limit the number of syscalls
 	$time = time;
@@ -864,7 +853,7 @@ while (1) {
 		($next_gametype,$next_map) = ($1,$2);
 		if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype }
 		if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
-		print "Next Map:  " . $description{$next_map} .  " - and Next Gametype: " .  $description{$next_gametype} . "\n"; 
+		print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n"; 
 		$freshen_next_map_prediction = 0;
 		# MySQL Next Map Logging
 		if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
@@ -878,7 +867,7 @@ while (1) {
 		    ($next_gametype,$next_map) = ($1,$2);
 		    if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype }
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
-		    print "Next Map:  " . $description{$next_map} .  " - and Next Gametype: " .  $description{$next_gametype} . "\n";
+		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
 		    $freshen_next_map_prediction = 0;
                 # MySQL Next Map Logging
 		    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
@@ -920,7 +909,7 @@ sub load_config_file {
     my $regex_match;
     my $location;
 
-    print "\nParsing config file: $config_file...\n\n";
+    print "\nParsing config file: $config_file\n\n";
     
     while (defined($line = <CONFIG>)) {
 	$line =~ s/\s+$//;
@@ -5178,4 +5167,5 @@ sub rank {
 	if ($row[2] > 999) { $rank_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '"убийств)"'; }
 	if ($row[2] < 9) { $rank_msg .=  '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '"убийств)"'; }
 	if ($row[2] > 49 && $row[2] < 100) { $rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '"убийств)"'; }
-    &rcon_command("say $rank_msg"); }
+    &rcon_command("say $rank_msg");
+}
