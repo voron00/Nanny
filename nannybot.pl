@@ -275,7 +275,7 @@ $last_guid_sanity_check = $time;
 $timestring = scalar(localtime($time));
 $next_announcement = $time + 120;
 $next_mysql_repair = $time + $mysql_repair_interval;
-$next_affiliate_announcement = $time + 20;
+$next_affiliate_announcement = $time;
 
 # create the rcon control object - this is how we send commands to the console
 my $rcon = new KKrcon(
@@ -5015,7 +5015,10 @@ sub make_affiliate_server_announcement {
 	    }
 	}
 	if ($clients) {
-	    if ($clients == 1) { $line = "" . '"^7Одинокий воин играет на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n" }
+	    if ($clients == 1 or $clients == 21 or $clients == 31)
+		{ $line = "^1$clients " . '"^7игрок на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
+		elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32)
+		{ $line = "^1$clients " . '"^7игрока на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
 	    else { $line = "^1$clients " . '"^7игроков на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
 	    if ($clients < $maxclients) {
 		push @results, $line;
