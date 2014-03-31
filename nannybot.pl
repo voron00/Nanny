@@ -208,17 +208,6 @@ print "Perl runtime version is $^V, running on $^O\n";
 # print current nanny version (debug message)
 print "Nannybot version is $version\n";
 
-# initialize time, print and format it
-my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
-my $retval = time();
-print "Reading time values from the system...\n";
-my $local_time = localtime($retval);
-print "Local time = $local_time\n";
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-$year = $year + 1900;
-$mon += 1;
-print "Formated time = $mday/$mon/$year $hour:$min:$sec $weekday[$wday]\n";
-
 # turn on auto-flush for STDOUT
 local $| = 1;
 
@@ -2590,7 +2579,13 @@ sub chat{
 	        # !time
 	        elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min ^7|^3 $mday.$mon.$year");
+			my @weekday = ("Sunday", "Monday", "Tuesday", "Wednsday", "Thursday", "Friday", "Saturday");
+            my $local_time = localtime(time);
+            print "Local time = $local_time\n";
+            my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+            $year = $year + 1900;
+            $mon += 1;
+			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min:$sec ^7|^3 $mday.$mon.$year");
             }
         }
             # !guid
