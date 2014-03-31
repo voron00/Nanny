@@ -220,7 +220,7 @@ $mon += 1;
 print "Formated time = $mday/$mon/$year $hour:$min:$sec $weekday[$wday]\n";
 
 # turn on auto-flush for STDOUT
-$| = 1;
+local $| = 1;
 
 # shake the snow-globe.
 srand;
@@ -2590,19 +2590,7 @@ sub chat{
 	        # !time
 	        elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-            ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-            $year = $year + 1900;
-            $mon += 1;
-			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min");
-            }
-        }
-		    # !date
-			elsif ($message =~ /^!date\b/i) {
-            if (&check_access('time')) {
-            ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-            $year = $year + 1900;
-            $mon += 1;
-            &rcon_command("say " . '"^2Текущая дата^7:^3"' . "$mday/$mon/$year");
+			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min ^7|^3 $mday.$mon.$year");
             }
         }
             # !guid
