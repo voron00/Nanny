@@ -86,7 +86,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1.5 RUS';
+my $version = '3.1.6 RUS';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -212,7 +212,7 @@ print "Nannybot version is $version\n";
 local $| = 1;
 
 # shake the snow-globe.
-srand;
+srand();
 
 # End of global variable declarations
 
@@ -229,19 +229,19 @@ if ($logfile_mode eq 'local') {
     fileparse_set_fstype(); # FTP uses UNIX rules
     $ftp_tmpFileName = tmpnam();
     $ftp_verbose && warn "FTP $ftp_host\n";
-    $ftp=Net::FTP->new($ftp_host,Timeout=>240) || &die_nice("FTP: Cannot ftp to $ftp_host: $!");
+    $ftp=Net::FTP->new($ftp_host,Timeout=>240) or &die_nice("FTP: Cannot ftp to $ftp_host: $!");
     $ftp_verbose && warn "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
-    $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) || &die_nice("FTP: Can't login to $ftp_host: $!");
+    $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!");
     $ftp_verbose && warn "CWD: $ftp_dirname\n";
     $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
     
     if ($config->{'use_passive_ftp'}) {
 	print "Using Passive ftp mode...\n\n";
-	$ftp->pasv() || die $ftp->message;
+	$ftp->pasv() or die $ftp->message;
     }
     $ftp_lines && &ftp_getNlines;
     $ftp_type = $ftp->binary;
-    $ftp_lastEnd = $ftp->size($ftp_basename) || &die_nice("ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
+    $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
     $ftp_verbose && warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n";
 }
 
@@ -264,8 +264,7 @@ my $rcon = new KKrcon(
 		      Host => $config->{'ip'},
 		      Port => $config->{'port'},
 		      Password => $config->{'rcon_pass'},
-		      Type => 'old'
-);
+		      Type => 'old' );
 
 # tell the server that we want the game logfiles flushed to disk after every line.
 &rcon_query("g_logSync 1");
@@ -395,7 +394,7 @@ while (1) {
 		}
 		# Track the kill stats for the killer
 		# checking the attacker teams ensures we dont try to count suicides, those that are auto-balanced, or deaths from falling
-		if (($attacker_team eq 'axis') || ($attacker_team eq 'allies') || (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
+		if (($attacker_team eq 'axis') or ($attacker_team eq 'allies') or (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
 		    $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 		    @row = $stats_sth->fetchrow_array;
@@ -481,7 +480,7 @@ while (1) {
 		
 		# Track the death stats for the victim
 		# checking the attacker team ensures we don't count deaths from switching teams or changing to spectator
-		if (($attacker_team eq 'axis') || ($attacker_team eq 'allies') || ($attacker_team eq 'world') || 
+		if (($attacker_team eq 'axis') or ($attacker_team eq 'allies') or ($attacker_team eq 'world') or 
 		  (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
 		    $stats_sth->execute(&strip_color($victim_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -602,6 +601,10 @@ while (1) {
 		if ($config->{'show_joins'}) {
 		    print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
 	    } else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
+		my $reset_slot;
+		foreach $reset_slot (keys %last_activity_by_slot) {
+		$last_ping{$reset_slot} = 0; }
+		$last_rconstatus = 0;
 	}
 	elsif ($first_char eq 'Q') {
 	    # A "QUIT" Event has happened
@@ -769,7 +772,7 @@ while (1) {
 		print "WARNING: unrecognized A line format:\n\t$line\n";
 	    }
 	}
-	elsif (($first_char eq chr(13)) || ($first_char eq '')) { 
+	elsif (($first_char eq chr(13)) or ($first_char eq '')) { 
 	    # Empty Line
 	} else { 
 	    # Unknown line
@@ -878,15 +881,10 @@ while (1) {
 #  This routine parses the configuration file for directives.
 sub load_config_file {
     my $config_file = shift;
-    if (!defined($config_file)) { 
-	&die_nice("load_config_file() called without an argument\n");
-    }
-    if (!-e $config_file) { 
-	&die_nice("load_config_file() config file does not exist: $config_file\n");
-    }
+    if (!defined($config_file)) { &die_nice("load_config_file() called without an argument\n"); }
+    if (!-e $config_file) { &die_nice("load_config_file() config file does not exist: $config_file\n"); }
     
-    open (CONFIG, $config_file) ||
-	&die_nice("$config_file file exists, but i couldnt open it.\n");
+    open (CONFIG, $config_file) or &die_nice("$config_file file exists, but i couldnt open it.\n");
     
     my $line;
     my $config_name;
@@ -969,7 +967,7 @@ sub load_config_file {
 	    } 
 	    elsif ($config_name eq 'rcon_pass') { 
 		$config->{'rcon_pass'} = $config_val;
-		print "RCON password: $config->{'rcon_pass'}\n";
+		print "RCON password: " . '*'x length($config->{'rcon_pass'}) . "\n";
 	    } 
 	    elsif ($config_name eq 'server_logfile') {
 		$config->{'server_logfile_name'} = $config_val;
@@ -1021,18 +1019,14 @@ sub load_config_file {
 	    }
 	}
     }
-    
+
     close CONFIG;
-    
+
     # idiot gates:  Make sure essential variables are defined.
-    
-    if (!defined($config->{'ip'})) { 
-	&die_nice("Config File: ip_address is not defined\tCheck the config file: $config_file\n");
-    }
-    if (!defined($config->{'rcon_pass'})) { 
-	&die_nice("Config File: rcon_pass is not defined\tCheck the config file: $config_file\n");
-    }
-    
+
+    if (!defined($config->{'ip'})) { &die_nice("Config File: ip_address is not defined\tCheck the config file: $config_file\n"); }
+    if (!defined($config->{'rcon_pass'})) { &die_nice("Config File: rcon_pass is not defined\tCheck the config file: $config_file\n"); }
+
     print "\nFinished parsing config: $config_file\n\n";
 
 }
@@ -1041,7 +1035,7 @@ sub load_config_file {
 # BEGIN: die_nice(message)
 sub die_nice {
     my $message = shift;
-    if ((!defined($message)) || ($message !~ /./)) {
+    if ((!defined($message)) or ($message !~ /./)) {
 	$message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
 	print "Press <ENTER> to close this program\n"; 
@@ -1600,7 +1594,7 @@ sub chat{
     # End of Nice Shot
 
     # Auto-define questions (my most successful if statement evar?)
-    if ((!$ignore{$slot}) && ($message =~ /(.*)\?$/) || ($message =~ /^!(.*)/)){
+    if ((!$ignore{$slot}) && ($message =~ /(.*)\?$/) or ($message =~ /^!(.*)/)){
 	my $question = $1;
 	my $counter = 0;
 	my $sth;
@@ -2213,14 +2207,12 @@ sub chat{
 	}
 	
         # !friendlyfire
-        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) ||
-		($message =~ /^!team[ _\-]?kill\s+(.+)/i) ) {
+        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i) ) {
             if (&check_access('friendlyfire')) {
                 &friendlyfire_command($1);
             }
         }
-        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) ||
-	       ($message =~ /^!team[ _\-]?kill\s*$/i) ) {
+        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) or ($message =~ /^!team[ _\-]?kill\s*$/i) ) {
 	    
             if (&check_access('friendlyfire')) {
 		&rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^50 ^7чтобы ВЫКЛЮЧИТЬ огонь по союзникам"');
@@ -2231,12 +2223,12 @@ sub chat{
 		sleep 1;
                 &rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^53 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам с совместным уроном"');
 		sleep 1;
-		my $state_string = 'unknown';
+		my $state_string = '"неизвестен"';
 		if ($friendly_fire == 0) { $state_string = '"Огонь по союзникам в настоящий момент ВЫКЛЮЧЕН"'; }
 		elsif ($friendly_fire == 1) { $state_string = '"Огонь по союзникам в настоящий момент ВКЛЮЧЕН"'; }
 		elsif ($friendly_fire == 2) { $state_string = '"Огонь по союзникам в настоящий момент РИКОШЕТНЫЙ УРОН"'; }
 		elsif ($friendly_fire == 3) { $state_string = '"Огонь по союзникам в настоящий момент СОВМЕСТНЫЙ УРОН"'; }
-		if ($state_string ne 'unknown') {
+		if ($state_string ne '"неизвестен"') {
 		    &rcon_command("say ^1$name: ^7 $state_string");
 		}
             }
@@ -2603,6 +2595,14 @@ sub chat{
                 &rcon_command("say " . "^2$name_by_slot{$slot}^7:" . '"^7Твой ^1IP-Адрес^7 - ^2"' . "$ip_by_slot{$slot}");
             }
         }
+			# !ragequit
+			elsif ($message =~ /^!rage|rq|ragequit\b/i) {
+            {
+                &rcon_command("say " . "^1$name_by_slot{$slot}" . '"^7 покрыл всех матом, обиделся и вышел из игры."');
+				sleep 1;
+				&rcon_command("clientkick $slot");
+            }
+        }
 		
 		    # !bash mode (admin mod)
 			elsif (($message =~ /^!bash on\b/i) && ($config->{'use_admin_mod'})) {
@@ -2692,7 +2692,7 @@ sub chat{
 	# !lastkill
         elsif ($message =~ /^!(last\s*kill|killedby|whokilledme|whowasthat)\s*(.*)/i) {
 	    my $lastkill_search = $2;
-	    if ((!defined($lastkill_search)) || ($lastkill_search eq '')) { $lastkill_search = ''; }
+	    if ((!defined($lastkill_search)) or ($lastkill_search eq '')) { $lastkill_search = ''; }
             if (&check_access('lastkill')) {
 		print "DEBUG: slot = $slot  and last killed by = $last_killed_by{$slot}\n";
 		if (&flood_protection('lastkill', 60, $slot)) { }
@@ -2940,8 +2940,8 @@ sub rcon_status {
     # BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
     foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
 	if ($slot >= 0) {
-	    if ((!defined($ip_by_slot{$slot})) || ($ip_by_slot{$slot} eq '"пока не известен"')) {
-		$ip_by_slot{$slot} = 'unknown';
+	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq '"пока не известен"')) {
+		$ip_by_slot{$slot} = 'неизвестен';
 		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
 		    $ip_by_slot{$slot} = $row[0] . '?';
@@ -2963,9 +2963,9 @@ sub rcon_status {
 		if (!defined($ping)) { $ping = 0; }
 		if ($ping ne 999) {
 	    while (@row = $sth->fetchrow_array) {
-		&rcon_command("say ^1$name_by_slot{$slot}^7: " . '"Вы забанены. Вы не можете остатся на этом сервере."');
+		&rcon_command("say ^1$name_by_slot{$slot}^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
-		&rcon_command("say ^1$row[5]^7:" . '"был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: $row[0])");
+		&rcon_command("say ^1$row[5]^7:" . '" был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 		sleep 1;
 		if ($row[2] == 2125091758) {
 		    &rcon_command("say ^1$name_by_slot{$slot}^7: " . '"У вас перманентный бан."');
@@ -2991,8 +2991,7 @@ sub rcon_command {
     $command =~ s/\/\/+/\//g;
 
     if ($config->{'show_rcon'}) {
-	print "RCON: $command\n";
-    }
+	print "RCON: $command\n"; }
 
     print $rcon->execute($command);
     sleep 1;
@@ -3002,19 +3001,13 @@ sub rcon_command {
 	# Try rebuilding the object
 	if ($error eq 'Rcon timeout') {
 	    print "rebuilding rcon object\n";
-	    $rcon = new KKrcon(
-			       Host => $config->{'ip'},
-			       Port => $config->{'port'},
-			       Password => $config->{'rcon_pass'},
-			       Type => 'old'
-			       );
-	    
+	    $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
+		
 	} else { print "WARNING: rcon_command error: $error\n"; }
 	
 	return 1;
     } else {
-	return 0;
-    }
+	return 0; }
 }
 # END: rcon_command()
 
@@ -3023,8 +3016,7 @@ sub rcon_query {
     my ($command) = @_;
     
     if ($config->{'show_rcon'}) {
-        print "RCON: $command\n";
-    }
+        print "RCON: $command\n"; }
 
     my $result = "rcon_command error";
     $result = $rcon->execute($command);
@@ -3035,17 +3027,11 @@ sub rcon_query {
         # Try rebuilding the object
         if ($error eq 'Rcon timeout') {
             print "rebuilding rcon object\n";
-            $rcon = new KKrcon(
-                               Host => $config->{'ip'},
-                               Port => $config->{'port'},
-                               Password => $config->{'rcon_pass'},
-                               Type => 'old'
-                               );
-	    
+            $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
+
         } else { print "WARNING: rcon_command error: $error\n"; }
-	
-	return $result;
-    }
+
+	return $result; }
     else { return $result; }
 }
 # END: rcon_query
@@ -3235,7 +3221,7 @@ sub seen {
 # BEGIN: log_to_file($file, $message)
 sub log_to_file {
     my ($logfile,$msg) = @_;
-    open LOG, ">> $logfile" || return 0;
+    open LOG, ">> $logfile" or return 0;
     print LOG "$timestring: $msg\n";
     close LOG;
 }
@@ -3314,7 +3300,7 @@ sub stats {
 	my $best_killspree = $row[9];
 	$stats_msg .= " ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7ближнего боя"';
 	
-	if (($row[2]) || ($row[3]) || ($row[4])) { 
+	if (($row[2]) or ($row[3]) or ($row[4])) { 
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -3330,7 +3316,7 @@ sub stats {
 	my $badshot_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 10000) / 100 : 0;
         $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7автоматов"';
 
-	if (($row[5]) || ($row[6]) || ($row[7]) || ($row[8])) {
+	if (($row[5]) or ($row[6]) or ($row[7]) or ($row[8])) {
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -3502,7 +3488,7 @@ sub sanitize_regex {
 	return '';
     }
 
-    if (($search_string eq '*') || ($search_string eq '.') || ($search_string eq 'all')) { return '.'; }
+    if (($search_string eq '*') or ($search_string eq '.') or ($search_string eq 'all')) { return '.'; }
     
     # print "debug sanitize_regex: INPUT: $search_string ";
     
@@ -3538,7 +3524,7 @@ sub matching_users {
     my $key;
     my @matches = ();
     foreach $key (keys %name_by_slot) {
-	if (($name_by_slot{$key} =~ /$search_string/i) || (&strip_color($name_by_slot{$key}) =~ /$search_string/i)) {
+	if (($name_by_slot{$key} =~ /$search_string/i) or (&strip_color($name_by_slot{$key}) =~ /$search_string/i)) {
 	    print "MATCH: $name_by_slot{$key}\n";
 	    push @matches, $key;
 	}
@@ -3876,7 +3862,7 @@ sub unban_command {
 	$bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE name LIKE ?"); }
     $bans_sth->execute($unban) or &die_nice("Unable to do unban SELECT: $unban\n");
     while (@row = $bans_sth->fetchrow_array) {
-	&rcon_command("say $row[5]" . '" был разбанен админом"' . "   (ban id#: $row[0]" . '" удален)"');
+	&rcon_command("say $row[5]" . '" был разбанен админом"' . "   (BAN ID#: ^1$row[0]^7" . '" удален)"');
 	push (@unban_these, $row[0]);
 	&log_to_file('logs/commands.log', "UNBAN: $row[5] was unbanned by an admin.   (ban id#: $row[0] deleted)"); }
     # now clean up the database ID's.
@@ -4121,7 +4107,7 @@ sub check_player_names {
 		}
 	    }
 	}
-	if ((!defined($name_warn_level{$slot})) || (!$warned)) { $name_warn_level{$slot} = 0; }
+	if ((!defined($name_warn_level{$slot})) or (!$warned)) { $name_warn_level{$slot} = 0; }
     }
 }
 # END: check_player_names
@@ -4413,8 +4399,8 @@ sub flood_protection {
     }
 
     # Ensure that all values are defined.
-    if ((!defined($min_interval)) || ($min_interval !~ /^\d+$/)) { $min_interval = 60; }
-    if ((!defined($slot)) || ($slot !~ /^\d+$/)) { $slot = 'global'; }
+    if ((!defined($min_interval)) or ($min_interval !~ /^\d+$/)) { $min_interval = 60; }
+    if ((!defined($slot)) or ($slot !~ /^\d+$/)) { $slot = 'global'; }
     my $key = $attribute . '.' . $slot;
     if (!defined($flood_protect{$key})) { $flood_protect{$key} = 0; }
     if ($time >= $flood_protect{$key}) {
@@ -4439,10 +4425,10 @@ sub tell {
     my $search_string = shift;
     my $message = shift;
     my $key;
-    if ((!defined($search_string)) || ($search_string !~ /./)) {
+    if ((!defined($search_string)) or ($search_string !~ /./)) {
 	return 1;
     }
-    if ((!defined($message)) || ($message !~ /./)) {
+    if ((!defined($message)) or ($message !~ /./)) {
         return 1;
     }
 
@@ -4469,14 +4455,14 @@ sub last_bans {
     if ($number < 0) { $number = 1; }
     $number = int($number);
     if (&flood_protection('lastbans', 60, $slot)) { return 1; }
-    my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > 0 ORDER BY id DESC LIMIT $number");
+    my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n"); 
     my @row;
     my ($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name);
     while (@row = $bans_sth->fetchrow_array) {
 	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
 	my $txt_time = &duration($time - $ban_time);
-        &rcon_command("say ^2$ban_name" . '"^7был забанен"' . " $txt_time" . '" назад"' . " (ban id#: ^1$ban_id^7)");
+        &rcon_command("say ^2$ban_name^7" . '" был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$ban_id^7)");
         sleep 1; }
 }
 # END: &last_bans($number);
@@ -4523,7 +4509,7 @@ sub dictionary {
 
     # Now we sanatize what we're looking for - online databases don't have multiword definitions.
     if ($word =~ /[^A-Za-z\-\_\s\d]/) {
-	&rcon_command("say " . '" Неверный ввод, разрешены только английские буквы, точки, пробелы и цифры"');
+	&rcon_command("say " . '"Неверный ввод, разрешены только английские буквы, точки, пробелы и цифры"');
         return 1;
     }
 
@@ -4738,7 +4724,7 @@ sub ftp_getNlines {
     my $length;
     do {
         my $actualBytes = &ftp_getNchars($bytes);
-        open(FILE,$ftp_tmpFileName) || &die_nice("FTP: Could not open $ftp_tmpFileName");
+        open(FILE,$ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
         @data = <FILE>;
         close(FILE);
         unlink($ftp_tmpFileName);
@@ -4770,7 +4756,7 @@ sub ftp_flushPipe {
 sub ftp_getNchars {
     my ($bytes) = @_;
     my $type = $ftp->binary;
-    my $size = $ftp->size($ftp_basename) || &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
+    my $size = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
     my $startPos = $size - $bytes;
     if ($startPos<0) { $startPos=0; $bytes=$size; } #file is smaller than requested number of bytes
     -e $ftp_tmpFileName && &die_nice("FTP: $ftp_tmpFileName exists");
@@ -4785,7 +4771,7 @@ sub ftp_get_line {
     my $line;
     if (!defined($ftp_buffer[0])) {
 	$ftp_type = $ftp->binary;
-        $ftp_currentEnd = $ftp->size($ftp_basename) || &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
+        $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
 	
         if ($ftp_currentEnd > $ftp_lastEnd) {
             $ftp_verbose && warn "FTP: SIZE $ftp_basename increased: ".($ftp_currentEnd-$ftp_lastEnd)." bytes\n";
@@ -4794,7 +4780,7 @@ sub ftp_get_line {
 	    while (!-e $ftp_tmpFileName) {
 		$ftp->get($ftp_basename,$ftp_tmpFileName,$ftp_lastEnd);
 	    }
-            open(FILE,$ftp_tmpFileName) || &die_nice("FTP: Could not open $ftp_tmpFileName");
+            open(FILE,$ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
             $ftp_inbandSignaling && print "#START: (This is a hack to signal start of data in pipe)\n";
 	    while ($line = <FILE>) { push @ftp_buffer, $line; }
             close(FILE);
@@ -4857,7 +4843,7 @@ sub mysql_repair {
 sub update_name_by_slot {
     my $name = shift;
     my $slot = shift;
-    if ((!defined($slot)) || ($slot !~ /^\-?\d+$/)) { &die_nice("invalid slot number passed to update_slot_by_name: $slot\n\n"); }
+    if ((!defined($slot)) or ($slot !~ /^\-?\d+$/)) { &die_nice("invalid slot number passed to update_slot_by_name: $slot\n\n"); }
     if (!defined($name)) { &die_nice("invalid name passed to update_slot_by_name: $name\n\n"); }
     if ($slot == -1) { return; }
     # strip trailing spaces from the name.
@@ -5027,7 +5013,7 @@ sub get_server_info {
     if ($ip_address =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\:(\d{1,5})$/) {
 	($ip_address,$port) = ($1,$2);
     }
-    if ((!defined($ip_address)) || ($ip_address !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+    if ((!defined($ip_address)) or ($ip_address !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
 	return "IP Address format error";
     }
 
@@ -5088,7 +5074,7 @@ sub get_server_info {
 # BEGIN: &broadcast_message($message)
 sub broadcast_message {
     my $message = shift;
-    if ((!defined($message)) || ($message !~ /./)) { return; }
+    if ((!defined($message)) or ($message !~ /./)) { return; }
     my $num_servers = 0;
     my $config_val;
     my $ip_address;

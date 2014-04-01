@@ -10,29 +10,18 @@ my $address;
 my $port;
 my $password;
 my $type = 'old';
-$| = 1;
 my $VERSION = "2.12 CoD2";
+local $| = 1;
 
-my  $command = join(" ", @ARGV);
+my  $command = join("", @ARGV);
 
-my $rcon = new KKrcon(
-        Host => $address,
-        Port => $port,
-        Password => $password,
-        Type => $type
-		   );
+my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => $type);
 
 my $result = 0;
 my $interactive = 1 unless ($command);
 
-
 if ($interactive)
-{
-        print "KKrcon version $VERSION running in interactive mode\n\n"
-                . "Server: $address\n"
-                . "Port:   $port\n\n"
-                . "Type 'q' to quit.\n\n";
-}
+{ print "KKrcon version $VERSION running in interactive mode\n\n" . "Server: $address\n" . "Port:   $port\n\n" . "Type 'q' to quit.\n\n"; }
 
 while (1)
 {
@@ -42,12 +31,11 @@ while (1)
 
 	    $command = <STDIN>;
 
-                if (!defined($command))
-                {
+            if (!defined($command))
+            {
             # catch Ctrl+D
 		    print "\n";
-		    exit(0);
-                }
+		    exit(0); }
 
 	    chomp($command);
 
@@ -64,15 +52,10 @@ while (1)
 
 sub load_config_file {
     my $config_file = shift;
-    if (!defined($config_file)) {
-        &die_nice("load_config_file() called without an argument\n");
-    }
-    if (!-e $config_file) {
-        &die_nice("load_config_file() config file does not exist: $config_file\n");
-    }
+    if (!defined($config_file)) { &die_nice("load_config_file() called without an argument\n"); }
+    if (!-e $config_file) { &die_nice("load_config_file() config file does not exist: $config_file\n"); }
 
-    open (CONFIG, $config_file) ||
-        &die_nice("$config_file file exists, but i couldnt open it.\n");
+    open (CONFIG, $config_file) or &die_nice("$config_file file exists, but i couldnt open it.\n");
 
     my $line;
     my $config_name;
@@ -90,17 +73,14 @@ sub load_config_file {
             ($config_name,$config_val) = ($1,$2);
             if ($config_name eq 'ip_address') {
                 $address = $config_val;
-                print "Server IP address: $address\n";
-            }
+                print "Server IP address: $address\n"; }
             elsif ($config_name eq 'port') {
                 $port = $config_val;
-		print "Server port number: $port\n";
-            }
+		        print "Server port number: $port\n"; }
 
             elsif ($config_name eq 'rcon_pass') {
                 $password = $config_val;
-                print "RCON pass: $password\n";
-            }
+                print "RCON password: " . '*'x length($password) . "\n"; }
  	}
     }
     print "\n";
@@ -122,4 +102,3 @@ sub execute
 	    return 0;
         }
 }
-
