@@ -66,6 +66,8 @@ use DBI; # database
 use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
 use Time::Duration; # expresses times in plain english
+use Time::Format; # easy to use time formatting
+use Time::HiRes; # high resolution timers
 use Socket; # Used for asking activision for GUID numbers for sanity check.
 use IO::Select; # also used by the udp routines for manual GUID lookup
 use LWP::Simple; # HTTP fetches are used for the dictionary
@@ -73,7 +75,6 @@ use Net::FTP; # FTP support for remote logfiles
 use File::Basename; # ftptail support
 use File::Temp qw/ :POSIX /; # ftptail support
 use Carp; # ftptail support
-use Time::HiRes; # needs to perform sleep events above 1
 
 # Connect to sqlite databases
 my $guid_to_name_dbh = DBI->connect("dbi:SQLite:dbname=databases/guid_to_name.db","","");
@@ -2571,10 +2572,7 @@ sub chat{
 	        # !time
 	        elsif ($message =~ /^!time\b/i) {
             if (&check_access('time')) {
-            my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-            $year = $year + 1900;
-            $mon += 1;
-			&rcon_command("say " . '"^2Московское время^7:^3"' . "$hour:$min:$sec ^7|^3 $mday.$mon.$year");
+			    &rcon_command("say " . '"^2Московское время^7:^3"' . "$time{'hh:mm:ss'} ^7|^3 $time{'dd.mm.yyyy'}");
             }
         }
             # !guid
@@ -2603,8 +2601,7 @@ sub chat{
 				&rcon_command("clientkick $slot");
             }
         }
-		
-		    # !bash mode (admin mod)
+		    # !bash on (admin mod)
 			elsif (($message =~ /^!bash on\b/i) && ($config->{'use_admin_mod'})) {
 			
 			if (&check_access('bash_mode'))
@@ -2613,7 +2610,7 @@ sub chat{
 				&rcon_command("say " . '"На прикладах - ^1ВКЛ"');
             }
         }
-		
+		    # !bash off (admin mod)
 			elsif (($message =~ /^!bash off\b/i) && ($config->{'use_admin_mod'})) {
 			
 			if (&check_access('bash_mode'))
