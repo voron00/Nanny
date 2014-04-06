@@ -20,8 +20,7 @@ my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, T
 my $result = 0;
 my $interactive = 1 unless ($command);
 
-if ($interactive)
-{ print "KKrcon version $VERSION running in interactive mode\n\n" . "Server: $address\n" . "Port:   $port\n\n" . "Type 'q' to quit.\n\n"; }
+if ($interactive) { print "KKrcon version $VERSION running in interactive mode\n\n" . "Server: $address\n" . "Port:   $port\n\n" . "Type 'q' to quit.\n\n"; }
 
 while (1)
 {

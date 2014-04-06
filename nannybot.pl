@@ -511,7 +511,7 @@ while (1) {
 		}
 		
 		# Killing Spree
-		if (($config->{'killing_sprees'}) && ($damage_type ne 'MOD_SUICIDE') && ($attacker_slot ne $victim_slot)) {
+		if (($config->{'killing_sprees'}) && ($damage_type ne 'MOD_SUICIDE') && ($damage_type ne 'MOD_FALLING') && ($attacker_slot ne $victim_slot)) {
 		    if (!defined($kill_spree{$attacker_slot})) {
 			$kill_spree{$attacker_slot} = 1;
 		    }
@@ -1831,7 +1831,7 @@ sub chat{
 		}
 
 	# !stats - B
-	elsif ($message =~ /^!stats\s*(.*)/i) {
+	elsif ($message =~ /^!(stats|xlrstats)\s*(.*)/i) {
 	    my $stats_search = $1;
 	    if (!defined($stats_search)) { $stats_search = ''; }
 	    if (&check_access('stats')) {
@@ -1899,17 +1899,17 @@ sub chat{
 
 	# !say
         elsif ($message =~ /^!say\s+(.+)/i) {
-            if (&check_access('say')) { &rcon_command("say $1"); }
+            if (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
         }
 
 	# !saybold
         elsif (($message =~ /^!saybold\s+(.+)/i) && ($config->{'use_admin_mod'})) {
-            if (&check_access('saybold')) { &rcon_command("set saybold $1"); }
+            if (&check_access('saybold')) { &rcon_command("set saybold" . '"' . "$1"); }
         }
 		
 	# !sayline
         elsif (($message =~ /^!sayline\s+(.+)/i) && ($config->{'use_admin_mod'})) {
-            if (&check_access('sayline')) { &rcon_command("set say $1"); }
+            if (&check_access('sayline')) { &rcon_command("set say" . '"' . "$1"); }
         }
 
 	# !broadcast
@@ -2916,12 +2916,12 @@ sub geolocate_ip {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($metric) {
                     $dist = int($dist/1000);
-					if ($dist == 0) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
+					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		            $dist = int($dist/1609.344);
-					if ($dist == 0) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
+					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 	    }
@@ -4883,8 +4883,7 @@ sub broadcast_message {
 	    ($ip_address,$port,$password) = ($1,$2,$3);
 	    $num_servers++;
 	    $rcon = new KKrcon (Host => $ip_address, Port => $port, Password => $password, Type => 'old');
-	    print $rcon->execute($message);
-	    
+	    print $rcon->execute($message); 
 	}
 	else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
     }
