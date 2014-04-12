@@ -67,7 +67,7 @@ use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
 use Time::Duration; # expresses times in plain english
 use Time::Format; # easy to use time formatting
-use Time::HiRes; # high resolution timers
+use Time::HiRes qw (usleep); # high resolution timers
 use Socket; # Used for asking activision for GUID numbers for sanity check.
 use IO::Select; # also used by the udp routines for manual GUID lookup
 use LWP::Simple; # HTTP fetches are used for the dictionary
@@ -261,7 +261,7 @@ $next_mysql_repair = $time + $mysql_repair_interval;
 $next_affiliate_announcement = $time;
 
 # create the rcon control object - this is how we send commands to the console
-my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old' );
+my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
 
 # tell the server that we want the game logfiles flushed to disk after every line.
 &rcon_query("g_logSync 1");
@@ -472,8 +472,7 @@ while (1) {
 		
 		# Track the death stats for the victim
 		# checking the attacker team ensures we don't count deaths from switching teams or changing to spectator
-		if (($attacker_team eq 'axis') or ($attacker_team eq 'allies') or ($attacker_team eq 'world') or 
-		  (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
+		if (($attacker_team eq 'axis') or ($attacker_team eq 'allies') or ($attacker_team eq 'world') or (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
 		    $stats_sth->execute(&strip_color($victim_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 		    @row = $stats_sth->fetchrow_array;
@@ -530,9 +529,9 @@ while (1) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) 
 				or &die_nice("Unable to update stats2\n");
-				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7x" . '"человек"'); }
                 else {
-				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7x" . '"человек"'); }
 			}
 		    }
 		    $kill_spree{$victim_slot} = 0;
@@ -583,7 +582,7 @@ while (1) {
 		$penalty_points{$slot} = 0;
 		$ignore{$slot} = 0;
 
-		if ($config->{'show_game_joins'}) { &rcon_command("say " . '"Игрок ^2"' . &strip_color($name) . '" ^7присоединился к игре"'); }
+		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"Игрок ^2"' . &strip_color($name) . '" ^7присоединился к игре"'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
@@ -619,7 +618,7 @@ while (1) {
 		# end of !seen data population
 
         if ($config->{'show_quits'}) { print "QUIT: " . &strip_color($name) . " has left the game\n"; }
-		if ($config->{'show_game_quits'}) { &rcon_command("say " . '"Игрок ^1"' . &strip_color($name) . '" ^7покинул игру"'); }
+		if (($config->{'show_game_quits'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"Игрок ^1"' . &strip_color($name) . '" ^7покинул игру"'); }
         }
 	    else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	}
@@ -769,7 +768,7 @@ while (1) {
 	# We have reached the end of the logfile.
 
 	# Delay some time so we aren't constantly hammering this loop
-	Time::HiRes::sleep(0.1);
+	usleep(10000);
 	
 	# cache the time to limit the number of syscalls
 	$time = time;
@@ -1336,29 +1335,29 @@ sub initialize_databases {
     }
     
     print"
-******************************************
-           CoD2 Server NannyBot
-             version $version
-               by smugllama
+********************************************************************************
+                Сиделка для сервера Call of Duty 2
+                        Версия $version
+                       Автор - smugllama
+                   Доработка и перевод - VoroN
 
-           for Call of Duty 2
+                  RCON-модуль основан на KKrcon
+                  http://kkrcon.sourceforge.net
 
-      rcon code provided by KKrcon
-      http://kkrcon.sourceforge.net
+                IP-Геолокация предоставлена MaxMind
+                      http://www.maxmind.com
 
-     IP Geolocation provided by MaxMind
-       see: http://www.maxmind.com
+                Поддержка удаленных FTP лог-файлов
+                основана на ftptail от Will Moffat
+                http://hamstersoup.wordpress.com/ftptail
 
-        Support for remote FTP logfiles
-      is based on ftptail by Will Moffat 
-    http://hamstersoup.wordpress.com/ftptail
+                Оригинанльная версия NannyBot доступна на:
+                   http://smaert.com/nannybot.zip
+		
+                Последняя Русская версия доступна на:
+                   https://github.com/voron00/Nanny
 
-   The Latest Version of Nannybot is at:
-      http://smaert.com/nannybot.zip
-
-        Доработка и перевод - VoroN
-
-******************************************
+********************************************************************************
 "; }
 # END: initialize_databases()
 
@@ -2559,7 +2558,7 @@ sub locate {
     }
     if ($search_string =~ /^console$|^nanny$|^Nanny$|^server$|^Server$/) {
 	$location = &geolocate_ip($config->{'ip'});
-	if ($location =~ /,.* - .+/) { $location = '"Этот сервер находится в районе ^2"' . $location; }
+	if ($location =~ /,.* - .+/) { $location = '"Этот сервер вероятно находится в ^2"' . $location; }
 	else { $location = '"Этот сервер находится в ^2"' . $location; }
 	&rcon_command("say $location");
 	print "$location\n";
@@ -2916,12 +2915,12 @@ sub geolocate_ip {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($metric) {
                     $dist = int($dist/1000);
-					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
+					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		            $dist = int($dist/1609.344);
-					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '" ^7,  расстояние до сервера неизвестно"'; }
+					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 	    }
@@ -4894,14 +4893,11 @@ sub broadcast_message {
 
 # BEGIN: big_red_button_command()
 sub big_red_button_command {
-    my @matches = &matching_users('.');
-    my $slot;
     &rcon_command("say " . '"О НЕТ, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!"');
     sleep 1;
-    foreach $slot (@matches) {
-        &rcon_command("clientkick $slot");
-        &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !big red button command"); }  
-}
+    &rcon_command("kick all");
+    &log_to_file('logs/kick.log', "!KICK: All Players were kicked by $name - GUID $guid - via the !nuke");
+	}
 
 #BEGIN !rnk
 sub rank {
