@@ -510,7 +510,7 @@ while (1) {
 		}
 		
 		# Killing Spree
-		if (($config->{'killing_sprees'}) && ($damage_type ne 'MOD_SUICIDE') && ($damage_type ne 'MOD_FALLING') && ($attacker_slot ne $victim_slot)) {
+		if (($config->{'killing_sprees'}) && ($damage_type ne 'MOD_SUICIDE') && ($damage_type ne 'MOD_FALLING') && ($attacker_team ne 'world') && ($attacker_slot ne $victim_slot)) {
 		    if (!defined($kill_spree{$attacker_slot})) {
 			$kill_spree{$attacker_slot} = 1;
 		    }
@@ -527,8 +527,7 @@ while (1) {
 			    @row = $stats_sth->fetchrow_array;
 			    if ((defined($row[0])) && ($row[0] < $best_spree{$victim_slot})) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
-				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) 
-				or &die_nice("Unable to update stats2\n");
+				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) or &die_nice("Unable to update stats2\n");
 				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7x" . '"человек"'); }
                 else {
 				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7x" . '"человек"'); }
@@ -835,8 +834,7 @@ while (1) {
 		# MySQL Next Map Logging
 		if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
 		    $mysql_nextmap_sth = $mysql_logging_dbh->prepare("UPDATE next_map SET map = ?, gametype = ?");
-		    $mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) 
-			or &mysql_fail("WARNING: Unable to do MySQL nextmap update\n");
+		    $mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or &mysql_fail("WARNING: Unable to do MySQL nextmap update\n");
 		}
 	    }
 		else {
@@ -850,8 +848,7 @@ while (1) {
                 # MySQL Next Map Logging
 		    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
 			$mysql_nextmap_sth = $mysql_logging_dbh->prepare("UPDATE next_map SET map = ?, gametype = ?");
-			$mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype})
-			    or print "WARNING: Unable to do MySQL nextmap update\n";
+			$mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or print "WARNING: Unable to do MySQL nextmap update\n";
 		    }
 		}
 		else { print "WARNING: unable to predict next map:  $temporary\n"; }
@@ -1281,17 +1278,16 @@ sub initialize_databases {
 
     # MySQL logging
     if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
-	$mysql_logging_dbh = DBI->connect('dbi:mysql:' . $config->{'mysql_database'} . ':' . $config->{'mysql_hostname'}, 
-					  $config->{'mysql_username'}, $config->{'mysql_password'})
-	    or &die_nice("MYSQL LOGGING: Couldn't connect to mysql database: $DBI::errstr\n");
-	
+	$mysql_logging_dbh = DBI->connect('dbi:mysql:' . $config->{'mysql_database'} . ':' . $config->{'mysql_hostname'},
+	$config->{'mysql_username'}, $config->{'mysql_password'}) or &die_nice("MYSQL LOGGING: Couldn't connect to mysql database: $DBI::errstr\n");
+
 	print "MySQL Logging database brought online\n\n";
 
 	$mysql_is_broken = 0;
 
 	$sth = $mysql_logging_dbh->prepare("show tables");
 	$sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-	
+
 	while (@tmp = $sth->fetchrow_array) {
 	    foreach (@tmp) {
 		$tables{$_} = $_;
@@ -1901,11 +1897,16 @@ sub chat{
             if (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
         }
 
+	# !rcon
+        elsif ($message =~ /^!rcon\s+(.+)/i) {
+            if (&check_access('rcon')) { &rcon_command("$1"); }
+        }
+
 	# !saybold
         elsif (($message =~ /^!saybold\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('saybold')) { &rcon_command("set saybold" . '"' . "$1"); }
         }
-		
+
 	# !sayline
         elsif (($message =~ /^!sayline\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('sayline')) { &rcon_command("set say" . '"' . "$1"); }
@@ -2558,7 +2559,7 @@ sub locate {
     }
     if ($search_string =~ /^console$|^nanny$|^Nanny$|^server$|^Server$/) {
 	$location = &geolocate_ip($config->{'ip'});
-	if ($location =~ /,.* - .+/) { $location = '"Этот сервер вероятно находится в ^2"' . $location; }
+	if ($location =~ /,.* - .+/) { $location = '"Этот сервер находится в ^2"' . $location; }
 	else { $location = '"Этот сервер находится в ^2"' . $location; }
 	&rcon_command("say $location");
 	print "$location\n";
@@ -2693,16 +2694,16 @@ sub rcon_status {
 	    }
 	    
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
-		if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
-	    if (!defined($ping)) { $ping = 0; }
 	    if ($ping ne 'CNCT') {
-		    if (($last_ping{$slot} == 999) && ($ping == 999) && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
+		if ($ping == 999) {
+		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
+		    if (($last_ping{$slot} == 999) && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
 			print "PING ENFORCEMENT: 999 ping for $name\n";
 			&rcon_command("say " . "$name" . '" ^7был выкинут за 999 пинг."');
 			sleep 1;
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long"); }
-		}
+			}
 		else {
 		    if (!defined($ping_average{$slot})) { $ping_average{$slot} = 0; }
 		    $ping_average{$slot} = int ( ( $ping_average{$slot} * 0.85  ) + ( $ping * 0.15 ) );
@@ -2714,6 +2715,7 @@ sub rcon_status {
 		}
 		# we need to remember this for the next ping we check.
 		$last_ping{$slot} = $ping;
+		}
 	    # End of Ping Checks.
 	}
     }
@@ -2746,12 +2748,12 @@ sub rcon_status {
 		if (!defined($ping)) { $ping = 0; }
 		if ($ping ne 999) {
 	    while (@row = $sth->fetchrow_array) {
-		&rcon_command("say ^1$name_by_slot{$slot}^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
-		&rcon_command("say ^1$row[5]^7:" . '" был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+		&rcon_command("say ^1$row[5]^7:" . '"был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 		sleep 1;
 		if ($row[2] == 2125091758) { &rcon_command("say ^1$name_by_slot{$slot}^7: " . '"У вас перманентный бан."'); }
-		else { &rcon_command("say ^1$name_by_slot{$slot}^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
+		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
 		sleep 1;
 		&rcon_command("clientkick $slot");
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
@@ -3846,7 +3848,7 @@ sub change_gametype {
     if (!defined($gametype)) { 
 	print "WARNING: change_gametype() was called without a game type\n";
 	return; }
-    if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper|phnt)$/) {
+    if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper|phnt|zom)$/) {
 	print "WARNING: change_gametype() was called with an invalid game_type: $gametype\n";
     return; }
     if (&flood_protection('gametype', 60, $slot)) { return 1; }
@@ -4078,8 +4080,7 @@ sub guid_sanity_check {
 
     print "\nAsking $activision_master if $ip_address has provided a valid key recently.\n\n";
 
-    socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
-	or &die_nice("Socket error: $!");
+    socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
 
     my $random = int(rand(7654321));
     my $send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_address  0";
@@ -4094,15 +4095,13 @@ sub guid_sanity_check {
     while (($current_try++ < $total_tries) && ($still_waiting)) {
     # Send the packet
 	$portaddr = sockaddr_in($port, $d_ip);
-	send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
-	    or &die_nice("Cannot send to $ip_address($port): $!\n\n");
+	send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("Cannot send to $ip_address($port): $!\n\n");
 	
 	# Check to see if there is a response yet.
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
-	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		or &die_nice("Socket error: recv: $!");
+	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0) or &die_nice("Socket error: recv: $!");
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
@@ -4420,15 +4419,13 @@ sub check_guid_zero_players {
 	while (($current_try++ < $total_tries) && ($still_waiting)) {
 	    # Send the packet
 	    $portaddr = sockaddr_in($port, $d_ip);
-	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
-		or &die_nice("cannot send to $ip_address($port): $!\n\n");
+	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $ip_address($port): $!\n\n");
 	    
 	    # Check to see if there is a response yet.
 	    @ready = $selecta->can_read($read_timeout);
 	    if (defined($ready[0])) {
 		# Yes, the socket is ready.
-		$portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		    or &die_nice("Socket error: recv: $!");
+		$portaddr = recv(SOCKET, $message, $maximum_lenth, 0) or &die_nice("Socket error: recv: $!");
 		# strip the 4 \xFF bytes at the begining.
 		$message =~ s/^.{4}//;
 		$got_response = 1;
@@ -4485,8 +4482,7 @@ sub check_guid_zero_players {
 			$ban_ip = $ip_by_slot{$slot};
 		    }
 		    my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-		    $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) 
-			or &die_nice("Unable to do insert\n");
+		    $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
 		}
 	    }
 	}
@@ -4811,8 +4807,7 @@ sub get_server_info {
 	return "IP Address format error";
     }
 
-    socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
-    or return "Socket error: $!";
+    socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or return "Socket error: $!";
 
     my $send_message = "\xFF\xFF\xFF\xFFgetinfo xxx";
 
@@ -4825,15 +4820,13 @@ sub get_server_info {
     while (($current_try++ < $total_tries) && ($still_waiting)) {
 	# Send the packet
 	$portaddr = sockaddr_in($port, $d_ip);
-	send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
-	    or &die_nice("cannot send to $ip_address($port): $!\n\n");
+	send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $ip_address($port): $!\n\n");
 	
 	# Check to see if there is a response yet.
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
-	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0)
-		or &die_nice("Socket error: recv: $!");
+	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0) or &die_nice("Socket error: recv: $!");
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
