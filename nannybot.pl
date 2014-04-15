@@ -1364,7 +1364,7 @@ sub idle_check {
     print "Checking for idle players...\n";
     foreach $slot (keys %last_activity_by_slot) {
 	if ($slot > 0) {
-	    if (($slot != -1) && ($last_activity_by_slot{$slot} ne 'gone')) {
+	    if (($slot ne -1) && ($last_activity_by_slot{$slot} ne 'gone')) {
 		$idle_for = $time - $last_activity_by_slot{$slot};
 
 		if ($idle_for > 120) {
@@ -1592,8 +1592,7 @@ sub chat{
 	    print "DATABASE DEFINITION: $row[0]\n";
 	    push @results, "$name: ^1$question ^3is:^2 $row[0]";
 	}
-    	
-	if ($#results != -1) {
+	if ($#results ne -1) {
 	    if (&flood_protection('auto-define', 60, $slot)) { }
 	    else {
 		foreach $result (@results) {
@@ -2917,12 +2916,12 @@ sub geolocate_ip {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($metric) {
                     $dist = int($dist/1000);
-					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
+					if (($dist == 0) && ($player_lat ne $home_lat) && ($player_lon ne $home_lon)) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		            $dist = int($dist/1609.344);
-					if (($dist == 0) && ($player_lat != $home_lat) && ($player_lon != $home_lon)) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
+					if (($dist == 0) && ($player_lat ne $home_lat) && ($player_lon ne $home_lon)) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 	    }
@@ -4651,7 +4650,7 @@ sub update_name_by_slot {
 		    my $old_name_stolen = 0;
 		    my $new_name_stolen = 0;
 		    foreach $i (keys %name_by_slot) {
-			if (($name_by_slot{$i} ne 'SLOT_EMPTY') && ($slot != $i)) {
+			if (($name_by_slot{$i} ne 'SLOT_EMPTY') && ($slot ne $i)) {
 			    
 			    $stripped_compare = &strip_color($name_by_slot{$i});
 			    
@@ -4889,13 +4888,13 @@ sub big_red_button_command {
     &rcon_command("say " . '"О НЕТ, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!"');
     sleep 1;
     &rcon_command("kick all");
-    &log_to_file('logs/kick.log', "!KICK: All Players were kicked by $name - GUID $guid - via the !nuke");
+    &log_to_file('logs/kick.log', "!KICK: All Players were kicked by $name - GUID $guid - via !nuke command");
 	}
 
-#BEGIN !rnk
+# BEGIN !rnk
 sub rank {
 
-   if (&flood_protection('rank', 60, $slot)) { return 1; }
+   if (&flood_protection('rank', 30, $slot)) { return 1; }
 
    my $rank_msg = "^2$name^7:";
    my $rank_sth;
