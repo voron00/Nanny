@@ -1891,9 +1891,7 @@ sub chat{
 
 	# !rcon
         elsif ($message =~ /^!rcon\s+(.+)/i) {
-            if (&check_access('rcon')) {
-			sleep 1;
-			&rcon_command("$1"); }
+            if (&check_access('rcon')) { &rcon_command("$1"); }
         }
 
 	# !saybold
