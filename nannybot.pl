@@ -67,7 +67,6 @@ use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
 use Time::Duration; # expresses times in plain english
 use Time::Format; # easy to use time formatting
-use Time::HiRes qw (usleep); # high resolution timers
 use Socket; # Used for asking activision for GUID numbers for sanity check.
 use IO::Select; # also used by the udp routines for manual GUID lookup
 use LWP::Simple; # HTTP fetches are used for the dictionary
@@ -87,7 +86,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1.6 RUS';
+my $version = '3.1.7 RUS';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -201,13 +200,13 @@ my %servername_cache;
 my @remote_servers;
 
 # if local ip address
-my $localip = '127.0.0.1';
+my $localhost = '127.0.0.1';
 
 # print current perl version and OS (debug message)
-print "Perl runtime version is $^V, running on $^O\n";
+print "Perl runtime version $^V, running on $^O\n";
 
 # print current nanny version (debug message)
-print "Nannybot version is $version\n";
+print "Nannybot version $version\n";
 
 # turn on auto-flush for STDOUT
 local $| = 1;
@@ -224,14 +223,14 @@ srand();
 if ($logfile_mode eq 'local') {
     &open_server_logfile($config->{'server_logfile_name'});
     # Seek to the end of the logfile
-    &seek_to_end();    
+    seek(LOGFILE, 0, 2);
 }
  elsif ($logfile_mode eq 'ftp') {
     # initialize FTP connection here.
     fileparse_set_fstype(); # FTP uses UNIX rules
     $ftp_tmpFileName = tmpnam();
     $ftp_verbose && warn "FTP $ftp_host\n";
-    $ftp=Net::FTP->new($ftp_host,Timeout=>240) or &die_nice("FTP: Cannot ftp to $ftp_host: $!");
+    $ftp=Net::FTP->new($ftp_host,Timeout=>60) or &die_nice("FTP: Cannot ftp to $ftp_host: $!");
     $ftp_verbose && warn "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
     $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!");
     $ftp_verbose && warn "CWD: $ftp_dirname\n";
@@ -239,7 +238,7 @@ if ($logfile_mode eq 'local') {
     
     if ($config->{'use_passive_ftp'}) {
 	print "Using Passive ftp mode...\n\n";
-	$ftp->pasv() or die $ftp->message; }
+	$ftp->pasv() or &die_nice($ftp->message); }
     $ftp_lines && &ftp_getNlines;
     $ftp_type = $ftp->binary;
     $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
@@ -265,8 +264,6 @@ my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Passw
 
 # tell the server that we want the game logfiles flushed to disk after every line.
 &rcon_query("g_logSync 1");
-print "Synchronizing logfile...\n";
-sleep 1;
 
 # Ask the server if voting is currently turned on or off
 my $voting_result = &rcon_query("g_allowVote");
@@ -274,7 +271,7 @@ if ($voting_result =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
     $voting = $1;
     if ($voting) { print "Voting is currently turned ON\n"; }
     else { print "Voting is currently turned OFF\n"; }
-    }
+	sleep 1; }
     else { print "sorry, cant parse the g_allowVote results.\n"; }
 
 # Ask the server what it's official name is
@@ -581,7 +578,7 @@ while (1) {
 		$penalty_points{$slot} = 0;
 		$ignore{$slot} = 0;
 
-		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"»грок ^2"' . &strip_color($name) . '" ^7присоединилс€ к игре"'); }
+		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say $name" . '"^7присоединилс€ к игре"'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
@@ -617,7 +614,7 @@ while (1) {
 		# end of !seen data population
 
         if ($config->{'show_quits'}) { print "QUIT: " . &strip_color($name) . " has left the game\n"; }
-		if (($config->{'show_game_quits'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"»грок ^1"' . &strip_color($name) . '" ^7покинул игру"'); }
+		if (($config->{'show_game_quits'}) && ($game_type ne 'sd')) { &rcon_command("say $name" . '" ^7покинул игру"'); }
         }
 	    else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	}
@@ -767,7 +764,7 @@ while (1) {
 	# We have reached the end of the logfile.
 
 	# Delay some time so we aren't constantly hammering this loop
-	usleep(10000);
+	sleep 1;
 	
 	# cache the time to limit the number of syscalls
 	$time = time;
@@ -889,7 +886,7 @@ sub load_config_file {
 	    if ($config_name eq 'ip_address') { 
 		$config->{'ip'} = $config_val;
 		if ($config_val eq 'localhost|loopback') {
-		$config->{'ip'} = $localip; }
+		$config->{'ip'} = $localhost; }
 		print "Server IP address: $config->{'ip'}\n"; 
 	    }
 	    elsif ($config_name eq 'port') { 
@@ -1028,7 +1025,8 @@ sub die_nice {
 	print "Press <ENTER> to close this program\n"; 
 	my $who_cares = <STDIN>;
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
-    exit 1; }
+    exit 1;
+	}
 # END: die_nice()
 
 # BEGIN: open_server_logfile(logfile)
@@ -1039,14 +1037,9 @@ sub open_server_logfile {
     if (!-e $log_file) { 
 	&die_nice("open_server_logfile() file does not exist: $log_file\n"); }
     print "Opening $log_file for reading...\n\n"; 
-	open (LOGFILE, $log_file) or &die_nice("unable to open $log_file: $!\n"); }
-#}
+	open (LOGFILE, $log_file) or &die_nice("unable to open $log_file: $!\n");
+	}
 # END: open_server_logfile()
-
-# BEGIN: seek_to_end()
-# This will move the pointer all the way to the end of the LOGFILE handle
-sub seek_to_end { seek(LOGFILE, 0, 2); }
-# END: seek_to_end()
 
 # BEGIN: cache_guid_to_name(guid,name)
 sub cache_guid_to_name {
@@ -1590,7 +1583,7 @@ sub chat{
 	$sth->execute($question) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 	while (@row = $sth->fetchrow_array) {
 	    print "DATABASE DEFINITION: $row[0]\n";
-	    push @results, "$name: ^1$question ^3is:^2 $row[0]";
+	    push @results, "$name^7: ^1$question ^3is:^2 $row[0]";
 	}
 	if ($#results ne -1) {
 	    if (&flood_protection('auto-define', 60, $slot)) { }
@@ -1613,7 +1606,7 @@ sub chat{
 	if ($message =~ /^!(locate|geolocate)\s+(.+)/i) {
 	    if (&check_access('locate')) { &locate($2); }
 	}
-	elsif ($message =~ /^!locate\s*$/i) {
+	elsif ($message =~ /^!(locate|geolocate)\s*$/i) {
 	    if (&check_access('locate')) {
 		if (&flood_protection('locate-miss', 60, $slot)) { }
         else { &rcon_command("say " . '"!locate кого?"'); }
@@ -1898,7 +1891,9 @@ sub chat{
 
 	# !rcon
         elsif ($message =~ /^!rcon\s+(.+)/i) {
-            if (&check_access('rcon')) { &rcon_command("$1"); }
+            if (&check_access('rcon')) {
+			sleep 1;
+			&rcon_command("$1"); }
         }
 
 	# !saybold
@@ -1928,7 +1923,7 @@ sub chat{
                 &rcon_command("sv_hostname $server_name");
 				&rcon_command("say " . '"»змен€ю название сервера..."' . "");
 		sleep 1;
-		&rcon_command("say ^2OK. " . '"^7Ќазвание сервера изменено на: "' . "$server_name");
+		&rcon_command("say ^2OK^7. " . '"Ќазвание сервера изменено на: "' . "$server_name");
             }
         }
 
@@ -1980,11 +1975,13 @@ sub chat{
         }
 
 	# !version
-	elsif ($message =~ /^!version\b/i) {
+	elsif ($message =~ /^!(version|ver)\b/i) {
 	    if (&check_access('version')) {
 		if (&flood_protection('version', 60, $slot)) { }
 		else {
-		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
+		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version ^7| ^5Perl $^V $^O");
+		    sleep 1;
+		    &rcon_command("say ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		    sleep 1;
 		    &rcon_command("say ... with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
 		    sleep 1;
@@ -1992,7 +1989,7 @@ sub chat{
 			sleep 1;
 			&rcon_command("say " . '" астомна€ русска€ верси€ от ^5V^0oro^5N"');
 		    sleep 1;
-		    &rcon_command("say " . '"^3ѕрограмму и исходный код данной русской версии можно найти тут:^2 https://github.com/voron00/Nanny"');
+		    &rcon_command("say " . '"^3»сходный код данной русской версии можно найти тут:^2 https://github.com/voron00/Nanny"');
 		}	    
 	    }
 	}
@@ -2896,14 +2893,11 @@ sub geolocate_ip {
     if ((defined($record->country_code)) && ($record->country_code eq 'US')) { $metric = 0 }
     else { $metric = 1; }
     print "DEBUG: country code is " . $record->country_code . "\n";
-	if ($metric == 1) {
-    print "DEBUG: Metric is Kilometers\n"; }
-    elsif ($metric == 0) {
-	print "DEBUG: Metric is Miles\n";	}
+	if ($metric == 1) { print "DEBUG: Metric is Kilometers\n"; }
+    elsif ($metric == 0) { print "DEBUG: Metric is Miles\n"; }
 
     # GPS Coordinates
-    if (($config->{'ip'} !~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./))
-    {
+    if (($config->{'ip'} !~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./)) {
 	if ((defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
 	    my ($player_lat, $player_lon) = ($record->latitude, $record->longitude);
 	    # gps coordinates are defined for this IP.
@@ -2914,15 +2908,17 @@ sub geolocate_ip {
 		my ($home_lat, $home_lon) = ($record->latitude, $record->longitude);
 		my $obj = Geo::Inverse->new(); 
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
+		if ($ip ne $config->{'ip'}) {
 		if ($metric) {
                     $dist = int($dist/1000);
-					if (($dist == 0) && ($player_lat ne $home_lat) && ($player_lon ne $home_lon)) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
+					if (!defined($player_lat or $player_lon)) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		            $dist = int($dist/1609.344);
-					if (($dist == 0) && ($player_lat ne $home_lat) && ($player_lon ne $home_lon)) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
+					if (!defined($player_lat or $player_lon)) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
+		}
 		}
 	    }
 	}
