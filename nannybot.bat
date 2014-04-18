@@ -1,1 +1,2 @@
-@ perl nannybot.pl
+@perl nannybot.pl
+@pause

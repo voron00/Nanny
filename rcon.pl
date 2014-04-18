@@ -30,11 +30,11 @@ while (1)
 
 	    $command = <STDIN>;
 
-            if (!defined($command))
-            {
+            if (!defined($command)) {
             # catch Ctrl+D
 		    print "\n";
-		    exit(0); }
+		    exit(0);
+			}
 
 	    chomp($command);
 
@@ -51,8 +51,8 @@ while (1)
 
 sub load_config_file {
     my $config_file = shift;
-    if (!defined($config_file)) { &die_nice("load_config_file() called without an argument\n"); }
-    if (!-e $config_file) { &die_nice("load_config_file() config file does not exist: $config_file\n"); }
+    if (!defined($config_file)) { &die_nice("load_config_file called without an argument\n"); }
+    if (!-e $config_file) { &die_nice("load_config_file config file does not exist: $config_file\n"); }
 
     open (CONFIG, $config_file) or &die_nice("$config_file file exists, but i couldnt open it.\n");
 
@@ -91,13 +91,9 @@ sub execute
 
     print $rcon->execute($command) . "\n";
 
-        if (my $error = $rcon->error())
-        {
+        if (my $error = $rcon->error) {
 	    print "Error: $error\n";
 	    return 1;
         }
-        else
-        {
-	    return 0;
-        }
+        else { return 0; }
 }
