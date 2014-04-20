@@ -253,8 +253,9 @@ if ($voting_result =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
     $voting = $1;
     if ($voting) { print "Voting is currently turned ON\n"; }
     else { print "Voting is currently turned OFF\n"; }
-	sleep 1; }
-    else { print "sorry, cant parse the g_allowVote results.\n"; }
+	sleep 1;
+}
+else { print "sorry, cant parse the g_allowVote results.\n"; }
 
 # Ask the server what it's official name is
 my $server_result = &rcon_query("sv_hostname");
@@ -262,8 +263,8 @@ if ($server_result =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
     $server_name = $1;
     $server_name =~ s/\^7$//;
     if ($server_name =~ /./) { print "Server Name is: $server_name\n"; }
-	}
-    else { print "WARNING: cant parse the sv_hostname results.\n"; }
+}
+else { print "WARNING: cant parse the sv_hostname results.\n"; }
 
 # Main Loop
 while (1) {
@@ -2274,7 +2275,22 @@ sub chat{
 	    if  ($expression =~ /[^\d\.\+\-\/\* \(\)]/) {}
 	    else { &rcon_command("say ^2$expression ^7=^1 " . eval($expression) ); }
         }
-			
+		
+		# !sin (value)
+        if ($message =~ /^!sin\s+(.+)/i) {
+	    &rcon_command("say ^2sin $1 ^7=^1 " . sin($1));
+		}
+		
+		# !cos (value)
+        if ($message =~ /^!cos\s+(.+)/i) {
+	    &rcon_command("say ^2cos $1 ^7=^1 " . cos($1));
+		}
+		
+	    # !tan (value)
+        if ($message =~ /^!tan\s+(.+)/i) {
+	    &rcon_command("say ^2tan $1 ^7=^1 " . &tan($1));
+		}
+		
     # !speed (number)
         if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
             if (&check_access('speed')) { &speed_command($2); }
@@ -4549,6 +4565,10 @@ sub fisher_yates_shuffle {
         next if $i == $j;
         @$array[$i,$j] = @$array[$j,$i];
     }
+}
+
+sub tan {
+ sin($_[0]) / cos($_[0])
 }
 
  sub ftp_connect {
