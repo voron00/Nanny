@@ -198,6 +198,7 @@ my @affiliate_server_prenouncements;
 my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
+my $fail = 0;
 
 # if local ip address
 my $localhost = '127.0.0.1';
@@ -1001,15 +1002,23 @@ sub load_config_file {
 
 # BEGIN: die_nice(message)
 sub die_nice {
+    # check if some idiot error happend (like ftp failed to connect) and restart if needed
+	if ($fail eq 1) {
+    my @restart;
+    push @restart, $^X, $0, @ARGV;
+    print "Idiot ERROR detected...Will restart in 3 seconds\n";
+	sleep 3;
+    exec @restart; }
+    else {
     my $message = shift;
     if ((!defined($message)) or ($message !~ /./)) {
 	$message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
-	print "Press <ENTER> to close this program\n"; 
+	print "Press <ENTER> to close this program\n";
 	my $who_cares = <STDIN>;
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
-    exit 1;
-	}
+    exit 1; }
+}
 # END: die_nice
 
 # BEGIN: open_server_logfile(logfile)
@@ -4587,7 +4596,7 @@ sub tan {
 	$ftp->pasv or &die_nice($ftp->message); }
     $ftp_lines && &ftp_getNlines;
     $ftp_type = $ftp->binary;
-    $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
+    $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
     $ftp_verbose && warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n";
 }
 
@@ -4630,7 +4639,7 @@ sub ftp_flushPipe {
 sub ftp_getNchars {
     my ($bytes) = @_;
     my $type = $ftp->binary;
-    my $size = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
+    my $size = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $fail = 1);
     my $startPos = $size - $bytes;
     if ($startPos<0) { $startPos=0; $bytes=$size; } #file is smaller than requested number of bytes
     -e $ftp_tmpFileName && &die_nice("FTP: $ftp_tmpFileName exists");
@@ -4645,7 +4654,7 @@ sub ftp_get_line {
     my $line;
     if (!defined($ftp_buffer[0])) {
 	$ftp_type = $ftp->binary;
-        $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
+        $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $fail = 1);
 	
         if ($ftp_currentEnd > $ftp_lastEnd) {
             $ftp_verbose && warn "FTP: SIZE $ftp_basename increased: ".($ftp_currentEnd-$ftp_lastEnd)." bytes\n";
