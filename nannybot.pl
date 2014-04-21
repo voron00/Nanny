@@ -1004,11 +1004,10 @@ sub load_config_file {
 sub die_nice {
     # check if some idiot error happend (like ftp failed to connect) and restart if needed
 	if ($fail eq 1) {
-    my @restart;
-    push @restart, $^X, $0, @ARGV;
+    my $restart = 'perl nannybot.pl';
     print "Idiot ERROR detected...Will restart in 3 seconds\n";
 	sleep 3;
-    exec @restart; }
+    exec $restart; }
     else {
     my $message = shift;
     if ((!defined($message)) or ($message !~ /./)) {
