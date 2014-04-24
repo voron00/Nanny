@@ -562,7 +562,7 @@ while (1) {
 		$penalty_points{$slot} = 0;
 		$ignore{$slot} = 0;
 
-		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say $name" . '"^7присоединился к игре"'); }
+		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"'. "$name" . '^7 присоединился к игре'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
@@ -598,7 +598,7 @@ while (1) {
 		# end of !seen data population
 
         if ($config->{'show_quits'}) { print "QUIT: " . &strip_color($name) . " has left the game\n"; }
-		if (($config->{'show_game_quits'}) && ($game_type ne 'sd')) { &rcon_command("say $name" . '" ^7покинул игру"'); }
+		if (($config->{'show_game_quits'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"'. "$name" . '^7 покинул игру'); }
         }
 	    else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	}
@@ -1848,8 +1848,8 @@ sub chat{
 		    }
 		}
 
-	# !stats - B
-	elsif ($message =~ /^!(stats|xlrstats)\s*(.*)/i) {
+	# !stats
+	elsif ($message =~ /^!stats\s*(.*)/i) {
 	    my $stats_search = $1;
 	    if (!defined($stats_search)) { $stats_search = ''; }
 	    if (&check_access('stats')) {
@@ -2722,7 +2722,7 @@ sub rcon_status {
 		    } 
 		}
 	    }
-	    
+
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
 		if ($ping == 999) {
@@ -3715,7 +3715,6 @@ sub ban_command {
     &log_to_file('logs/kick.log', "!BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");	   
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
-	&rcon_command("banClient $slot");
 }
 
 # BEGIN: &unban_command($target);
