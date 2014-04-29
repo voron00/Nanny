@@ -67,6 +67,7 @@ use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
 use Time::Duration; # expresses times in plain english
 use Time::Format; # easy to use time formatting
+use Time::HiRes qw (usleep); # high resolution timers
 use Socket; # Used for asking activision for GUID numbers for sanity check.
 use IO::Select; # also used by the udp routines for manual GUID lookup
 use LWP::Simple; # HTTP fetches are used for the dictionary
@@ -748,7 +749,7 @@ while (1) {
 	# We have reached the end of the logfile.
 
 	# Delay some time so we aren't constantly hammering this loop
-	sleep 1;
+	usleep(10000);
 	
 	# cache the time to limit the number of syscalls
 	$time = time;
@@ -1974,7 +1975,16 @@ sub chat{
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0; }
+		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" сбрасываю счетчики..."');
+	    }
+	}
+
+	# !reboot
+	elsif ($message =~ /^!reboot/i) {
+	    if (&check_access('reboot')) {
 		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" перезапускаю себя..."');
+		my $restart = 'perl nannybot.pl';
+        exec $restart;
 	    }
 	}
 
@@ -2577,8 +2587,8 @@ sub locate {
 		    }
 		}
 
-		&rcon_command("say $location");
-		print "$location\n"; 
+		&rcon_command("say " . "$location");
+		print "$location\n";
 		sleep 1;
 	    }
 		else {
@@ -2722,7 +2732,6 @@ sub rcon_status {
 		    } 
 		}
 	    }
-
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
 		if ($ping == 999) {
@@ -2791,7 +2800,7 @@ sub rcon_status {
 	}
     }
 	}
-    # END: Banned IP Address check  
+    # END: Banned IP Address check
 }
 # END: rcon_status
 
