@@ -257,7 +257,7 @@ if ($voting_result =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
     else { print "Voting is currently turned OFF\n"; }
 	sleep 1;
 }
-else { print "sorry, cant parse the g_allowVote results.\n"; }
+else { print "Sorry, cant parse the g_allowVote results.\n"; }
 
 # Ask the server what it's official name is
 my $server_result = &rcon_query("sv_hostname");
@@ -481,16 +481,14 @@ while (1) {
 
 		# First Blood
 		if (
-		    ($config->{'first_blood'}) && 
-		    ($first_blood == 0) && 
-		    ($attacker_slot ne $victim_slot) &&
-		    ($attacker_slot >= 0)
-		    ) {		    
+		    ($config->{'first_blood'}) &&
+		    ($first_blood == 0) &&
+		    ($attacker_slot ne $victim_slot) && ($attacker_slot >= 0)) {   
 		    $first_blood = 1;
-		    &rcon_command("say " . '"^3ПЕРВАЯ КРОВЬ:"' . "^1$attacker_name^7" . '"убил"' . "^2$victim_name^7");
+		    &rcon_command("say " . '"^1ПЕРВАЯ КРОВЬ:"' . "^1$attacker_name^7" . '"убил"' . "^2$victim_name^7");
 		    print "FIRST BLOOD: $attacker_name killed $victim_name\n";
 		}
-		
+
 		# Killing Spree
 		if (($config->{'killing_sprees'}) && ($damage_type ne 'MOD_SUICIDE') && ($damage_type ne 'MOD_FALLING') && ($attacker_team ne 'world') && ($attacker_slot ne $victim_slot)) {
 		    if (!defined($kill_spree{$attacker_slot})) {
@@ -776,7 +774,7 @@ while (1) {
         }
 
         # Check if it is time to make our next announement yet.
-        if ( $time >= $next_announcement ) {
+        if (( $time >= $next_announcement) && ($config->{'use_announcements'})) {
             $next_announcement = $time + ( 60 * ( $config->{'interval_min'} + int( rand( $config->{'interval_max'} - $config->{'interval_min'} + 1 ) ) ) );
             &make_announcement;
         }
@@ -968,7 +966,7 @@ sub load_config_file {
                 push @remote_servers, $config_val;
                 print "Remote Server: $config_val\n";
             }
-	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check|use_admin_mod)$/) {
+	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check|use_admin_mod|use_announcements|use_responses)$/) {
 		if ($config_val =~ /yes|1|on|enable/i) { $config->{$config_name} = 1; }
                 else { $config->{$config_name} = 0; }
                 print "$config_name: " . $config->{$config_name} . "\n";
@@ -1476,9 +1474,10 @@ sub chat{
     my $penalty = 0;
     my $response = 'undefined';
     my $index;
-
     my $flooded = 0;
 
+	if ($config->{'use_responses'})
+	{
     # loop through all the rule regex looking for matches
     foreach $rule_name (keys %rule_regex) {
         if ($message =~ /$rule_regex{$rule_name}/i) {
@@ -1515,6 +1514,7 @@ sub chat{
             }
         }
     }
+	}
     #  End of Server Response / Penalty System
 
     # Call Bad shot
@@ -1525,7 +1525,7 @@ sub chat{
 		    # bad shot abuse
 		    if (&flood_protection('badshot-two', 30, $slot)) { }
 		    else {
-			&rcon_command("say " . "^1$name:" . '"^7Твое ^1нытье^7 уже всех достало"');
+			&rcon_command("say " . "^1$name:" . '"^7Твое ^1Нытье^7 уже всех достало"');
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
 			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
 			# $penalty_points{$slot} += 12;
@@ -3896,14 +3896,8 @@ sub awards {
     &rcon_command("say " . '"^2Игроки с лучшим рейтингом^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-
-	# Cut point - Everything below this point was restored from a slightly older backup
-	# The file was damaged and partly destroyed.  
-	# Everything below this point was reconstructed from the slightly-older emacs turd.
-	# Remind me to teach you about free disk space, Laz.  -smug
-	
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7рейтингом убийств/смертей"');
-        sleep 1;
+    &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7рейтингом убийств/смертей"');
+    sleep 1;
     }
 
     # Best Headshot Percentages
@@ -4235,7 +4229,7 @@ sub guid_sanity_check {
 		    print "\nOK: GUID Sanity check: PASSED\n\n";
 		}
 		else {
-		    &rcon_command("say ^1WARNING: ^7GUID Sanity Check failed for $name_by_slot{$most_recent_slot}");
+		    &rcon_command("say " . '"^1ПРЕДУПРЕЖДЕНИЕ: ^7Проверка корректности GUID не пройдена для"' . "$name_by_slot{$most_recent_slot}");
 
 		    print "\nFAIL: GUID Sanity check: FAILED\n";
 		    print "    IP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
