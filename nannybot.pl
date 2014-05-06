@@ -316,7 +316,7 @@ while (1) {
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0; }
-	        print ("SERVER CRASH/RESTART DETECTED, RESETTING...\n");
+	        print "SERVER CRASH/RESTART DETECTED, RESETTING...\n";
 		    &rcon_command("say " , '"^1*** ^7ѕохоже что сервер упал, перезапускаю себ€... ^1***"');
 		}
 		$last_upmins = $now_upmins;
@@ -706,8 +706,10 @@ while (1) {
 	    my $reset_slot;
 		foreach $reset_slot (keys %last_activity_by_slot) {
 		    $spam_count{$reset_slot} = 0;
+			$penalty_points{$reset_slot} = 0;
 		    $kill_spree{$reset_slot} = 0;
-		    $best_spree{$reset_slot} = 0; }
+		    $best_spree{$reset_slot} = 0;
+		}
 	        $freshen_next_map_prediction = 1;
 	        $last_rconstatus = 0;
 	}
@@ -1926,12 +1928,12 @@ sub chat{
             if (&check_access('rcon')) { &rcon_command("$1"); }
         }
 
-	# !saybold
+	# !saybold (Admin mod)
         elsif (($message =~ /^!saybold\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('saybold')) { &rcon_command("set saybold" . '"' . "$1"); }
         }
 
-	# !sayline
+	# !sayline (Admin mod)
         elsif (($message =~ /^!sayline\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('sayline')) { &rcon_command("set say" . '"' . "$1"); }
         }
@@ -1946,7 +1948,7 @@ sub chat{
             if (&check_access('tell')) { &tell($1,$2); }
         }
 
-	# !hostname and !servername
+	# !hostname
         elsif ($message =~ /^!(host ?name|server ?name)\s+(.+)/i) {
             if (&check_access('hostname')) {
 		$server_name = $2;
@@ -2954,12 +2956,12 @@ sub geolocate_ip {
 		if ($ip ne $config->{'ip'}) {
 		if ($metric) {
                     $dist = int($dist/1000);
-					if (!defined($player_lat or $player_lon)) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
+					if (!defined($player_lat or $player_lon) or $dist eq 0) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		            $dist = int($dist/1609.344);
-					if (!defined($player_lat or $player_lon)) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
+					if (!defined($player_lat or $player_lon) or $dist eq 0) { $geo_ip_info .= '"^7,  рассто€ние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 		}
