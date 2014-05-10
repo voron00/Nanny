@@ -61,7 +61,7 @@ use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
 use diagnostics; # good for detailed explanations about any problems in code
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-use DBD::mysql; # Support for MySQL based logging.
+# use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
 use DBI; # databases
 use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
