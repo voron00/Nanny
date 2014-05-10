@@ -26,3 +26,5 @@ NannyBot
 В Windows чтобы отображался русский язык необходимо запустить cyrillic_cmd_for_windows.bat, и после этого запускать саму программу.
 
 В Linux достаточно в параметрах терминала установить кодировку Windows-1251.
+
+![ScreenShot](http://s018.radikal.ru/i510/1405/6c/fa5144280d7b.png)
