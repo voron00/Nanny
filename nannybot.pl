@@ -61,8 +61,8 @@ use warnings; # helps catch failure strings.
 use strict;   # strict keeps us from making stupid typos.
 use diagnostics; # good for detailed explanations about any problems in code
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-# use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
-use DBI; # database
+use DBD::mysql; # Support for MySQL based logging.
+use DBI; # databases
 use Geo::IP; # GeoIP is used for locating IP addresses.
 use Geo::Inverse; # Used for calculating the distance from the server
 use Time::Duration; # expresses times in plain english
@@ -201,14 +201,8 @@ my %servername_cache;
 my @remote_servers;
 my $fail = 0;
 
-# if local ip address
+# declare localhost
 my $localhost = '127.0.0.1';
-
-# print current perl version and OS (debug message)
-print "Perl runtime version $^V, running on $^O\n";
-
-# print current nanny version (debug message)
-print "Nannybot version $version\n";
 
 # turn on auto-flush for STDOUT
 local $| = 1;
@@ -2020,7 +2014,7 @@ sub chat{
 	    if (&check_access('version')) {
 		if (&flood_protection('version', 60, $slot)) { }
 		else {
-		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version ^7| ^5Perl $^V $^O");
+		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version");
 		    sleep 1;
 		    &rcon_command("say ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		    sleep 1;
