@@ -2072,6 +2072,14 @@ sub chat{
 	    if (&check_access('voting')) { &rcon_command("say " . '"!voting on или !voting off ?"'); }
 	}
 	
+	# !voice
+	elsif ($message =~ /^!(voice|voicechat|sv_voice)\s+(.+)/i) {
+	    if (&check_access('voice')) { &voice_command($2); }
+	}
+	elsif ($message =~ /^!(voice|voicechat|sv_voice)\s*$/i) {
+	    if (&check_access('voice')) { &rcon_command("say " . '"!voice on или !voice off ?"'); }
+	}
+	
 	# !killcam
 	elsif ($message =~ /^!killcam\s+(.+)/i) {
 	    if (&check_access('killcam')) { &killcam_command($1); }
@@ -3766,9 +3774,30 @@ sub voting_command {
 	$voting = 0;
         &log_to_file('logs/admin.log', "!VOTING: voting was disabled by:  $name - GUID $guid");
     }
-	else { &rcon_command("say Unrcognized vote state:  $state  ... Use: on or off"); }
+	else { &rcon_command("say " . '"Неверное значение:"' . "$state" . '"... Используйте: on или off"'); }
 }
 # END: &voting_command
+
+# BEGIN: &voice_command($state)
+sub voice_command {
+    my $voice;
+    my $state = shift;
+    if (&flood_protection('voice', 60, $slot)) { return 1; }
+    if ($state =~ /^(yes|1|on|enabled?)$/i) {
+	&rcon_command("sv_voice 1");
+	&rcon_command("say " . '"Голосовой чат включен."');
+	$voice = 1;
+        &log_to_file('logs/admin.log', "!voice: voice chat was enabled by:  $name - GUID $guid");
+    }
+	elsif ($state =~ /^(off|0|no|disabled?)$/i) {
+        &rcon_command("sv_voice 0");
+        &rcon_command("say " . '"Голосовой чат выключен."');
+	$voice = 0;
+        &log_to_file('logs/admin.log', "!voice: voice chat was disabled by:  $name - GUID $guid");
+    }
+	else { &rcon_command("say " . '"Неверное значение:"' . "$state" . '"... Используйте: on или off"'); }
+}
+# END: &voice_command
 
 # BEGIN: &killcam_command($state)
 sub killcam_command {
@@ -4300,8 +4329,8 @@ sub tell {
         &rcon_command("say " . '"Нет совпадений с: "' . "$search_string");
     }
     else {
-        if (&flood_protection('tell', 60, $slot)) { return 1; }
-	foreach $key (@matches) { &rcon_command("say ^2" . $name_by_slot{$key} . "^7: " . $message); }
+	if (&flood_protection('tell', 60, $slot)) { return 1; }
+	foreach $key (@matches) { &rcon_command("say ^2" . "$name_by_slot{$key}" . "^7: " . '"' . "$message"); }
     }
 }
 # END: &tell($search_string,$message);
