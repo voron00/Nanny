@@ -1,2 +1,1 @@
 @perl rcon.pl
-@pause

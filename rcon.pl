@@ -10,17 +10,16 @@ my $address;
 my $port;
 my $password;
 my $type = 'old';
-my $VERSION = "2.12 CoD2";
 local $| = 1;
 
-my  $command = join("", @ARGV);
+my $command = join("", @ARGV);
 
 my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => $type);
 
 my $result = 0;
 my $interactive = 1 unless ($command);
 
-if ($interactive) { print "KKrcon version $VERSION running in interactive mode\n\n" . "Server: $address\n" . "Port:   $port\n\n" . "Type 'q' to quit.\n\n"; }
+if ($interactive) { print "Type 'q' to quit.\n\n"; }
 
 while (1)
 {
@@ -96,4 +95,14 @@ sub execute
 	    return 1;
         }
         else { return 0; }
+}
+
+sub die_nice {
+    my $message = shift;
+    if ((!defined($message)) or ($message !~ /./)) {
+	$message = 'default die_nice message.\n\n'; }
+    print "\nCritical Error: $message\n\n";
+	print "Press <ENTER> to close this program\n";
+	my $who_cares = <STDIN>;
+    exit 1;
 }

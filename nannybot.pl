@@ -44,7 +44,7 @@
 #  monthly log rotations
 #  guess a favorite weapon? :)
 #  Rewrite config parser?
-#  ability to specify tempban time via config?  (sv_kickbantime 300) ...done but via !tempbantime command
+#  ability to specify tempban time via config?  (sv_kickbantime 300) ...done
 #
 #  Command wish list:
 #  !teambalance on/off ...done
@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1.8 RUS';
+my $version = '3.1.9 RUS';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -221,7 +221,7 @@ if ($logfile_mode eq 'local') {
     # Seek to the end of the logfile
     seek(LOGFILE, 0, 2);
 }
- elsif ($logfile_mode eq 'ftp') { &ftp_connect }
+elsif ($logfile_mode eq 'ftp') { &ftp_connect }
 
 # Initialize the database tables if they do not exist
 &initialize_databases;
@@ -997,7 +997,7 @@ sub load_config_file {
 
 # BEGIN: die_nice(message)
 sub die_nice {
-    # check if some idiot error happend (like ftp failed to connect) and restart if needed
+    # check if some idiot error happend (like ftp failed to connect), in this case nanny will restart automatically
 	if ($fail eq 1) {
     my $restart = 'perl nannybot.pl';
     print "Idiot ERROR detected...Will restart in 3 seconds\n";
@@ -3689,6 +3689,7 @@ sub unlock_command {
 # BEGIN: tempban_command($search_string)
 sub tempban_command {
     my $search_string = shift;
+	my $tempbantime = shift;
     my $key;
     my $slot = 'undefined';
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
@@ -3699,14 +3700,17 @@ sub tempban_command {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$search_string"); return 0; }
 	}
     my $ban_ip = 'undefined';
-    my $unban_time = $time + 1800;
+	my $query = &rcon_query("sv_kickBanTime");
+    if ($query =~ /\"sv_kickBanTime\" is: \"(\d+)\^7\"/m) {
+    my $tempbantime = $1; 
+    my $unban_time = $time + $tempbantime;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом"');
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 	$ban_ip = $ip_by_slot{$slot}; }
     &log_to_file('logs/kick.log', "!TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
-	&rcon_command("clientkick $slot");
+	&rcon_command("clientkick $slot"); }
 }
 
 # BEGIN: ban_command($search_string)
