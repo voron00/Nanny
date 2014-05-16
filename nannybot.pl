@@ -3732,6 +3732,7 @@ sub ban_command {
     &log_to_file('logs/kick.log', "!BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");	   
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
+	&rcon_command("clientkick $slot");
 }
 
 # BEGIN: &unban_command($target);
@@ -5023,12 +5024,9 @@ sub big_red_button_command {
 
 # BEGIN !rnk
 sub rank {
-
-   if (&flood_protection('rank', 30, $slot)) { return 1; }
-
-   my $rank_msg = "^2$name^7:";
-   my $rank_sth;
-
+    if (&flood_protection('rank', 30, $slot)) { return 1; }
+    my $rank_msg = "^2$name^7:";
+    my $rank_sth;
     $rank_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
     $rank_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     @row = $rank_sth->fetchrow_array;
