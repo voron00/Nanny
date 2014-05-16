@@ -8,7 +8,7 @@ NannyBot
 
 Интсрукция по запуску в Windows:
 
-1. Скачать и установить ActivePerl http://www.activestate.com/activeperl/downloads
+1. Скачать и установить ActivePerl http://www.activestate.com/activeperl/downloads или Strawberry Perl http://strawberryperl.com
 2. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg). Подробно расписывать не буду, т.к там есть пояснения к каждому параметру.
 4. Запустить. В Windows можно запускать через nannybot.bat
 
@@ -19,7 +19,7 @@ NannyBot
 3. Необходимо отредактировать переменную PATH, для того чтобы вместо оригинального Perl запускался ActivePerl, сделать это можно разными способами, однако самый простой - добавить путь в локальный файл .bashrc или .bash_profile.
 Пример:      PATH=$PATH:/opt/ActivePerl-5.18/bin:$PATH    (Ваш путь к ActivePerl может отличатся)
 4. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg). Подробно расписывать не буду, т.к там есть пояснения к каждому параметру
-5. Запускать в терминале через Perl (perl nannybot.pl)
+5. Запускать в терминале.
 
 Запуск в Linux без ActivePerl:
 
