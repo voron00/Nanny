@@ -676,7 +676,7 @@ while (1) {
 	    # Round Losers
 	    if ($line =~ /^L;([^;]*);(\d+);([^;]*)/) {
 		($attacker_team,$guid,$name) = ($1,$2,$3);
-		if ((defined($attacker_team)) && ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on $map_name\n"; }
+		if ((defined($attacker_team)) && ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on map $map_name\n"; }
 		else { print "... apparently there are no losers\n"; }
 		}
 	    else { print "WARNING: unrecognized syntax for Round Loss line:\n\t$line\n"; }
@@ -1865,7 +1865,7 @@ sub chat{
         }	
 	# !rnk
         elsif ($message =~ /^!(rnk)\b/i) {
-           if (&check_access('rnk')) { &rank; }
+           if (&check_access('rank')) { &rank; }
         }
 	# !tdm
 	elsif ($message =~ /^!tdm\b/i) {
