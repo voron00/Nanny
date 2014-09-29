@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1.9 RUS';
+my $version = '3.1 RUS Build 529';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -679,7 +679,7 @@ while (1) {
 		if ((defined($attacker_team)) && ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on map $map_name\n"; }
 		else { print "... apparently there are no losers\n"; }
 		}
-	    else { print "WARNING: unrecognized syntax for Round Loss line:\n\t$line\n"; }
+	    # else { print "WARNING: unrecognized syntax for Round Loss line:\n\t$line\n"; }
 	}
 	elsif ($first_char eq 'I') {
 	    # Init Level
