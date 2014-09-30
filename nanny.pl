@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 # VERSION 3.xx RUS changelog is on github page https://github.com/voron00/Nanny/commits/master
 
@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 529';
+my $version = '3.1 RUS Build 531';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1312,8 +1312,8 @@ sub initialize_databases {
     print"
 ********************************************************************************
                 Сиделка для сервера Call of Duty 2
-                        Версия $version
-                       Автор - smugllama
+                    Версия $version
+                        Автор - smugllama
                    Доработка и перевод - VoroN
 
                   RCON-модуль основан на KKrcon
@@ -1684,6 +1684,14 @@ sub chat{
         }
         elsif ($message =~ /^!clearstats\s*$/i) {
             if (&check_access('clearstats')) { &rcon_command("say " . '"!clearstats для кого?"'); }
+        }
+		
+		# !clearnames (search_string)
+        elsif ($message =~ /^!clearnames\s+(.+)/i) {
+            if (&check_access('clearnames')) { &clear_names($1); }
+        }
+        elsif ($message =~ /^!clearnames\s*$/i) {
+            if (&check_access('clearnames')) { &rcon_command("say " . '"!clearnames для кого?"'); }
         }
 
 		# !disarm (search_string) (admin mod)
@@ -2865,11 +2873,11 @@ sub rcon_query {
 sub geolocate_ip {
     my $ip = shift;
     my $metric = 0;
-    if (!defined($ip)) { return '"Неверный IP"'; }
+    if (!defined($ip)) { return '"Неверный IP-Адрес"'; }
 	
 	if ($ip =~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
 	
-    if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP адрес:  "' . "$ip"; }
+    if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:  "' . "$ip"; }
 	
     my $gi = Geo::IP->open("databases/GeoLiteCity.dat", GEOIP_STANDARD);
 
@@ -3456,6 +3464,28 @@ sub clear_stats {
 	$sth = $stats_dbh->prepare('DELETE FROM stats2 where name=?;');
     $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	&rcon_command("say " . '"Удалена статистика для:"' . "$victim"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$search_string"); }
+}
+
+# BEGIN: !clearnames command($search_string)
+sub clear_names {
+    my $search_string = shift;
+    my $victim_guid;
+	my $victim_name;
+	my $victim_ip;
+	my $sth;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) {
+    &rcon_command("say " . '"Нет совпадений с:"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$victim_guid = $guid_by_slot{$matches[0]};
+	$victim_name = $name_by_slot{$matches[0]};
+	$victim_ip = $ip_by_slot{$matches[0]};
+	$sth = $guid_to_name_dbh->prepare('DELETE FROM guid_to_name where guid=?;');
+    $sth->execute($victim_guid) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	$sth = $ip_to_name_dbh->prepare('DELETE FROM ip_to_name where ip=?;');
+    $sth->execute($victim_ip) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	&rcon_command("say " . '"Удалены имена для:"' . "$victim_name"); }
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$search_string"); }
 }
 
