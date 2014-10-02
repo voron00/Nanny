@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 531';
+my $version = '3.1 RUS Build 533';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2139,7 +2139,7 @@ sub chat{
 	    if (&check_access('spectatefree')) { &rcon_command("say !spectatefree on" . '" или !spectatefree off?"'); }
 	}
 
-        # !aliases (search_string)
+        # !names (search_string)
         elsif ($message =~ /^!names\s+(.+)/i) {
             if (&check_access('aliases')) { &aliases($1); }
         }
@@ -2319,6 +2319,10 @@ sub chat{
 	    # !tan (value)
         if ($message =~ /^!tan\s+(.+)/i) {
 	    &rcon_command("say ^2tan $1 ^7=^1 " . &tan($1));
+		}
+	    # !perl -v
+        if ($message =~ /^!perl -v\b/i) {
+	    &rcon_command("say ^3Perl Runtime Version ^7- ^2$^V");
 		}
 		
     # !speed (number)
@@ -4066,7 +4070,7 @@ sub aliases {
     }
     elsif ($#matches == 0) {
 	
-        &log_to_file('logs/commands.log', "$name executed an !aliases search for $name_by_slot{$matches[0]}");
+        &log_to_file('logs/commands.log', "$name executed an !names search for $name_by_slot{$matches[0]}");
 	
         if ($guid_by_slot{$matches[0]} > 0) {
             my $sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 100;");
@@ -4373,6 +4377,8 @@ sub tell {
 # BEGIN: &last_bans($number);
 sub last_bans {
     my $number = shift;
+	my @row;
+	my ($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name);
     # keep some sane limits.
     if ($number > 10) { $number = 10; }
     if ($number < 0) { $number = 1; }
@@ -4380,8 +4386,6 @@ sub last_bans {
     if (&flood_protection('lastbans', 60, $slot)) { return 1; }
     my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n"); 
-    my @row;
-    my ($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name);
     while (@row = $bans_sth->fetchrow_array) {
 	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
 	my $txt_time = &duration($time - $ban_time);

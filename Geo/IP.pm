@@ -1,13 +1,34 @@
 package Geo::IP;
 
 use strict;
-use base qw(Exporter);
-use vars qw($VERSION @EXPORT  $GEOIP_PP_ONLY @ISA $XS_VERSION);
 
-BEGIN { $GEOIP_PP_ONLY = 0 unless defined($GEOIP_PP_ONLY); }
+use base qw(Exporter);
+
+our $VERSION;
+
+our @ISA;
+
+our $GEOIP_PP_ONLY = 0;
+our $XS_VERSION;
+
+our @EXPORT = qw(
+    GEOIP_STANDARD              GEOIP_MEMORY_CACHE
+    GEOIP_CHECK_CACHE           GEOIP_INDEX_CACHE
+    GEOIP_UNKNOWN_SPEED         GEOIP_DIALUP_SPEED
+    GEOIP_CABLEDSL_SPEED        GEOIP_CORPORATE_SPEED
+    GEOIP_COUNTRY_EDITION       GEOIP_REGION_EDITION_REV0
+    GEOIP_CITY_EDITION_REV0     GEOIP_ORG_EDITION
+    GEOIP_ISP_EDITION           GEOIP_CITY_EDITION_REV1
+    GEOIP_REGION_EDITION_REV1   GEOIP_PROXY_EDITION
+    GEOIP_ASNUM_EDITION         GEOIP_NETSPEED_EDITION
+    GEOIP_CHARSET_ISO_8859_1    GEOIP_CHARSET_UTF8
+    GEOIP_MMAP_CACHE            GEOIP_ACCURACYRADIUS_EDITION
+    GEOIP_COUNTRY_EDITION_V6    GEOIP_DOMAIN_EDITION
+    GEOIP_NETSPEED_EDITION_REV1 GEOIP_SILENCE
+    );
 
 BEGIN {
-    $VERSION = '1.44';
+    $VERSION = '1.45';
     eval {
 
         # PERL_DL_NONLAZY must be false, or any errors in loading will just
@@ -17,7 +38,7 @@ BEGIN {
         require DynaLoader;
         local @ISA = qw(DynaLoader);
         bootstrap Geo::IP $VERSION;
-    } unless $GEOIP_PP_ONLY;
+    } unless $GEOIP_PP_ONLY || $ENV{GEOIP_PP_ONLY};
 }
 
 require Geo::IP::Record;
@@ -27,12 +48,12 @@ sub GEOIP_MEMORY_CACHE() { 1; }    # PP
 sub GEOIP_CHECK_CACHE()  { 2; }
 sub GEOIP_INDEX_CACHE()  { 4; }
 sub GEOIP_MMAP_CACHE()   { 8; }    # PP
-sub GEOIP_SILENCE()     { 16; }
+sub GEOIP_SILENCE()      { 16; }
 
-sub GEOIP_UNKNOWN_SPEED()   { 0; } #PP
-sub GEOIP_DIALUP_SPEED()    { 1; } #PP
-sub GEOIP_CABLEDSL_SPEED()  { 2; } #PP
-sub GEOIP_CORPORATE_SPEED() { 3; } #PP
+sub GEOIP_UNKNOWN_SPEED()   { 0; }    #PP
+sub GEOIP_DIALUP_SPEED()    { 1; }    #PP
+sub GEOIP_CABLEDSL_SPEED()  { 2; }    #PP
+sub GEOIP_CORPORATE_SPEED() { 3; }    #PP
 
 BEGIN {
 
@@ -5678,22 +5699,6 @@ __PP_CODE__
 
 print STDERR $@ if $@;
 
-@EXPORT = qw/
-    GEOIP_STANDARD              GEOIP_MEMORY_CACHE
-    GEOIP_CHECK_CACHE           GEOIP_INDEX_CACHE
-    GEOIP_UNKNOWN_SPEED         GEOIP_DIALUP_SPEED
-    GEOIP_CABLEDSL_SPEED        GEOIP_CORPORATE_SPEED
-    GEOIP_COUNTRY_EDITION       GEOIP_REGION_EDITION_REV0
-    GEOIP_CITY_EDITION_REV0     GEOIP_ORG_EDITION
-    GEOIP_ISP_EDITION           GEOIP_CITY_EDITION_REV1
-    GEOIP_REGION_EDITION_REV1   GEOIP_PROXY_EDITION
-    GEOIP_ASNUM_EDITION         GEOIP_NETSPEED_EDITION
-    GEOIP_CHARSET_ISO_8859_1    GEOIP_CHARSET_UTF8
-    GEOIP_MMAP_CACHE            GEOIP_ACCURACYRADIUS_EDITION
-    GEOIP_COUNTRY_EDITION_V6    GEOIP_DOMAIN_EDITION
-    GEOIP_NETSPEED_EDITION_REV1 GEOIP_SILENCE
-    /;
-
 1;
 __END__
 
@@ -6032,7 +6037,7 @@ https://github.com/maxmind/geoip-api-perl
 
 =head1 VERSION
 
-1.43
+1.45
 
 =head1 SEE ALSO
 
@@ -6041,7 +6046,7 @@ L<GeoIP2> - database reader for the GeoIP2 format.
 
 =head1 AUTHOR
 
-Copyright (c) 2013, MaxMind, Inc
+Copyright (c) 2014, MaxMind, Inc
 
 All rights reserved.  This package is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.
@@ -6049,7 +6054,7 @@ and/or modify it under the same terms as Perl itself.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007, MaxMind LLC. 
+Copyright (c) 2014, MaxMind LLC.
 All rights reserved.
 
 =head1 LICENSE
