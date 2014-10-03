@@ -3084,7 +3084,9 @@ sub stats {
 
     }
     # print "DEBUG: $name is set to: $name\n";
-
+	
+    if ($name eq 'Unknown Soldier') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
+	else {
     my $stats_msg = '"Статистика^2"' . "$name^7:";
     my $kills = 1;
 
@@ -3185,6 +3187,7 @@ sub stats {
 	    sleep 1;
 	}
     }
+	}
 }
 # END: stats
 
@@ -3943,7 +3946,7 @@ sub awards {
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
     # Most Kills
-    $sth = $stats_dbh->prepare('SELECT * FROM stats ORDER BY kills DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" ORDER BY kills DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество убийств^7:"');
     sleep 1;
