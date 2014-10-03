@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 533';
+my $version = '3.1 RUS Build 535';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -999,7 +999,7 @@ sub load_config_file {
 sub die_nice {
     # check if some idiot error happend (like ftp failed to connect), in this case nanny will restart automatically
 	if ($fail eq 1) {
-    my $restart = 'perl nannybot.pl';
+    my $restart = 'perl nanny.pl';
     print "Idiot ERROR detected...Will restart in 3 seconds\n";
 	sleep 3;
     exec $restart; }
@@ -1531,7 +1531,7 @@ sub chat{
 		    # update the Bad Shot counter.
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
 		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");	
-		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7 не понравилось то как его убил^1"' . "$last_killed_by{$slot}");
+		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7не понравилось то как его убил^1"' . "$last_killed_by{$slot}");
 		    # $penalty_points{$slot} += 1;
 		}
 	    }  
@@ -1551,7 +1551,7 @@ sub chat{
 		    # update the niceshot counter.
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
 		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");
-		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7 понравилось ^7то как его убил^1"' . "$last_killed_by{$slot}");
+		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7понравилось ^7то как его убил^1"' . "$last_killed_by{$slot}");
 		    # $penalty_points{$slot} += 1;
 		}
 	    }  
@@ -1987,7 +1987,7 @@ sub chat{
 	elsif ($message =~ /^!reboot/i) {
 	    if (&check_access('reboot')) {
 		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" перезапускаю себя..."');
-		my $restart = 'perl nannybot.pl';
+		my $restart = 'perl nanny.pl';
         exec $restart;
 	    }
 	}
