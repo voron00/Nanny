@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 540';
+my $version = '3.1 RUS Build 541';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -270,7 +270,7 @@ while (1) {
 
     if (defined($line)) {
 	# We have a new line from the logfile.
-	
+
 	# make sure our line is complete.
 	if ($line !~ /\n/) {
 	    # incomplete, save this for next time.
@@ -287,7 +287,7 @@ while (1) {
 	# Strip the timestamp from the begining
 	if ($line =~ /^\s{0,2}(\d+:\d+)\s+(.*)/) {
 	    ($uptime,$line) = ($1,$2);
-	 
+
 	    # BEGIN: SERVER CRASH / RESTART detection
 	    # detect when the uptime gets smaller.
 	    if ($uptime =~ /^(\d+):/) {
@@ -317,14 +317,14 @@ while (1) {
 	    }
 	    # END: SERVER CRASH / RESTART detection
 	}
-	
+
 	# Strip the newline and any trailing space from the end.
 	$line =~ s/\s+$//;
-	
+
 	# hold onto the first character of the line
 	# doing single character eq is faster than regex ~=
 	$first_char = substr($line, 0, 1);
-	
+
 	# Which class of event is the line we just read?
 	if ($first_char eq 'K') {
 	    # A "KILL" Event has happened
@@ -333,7 +333,7 @@ while (1) {
 		$attacker_name, $attacker_weapon, $damage, $damage_type, $damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
         $attacker_name =~ s/$problematic_characters//g;
         $victim_name =~ s/$problematic_characters//g;
-		
+
 		# the RIDDLER fix, try #1
 		$attacker_name =~ s/\s+$//;
 		$victim_name =~ s/\s+$//;
@@ -348,7 +348,7 @@ while (1) {
 		$guid_by_slot{$attacker_slot} = $attacker_guid;
 		$guid_by_slot{$victim_slot} = $victim_guid;
 		$last_killed_by{$victim_slot} = $attacker_name;
-		
+
 		# Glitch Server Mode
 		if ($config->{'glitch_server_mode'}) {
 			print "Murderer:  " . &strip_color($attacker_name) . " killed someone.  Kicking!\n";
@@ -383,7 +383,7 @@ while (1) {
 			    $stats_sth->execute(&strip_color($attacker_name), 1, 0, 0) or &die_nice("Unable to do insert\n");
 			}
 		    }
-		    
+			
 		    # 2nd generation stats
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
                     $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -408,7 +408,7 @@ while (1) {
                         $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
                         # print "DEBUG: Added a pistol kill for: $attacker_name\n";
 		    }
-		    
+
 		    # Bash / Melee Kills
                     if ($damage_type eq 'MOD_MELEE') {
                         $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bash_kills = bash_kills + 1 WHERE name=?");
@@ -436,7 +436,7 @@ while (1) {
                         $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
                        # print "DEBUG: Added a rifle kill for: $attacker_name\n";
                     }
-		    
+
 		    #  Machinegun Kills
                     if ($attacker_weapon =~ /^(sten|thompson|bren|greasegun|bar|PPS42|ppsh|mp40|mp44|30cal_stand|mg42_bipod_stand)_mp$/) {
                         $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET machinegun_kills = machinegun_kills + 1 WHERE name=?");
@@ -445,7 +445,7 @@ while (1) {
                     }		    
 		    # End 2nd generation stats
 		}
-		
+
 		# Track the death stats for the victim
 		# checking the attacker team ensures we don't count deaths from switching teams or changing to spectator
 		if (($attacker_team eq 'axis') or ($attacker_team eq 'allies') or ($attacker_team eq 'world') or (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
@@ -746,17 +746,17 @@ while (1) {
 
 	# Delay some time so we aren't constantly hammering this loop
 	usleep(10000);
-	
+
 	# cache the time to limit the number of syscalls
 	$time = time;
 	$timestring = scalar(localtime($time));
-	
+
 	# Freshen the rcon status if it's time
 	if ( ($time - $last_rconstatus) >= $rconstatus_interval ) {
 	    $last_rconstatus = $time;
 	    &rcon_status;
 	}
-	
+
 	# Anti-Idle check
 	if ($config->{'antiidle'}) {
 	    if ( ($time - $last_idlecheck) >= $idlecheck_interval ) {
@@ -845,9 +845,9 @@ sub load_config_file {
     my $config_file = shift;
     if (!defined($config_file)) { &die_nice("load_config_file called without an argument\n"); }
     if (!-e $config_file) { &die_nice("load_config_file config file does not exist: $config_file\n"); }
-    
+
     open (CONFIG, $config_file) or &die_nice("$config_file file exists, but i couldnt open it.\n");
-    
+
     my $line;
     my $config_name;
     my $config_val;
@@ -859,7 +859,7 @@ sub load_config_file {
     my $location;
 
     print "\nParsing config file: $config_file\n\n";
-    
+
     while (defined($line = <CONFIG>)) {
 	$line =~ s/\s+$//;
 	if ($line =~ /^\s*(\w+)\s*=\s*(.*)/) {
@@ -929,11 +929,19 @@ sub load_config_file {
 			print "Also allowing $config_val to use the $command_name command\n";
 		    }
 		}
-	    } 
-	    elsif ($config_name eq 'rcon_pass') { 
+	    }
+	    elsif ($config_name eq 'rcon_pass') {
 		$config->{'rcon_pass'} = $config_val;
 		print "RCON password: " . '*'x length($config->{'rcon_pass'}) . "\n";
-	    } 
+	    }
+		elsif ($config_name eq 'ftp_username') {
+		$config->{'ftp_username'} = $config_val;
+		print "FTP username: " . ($config->{'ftp_username'}) . "\n";
+	    }
+		elsif ($config_name eq 'ftp_password') {
+		$config->{'ftp_password'} = $config_val;
+		print "FTP password: " . '*'x length($config->{'ftp_password'}) . "\n";
+	    }
 	    elsif ($config_name eq 'server_logfile') {
 		$config->{'server_logfile_name'} = $config_val;
 		print "Server logfile name: $config->{'server_logfile_name'}\n";
@@ -943,7 +951,7 @@ sub load_config_file {
 		    ($ftp_host,$file,$logfile_mode) = ($1,$2,'ftp');
 		    ($ftp_dirname,$ftp_basename) = (dirname($file), basename($file));
 		}
-	    } 
+	    }
 	    elsif ($config_name eq 'ban_name') {
 		push @banned_names, $config_val;
 		print "Banned player Name: $config_val\n";
@@ -4658,7 +4666,7 @@ sub tan {
     $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!");
     $ftp_verbose && warn "CWD: $ftp_dirname\n";
     $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
-    
+
     if ($config->{'use_passive_ftp'}) {
 	print "Using Passive ftp mode...\n\n";
 	$ftp->pasv or &die_nice($ftp->message); }
