@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 536';
+my $version = '3.1 RUS Build 537';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1412,11 +1412,9 @@ sub chat{
 		
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_1'}) {
 		    &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_1'});
-		    # $penalty_points{$slot} += 10;
 		}
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_2'}) {
                     &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_2'});
-		    # $penalty_points{$slot} += 20;
                 }
 		if (($spam_count{$slot} >= $config->{'antispam_kick_level'}) 
 		    && ($spam_count{$slot} <= ( $config->{'antispam_kick_level'} + 1))) {
@@ -1519,12 +1517,10 @@ sub chat{
 	    if ((defined($last_killed_by{$slot})) && (&strip_color($last_killed_by{$slot}) ne $name)) {
 		if (&flood_protection('badshot', 60, $slot)) {
 		    # bad shot abuse
-		    if (&flood_protection('badshot-two', 30, $slot)) { }
+		    if (&flood_protection('badshot-two', 60, $slot)) { }
 		    else {
-			&rcon_command("say " . "^1$name:" . '"^7Твое ^1Нытье^7 уже всех достало"');
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
 			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
-			# $penalty_points{$slot} += 12;
 		    }
 		}
 		else {
@@ -1532,7 +1528,6 @@ sub chat{
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
 		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");	
 		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7не понравилось то как его убил^1"' . "$last_killed_by{$slot}");
-		    # $penalty_points{$slot} += 1;
 		}
 	    }  
 	} 
@@ -1544,18 +1539,21 @@ sub chat{
 	if ($message =~ /\bnice\W? (one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
 	    if ((defined($last_killed_by{$slot})) && (&strip_color($last_killed_by{$slot}) ne $name)) {
 		if (&flood_protection('niceshot', 60, $slot)) {
+		    # nice shot abuse
+			if (&flood_protection('niceshot-two', 60, $slot)) { }
+			else {
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
 			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
+			}
 		}
 		else {
-		    # update the niceshot counter.
+		    # update the Nice Shot counter.
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
 		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");
 		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7понравилось ^7то как его убил^1"' . "$last_killed_by{$slot}");
-		    # $penalty_points{$slot} += 1;
 		}
 	    }  
-	} 
+	}
     }
     # End of Nice Shot
 
@@ -1571,7 +1569,7 @@ sub chat{
 	$sth->execute($question) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 	while (@row = $sth->fetchrow_array) {
 	    print "DATABASE DEFINITION: $row[0]\n";
-	    push @results, "$name^7: ^1$question ^3is:^2 $row[0]";
+	    push @results, "$name^7: ^1$question ^3is:^2" . '"' . "$row[0]";
 	}
 	if ($#results ne -1) {
 	    if (&flood_protection('auto-define', 60, $slot)) { }
@@ -4439,7 +4437,7 @@ sub dictionary {
 
     # Now we sanatize what we're looking for - online databases don't have multiword definitions.
     if ($word =~ /[^A-Za-z\-\_\s\d]/) {
-	&rcon_command("say " . '"Неверный ввод, разрешены только английские буквы, точки, пробелы и цифры"');
+	&rcon_command("say " . '"Неверный ввод, разрешены только латинские буквы, точки, пробелы и цифры"');
         return 1;
     }
 
