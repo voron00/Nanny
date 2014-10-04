@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 538';
+my $version = '3.1 RUS Build 540';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -663,7 +663,7 @@ while (1) {
 		    if ($game_type =~ /\"g_gametype\" is: \"(\w+)\^7\"/m) { $game_type = $1; }
 			else { print "WARNING: unable to parse game_type:  $game_type\n"; }
 		}
-		print "DEBUG: game_type is: $game_type\n";
+		# print "DEBUG: game_type is: $game_type\n";
 		if (($voting) && ($config->{'anti_vote_rush'}) && ($game_type ne 'sd')) {
 		    print "ANTI-VOTE-RUSH:  Turned off voting for 25 seconds...\n";
 		    &rcon_command("g_allowVote 0");
@@ -745,7 +745,7 @@ while (1) {
 	# We have reached the end of the logfile.
 
 	# Delay some time so we aren't constantly hammering this loop
-	usleep(10000);
+	usleep(100000);
 	
 	# cache the time to limit the number of syscalls
 	$time = time;
@@ -2529,7 +2529,7 @@ sub chat{
 	    my $lastkill_search = $2;
 	    if ((!defined($lastkill_search)) or ($lastkill_search eq '')) { $lastkill_search = ''; }
             if (&check_access('lastkill')) {
-		print "DEBUG: slot = $slot  and last killed by = $last_killed_by{$slot}\n";
+		# print "DEBUG: slot = $slot  and last killed by = $last_killed_by{$slot}\n";
 		if (&flood_protection('lastkill', 60, $slot)) { }
 		else {
 		    if (($lastkill_search ne '') && (&check_access('peek'))) {
@@ -2703,7 +2703,7 @@ sub rcon_status {
 	    
 	    # Name sanity check.  New rcon library gets crazy sometimes.
 	    if (length($name) > 31) {
-		print "DEBUG: Skipping Malformed Name: $name\n";
+		# print "DEBUG: Skipping Malformed Name: $name\n";
 		next;
 	    }
 
@@ -2951,7 +2951,7 @@ sub geolocate_ip {
 
     if ((defined($record->country_code)) && ($record->country_code eq 'US')) { $metric = 0 }
     else { $metric = 1; }
-    print "DEBUG: country code is " . $record->country_code . "\n";
+    # print "DEBUG: country code is " . $record->country_code . "\n";
 	if ($metric == 1) { print "DEBUG: Metric is Kilometers\n"; }
     elsif ($metric == 0) { print "DEBUG: Metric is Miles\n"; }
 
@@ -3362,7 +3362,7 @@ sub matching_users {
     my $search_string = shift;
     if ($search_string =~ /^\/(.+)\/$/) { $search_string = $1; }
     else { $search_string = &sanitize_regex($search_string); }
-    print "DEBUG: search string is: $search_string\n"; 
+    # print "DEBUG: search string is: $search_string\n"; 
     my $key;
     my @matches;
     foreach $key (keys %name_by_slot) {
