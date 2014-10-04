@@ -1,4 +1,4 @@
-NannyBot
+Nanny
 ========
 Это кастомная русская версия программы NannyBot для игры Call of Duty 2. Оригинальным автором этой программы является smugllama. Написана полностью на Perl.
 Оригинал можно скачать по этой ссылке http://smaert.com/nannybot.zip
@@ -10,7 +10,7 @@ NannyBot
 
 1. Скачать и установить ActivePerl http://www.activestate.com/activeperl/downloads или Strawberry Perl http://strawberryperl.com
 2. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg). Подробно расписывать не буду, т.к там есть пояснения к каждому параметру.
-4. Запустить. В Windows можно запускать через nannybot.bat
+4. Запустить. В Windows можно запускать через nanny.bat
 
 Интсрукция по запуску в Linux:
 
