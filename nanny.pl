@@ -745,7 +745,7 @@ while (1) {
 	# We have reached the end of the logfile.
 
 	# Delay some time so we aren't constantly hammering this loop
-	usleep(100000);
+	usleep(10000);
 	
 	# cache the time to limit the number of syscalls
 	$time = time;
