@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 541';
+my $version = '3.1 RUS Build 542';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -728,7 +728,7 @@ while (1) {
 		print "BOMB: $name \[$attacker_team\] planted the bomb.\n"; 
 	    }
 		elsif ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_defuse/) {
-                ($guid,$slot,$attacker_team,$name) = ($1,$2,$3);
+                ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
                 print "BOMB: $name \[$attacker_team\] defused the bomb.\n"; }
 
                 else { print "WARNING: unrecognized A line format:\n\t$line\n"; }
@@ -2960,8 +2960,8 @@ sub geolocate_ip {
     if ((defined($record->country_code)) && ($record->country_code eq 'US')) { $metric = 0 }
     else { $metric = 1; }
     # print "DEBUG: country code is " . $record->country_code . "\n";
-	if ($metric == 1) { print "DEBUG: Metric is Kilometers\n"; }
-    elsif ($metric == 0) { print "DEBUG: Metric is Miles\n"; }
+	# if ($metric == 1) { print "DEBUG: Metric is Kilometers\n"; }
+    # elsif ($metric == 0) { print "DEBUG: Metric is Miles\n"; }
 
     # GPS Coordinates
     if (($config->{'ip'} !~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./)) {
