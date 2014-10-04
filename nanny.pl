@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 535';
+my $version = '3.1 RUS Build 536';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1825,13 +1825,13 @@ sub chat{
        # !define (word)
         elsif ($message =~ /^!(define|dictionary|dict|словарь)\s+(.+)/i) {
             if (&check_access('define')) {
-		if (&flood_protection('dictionary', 60 * 10, $slot)) { }
+		if (&flood_protection('dictionary', 60, $slot)) { }
 		else { &dictionary($2); }
             }
         }
 		elsif ($message =~ /^!(define|dictionary|dict|словарь)\s*$/i) {
             if (&check_access('define')) {
-		if (&flood_protection('dictionary-miss', 60 * 10 ,$slot)) { }
+		if (&flood_protection('dictionary-miss', 60, $slot)) { }
 		else { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7Что нужно добавить в словарь?"'); }
 		    }
 		}
@@ -1840,7 +1840,7 @@ sub chat{
         elsif ($message =~ /^!undefine\s+(.+)/i) {
 	    my $undefine = $1;
 	    my @row;
-            if (&check_access('add-definition')) {
+            if (&check_access('define')) {
 		$sth = $definitions_dbh->prepare('SELECT count(*) FROM definitions WHERE term=?;');
 		$sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 		@row = $sth->fetchrow_array;
@@ -4417,7 +4417,7 @@ sub dictionary {
     if ($word =~ /(.*)\s+=\s+(.*)/) {
 	($term,$definition) = ($1,$2);
 	$term =~ s/\s*$//;
-	if (&check_access('add_definition')) {
+	if (&check_access('define')) {
 	    $sth = $definitions_dbh->prepare("INSERT INTO definitions VALUES (NULL, ?, ?)");
 	    $sth->execute($term,$definition) or &die_nice("Unable to do insert\n");
 	    &rcon_command("say " . '" ^2Добавлено определение для: "' . "^1$term");
