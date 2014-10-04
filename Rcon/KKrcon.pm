@@ -33,58 +33,40 @@ use Sys::Hostname;
 # Release version number
 $VERSION = "2.12 CoD2";
 
-
-##
-## Main
-##
-
-#
-# Constructor
-#
+# Main
 
 sub new
 {
 	my $class_name = shift;
 	my %params = @_;
-	
 	my $self = {};
 	bless($self, $class_name);
-	
 	my %server_types = (new=>1, old=>2);
-	
+
 	# Check parameters
 	$params{"Host"} = "127.0.0.1"  unless($params{"Host"});
 	$params{"Port"} = "28960"        unless($params{"Port"});
 	$params{"Type"} = "new"        unless($params{"Type"});
-	
+
 	# Initialise properties
-	$self->{"rcon_password"} = $params{"Password"}
-		or die("KKrcon: a Password is required\n");
+	$self->{"rcon_password"} = $params{"Password"} or die("KKrcon: a Password is required\n");
 	$self->{"server_host"} = $params{"Host"};
-	$self->{"server_port"} = int($params{"Port"})
-		or die("KKrcon: invalid Port \"" . $params{"Port"} . "\"\n");
+	$self->{"server_port"} = int($params{"Port"}) or die("KKrcon: invalid Port \"" . $params{"Port"} . "\"\n");
 	$self->{"server_type"} = ($server_types{$params{"Type"}} || 1);
-	
 	$self->{"error"} = "";
-	
+
 	# Set up socket parameters
 	$self->{"_proto"}  = getprotobyname('udp');
-	$self->{"_ipaddr"} = gethostbyname($self->{"server_host"})
-		or die("KKrcon: could not resolve Host \"" . $self->{"server_host"} . "\"\n");
-	
+	$self->{"_ipaddr"} = gethostbyname($self->{"server_host"}) or die("KKrcon: could not resolve Host \"" . $self->{"server_host"} . "\"\n");
+
 	return $self;
 }
 
-
-
-#
 # Execute an Rcon command and return the response
-#
 
 sub execute
 {
 	my ($self, $command) = @_;
-	
 	my $msg;
 	my $ans;
 
@@ -93,7 +75,7 @@ sub execute
 		# version x.1.0.6+ HL server
 		$msg = "\xFF\xFF\xFF\xFFchallenge rcon\n\0";
 		$ans = $self->_sendrecv($msg);
-		
+
 		if ($ans =~ /challenge +rcon +(\d+)/)
 		{
 			$msg = "\xFF\xFF\xFF\xFFrcon $1 \"" . $self->{"rcon_password"} . "\" $command\0";
@@ -111,38 +93,34 @@ sub execute
 		$msg = "\xFF\xFF\xFF\xFFrcon " . $self->{"rcon_password"} . " $command\n\0";
 		$ans = $self->_sendrecv($msg);
 	}
-	
+
 	if ($ans =~ /bad rcon_password/i)
 	{
 		$self->{"error"} = "Bad Password";
 	}
-	
+
 	return $ans;
 }
 
 sub _sendrecv
 {
 	my ($self, $msg) = @_;
-	
 	my $host = $self->{"server_host"};
 	my $port = $self->{"server_port"};
 	my $ipaddr = $self->{"_ipaddr"};
 	my $proto  = $self->{"_proto"};
-	
+
 	# Open socket
-	socket(RCON, PF_INET, SOCK_DGRAM, $proto)
-		or die("KKrcon: socket: $!\n");
-	
+	socket(RCON, PF_INET, SOCK_DGRAM, $proto) or die("KKrcon: socket: $!\n");
+
 	# bind causes problems if hostname() gets wrong interface...
 	# and it doesn't seem to be necessary
-	#
-	#my $iaddr = gethostbyname(hostname());
-	#my $paddr = sockaddr_in(0, $iaddr);
-	#bind(RCON, $paddr)
-	#	or die("KKrcon: bind: $!\n");
-	
+	# my $iaddr = gethostbyname(hostname());
+	# my $paddr = sockaddr_in(0, $iaddr);
+	# bind(RCON, $paddr) or die("KKrcon: bind: $!\n");
+
 	my $hispaddr = sockaddr_in($port, $ipaddr);
-	
+
 	unless(defined(send(RCON, $msg, 0, $hispaddr)))
 	{
 		print("KKrcon: send $ipaddr:$port : $!");
@@ -150,8 +128,8 @@ sub _sendrecv
 
 	my $rin = "";
 	vec($rin, fileno(RCON), 1) = 1;
-	
 	my $ans = "TIMEOUT";
+	
 	if (select($rin, undef, undef, 10.0))
 	{
 		$ans = "";
@@ -162,14 +140,13 @@ sub _sendrecv
 		$ans =~ s/^\xFF\xFF\xFF\xFF//;		# Q2/Q3 response
 		$ans =~ s/^\xFE\xFF\xFF\xFF.....//;	# old HL bug/feature
 
-                # my ugly hack for long responses.
+        # my ugly hack for long responses.
 		#  - smug
-                my $lol;
+        my $lol;
 		my @explode;
                 while (select($rin, undef, undef, 0.05)) {
 
                     # this really sucks.  We're missing a byte and I can't find it
-
                     # BECAUSE ITS NOT THERE.
                     # fuckers.  This seems to be a bug in the game.
                     # Even the in-game /rcon command has the missing-byte bug.
@@ -193,51 +170,41 @@ sub _sendrecv
                     $lol = substr($lol, 6, 8192);
 
 		    $ans .= $lol;
-		    
+
                 }
 
 		# End of the llama / platypus ugly hack for long responses.
 	}
-	
+
 	# Close socket
 	close(RCON);
-	
+
 	if ($ans eq "TIMEOUT")
 	{
 		$ans = "";
 		$self->{"error"} = "Rcon timeout";
 	}
-	
+
 	return $ans;
 }
 
-
-#
 # Get error message
-#
 
 sub error
 {
 	my ($self) = @_;
-	
 	return $self->{"error"};
 }
 
-
-
-#
 # Parse "status" command output into player information
-#
 
 sub getPlayers
 {
 	my ($self) = @_;
-	
 	my $status = $self->execute("status");
 	my @lines = split(/[\r\n]+/, $status);
-	
 	my %players;
-	
+
 	foreach $line (@lines)
 	{
 		if ($line =~ /^\#[\s\d]\d\s+
@@ -272,19 +239,14 @@ sub getPlayers
 			};
 		}
 	}
-	
 	return %players;
 }
 
-
-#
 # Get information about a player by userID
-#
 
 sub getPlayer
 {
 	my ($self, $userid) = @_;
-	
 	my %players = $self->getPlayers();
 	
 	if (defined($players{$userid}))
@@ -298,6 +260,5 @@ sub getPlayer
 	}
 }
 
-
 1;
-# end
+# End
