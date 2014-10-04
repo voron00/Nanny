@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 537';
+my $version = '3.1 RUS Build 538';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -502,7 +502,7 @@ while (1) {
 			    if ((defined($row[0])) && ($row[0] < $best_spree{$victim_slot})) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) or &die_nice("Unable to update stats2\n");
-				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7x" . '"человек"'); }
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
                 else {
 				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7x" . '"человек"'); }
 			}
@@ -701,8 +701,10 @@ while (1) {
 		foreach $reset_slot (keys %last_activity_by_slot) {
 		    $spam_count{$reset_slot} = 0;
 			$penalty_points{$reset_slot} = 0;
+			if ($game_type ne 'sd') {
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
+			}
 		}
 	        $freshen_next_map_prediction = 1;
 	        $last_rconstatus = 0;
