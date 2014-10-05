@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use warnings;
 use strict;
@@ -13,9 +13,7 @@ my $type = 'old';
 local $| = 1;
 
 my $command = join("", @ARGV);
-
 my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => $type);
-
 my $result = 0;
 my $interactive = 1 unless ($command);
 
