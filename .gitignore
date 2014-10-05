@@ -213,15 +213,10 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
 # Nanny
 nanny.cfg
-logs/admin.log
-logs/chat.log
-logs/commands.log
-logs/flood_protect.log
-logs/guid.log
-logs/kick.log
-logs/response.log
+logs/
 databases/bans.db
 databases/guid_to_name.db
 databases/ip_to_guid.db
