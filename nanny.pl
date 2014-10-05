@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 542';
+my $version = '3.1 RUS Build 543';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -504,7 +504,7 @@ while (1) {
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) or &die_nice("Unable to update stats2\n");
 				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
                 else {
-				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7x" . '"человек"'); }
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
 			}
 		    }
 		    $kill_spree{$victim_slot} = 0;
@@ -728,10 +728,11 @@ while (1) {
 		print "BOMB: $name \[$attacker_team\] planted the bomb.\n"; 
 	    }
 		elsif ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_defuse/) {
-                ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
-                print "BOMB: $name \[$attacker_team\] defused the bomb.\n"; }
+        ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
+        print "BOMB: $name \[$attacker_team\] defused the bomb.\n";
+		}
 
-                else { print "WARNING: unrecognized A line format:\n\t$line\n"; }
+        else { print "WARNING: unrecognized A line format:\n\t$line\n"; }
 	}
 	elsif (($first_char eq chr(13)) or ($first_char eq '')) {
 	    # Empty Line
@@ -2891,7 +2892,7 @@ sub geolocate_ip {
 	
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:  "' . "$ip"; }
 	
-    my $gi = Geo::IP->open("databases/GeoLiteCity.dat", GEOIP_STANDARD);
+    my $gi = Geo::IP->open("Geo/GeoLiteCity.dat", GEOIP_STANDARD);
 
     my $record = $gi->record_by_addr($ip);
 
@@ -5070,6 +5071,8 @@ sub big_red_button_command {
 # BEGIN !rnk
 sub rank {
     if (&flood_protection('rank', 30, $slot)) { return 1; }
+	if ($name eq 'Unknown Soldier') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
+	else {
     my $rank_msg = "^2$name^7:";
     my $rank_sth;
     $rank_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
@@ -5085,4 +5088,5 @@ sub rank {
 	if ($row[2] < 9) { $rank_msg .=  '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '"убийств)"'; }
 	if ($row[2] > 49 && $row[2] < 100) { $rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '"убийств)"'; }
     &rcon_command("say $rank_msg");
+	}
 }
