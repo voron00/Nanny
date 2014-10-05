@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 543';
+my $version = '3.1 RUS Build 545';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -390,11 +390,11 @@ while (1) {
                     @row = $stats_sth->fetchrow_array;
                     if ($row[0]) { }
                     else {
-                        $stats_sth = $stats_dbh->prepare("INSERT INTO stats2 VALUES (NULL, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
+                        $stats_sth = $stats_dbh->prepare("INSERT INTO stats2 VALUES (NULL, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
 			$stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to do insert\n");
                     }
 
-            # name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots
+            # name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses
 		    # Grenade Kills
 		    if ($damage_type eq 'MOD_GRENADE_SPLASH') {
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET grenade_kills = grenade_kills + 1 WHERE name=?");
@@ -701,10 +701,8 @@ while (1) {
 		foreach $reset_slot (keys %last_activity_by_slot) {
 		    $spam_count{$reset_slot} = 0;
 			$penalty_points{$reset_slot} = 0;
-			if ($game_type ne 'sd') {
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
-			}
 		}
 	        $freshen_next_map_prediction = 1;
 	        $last_rconstatus = 0;
@@ -725,11 +723,17 @@ while (1) {
 	elsif ($first_char eq 'A') {
 	    if ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_plant/) {
 		($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
-		print "BOMB: $name \[$attacker_team\] planted the bomb.\n"; 
+		print "BOMB: $name \[$attacker_team\] planted the bomb.\n";
+		# Update stats2 bomb_plants database
+		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_plants = bomb_plants + 1 WHERE name=?");
+		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats2\n");
 	    }
 		elsif ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_defuse/) {
         ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
         print "BOMB: $name \[$attacker_team\] defused the bomb.\n";
+		# Update stats2 bomb_defuses database
+		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_defuses = bomb_defuses + 1 WHERE name=?");
+		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats2\n");
 		}
 
         else { print "WARNING: unrecognized A line format:\n\t$line\n"; }
@@ -1253,14 +1257,14 @@ sub initialize_databases {
     }
     if ($tables{'stats2'}) { print "The other !stats database brought online\n\n"; }
     else {
-        print "Creating the other stats database...\n\n";
+        print "Creating stats2 database...\n\n";
 		sleep 1;
 
-        $cmd = "CREATE TABLE stats2 (id INTEGER PRIMARY KEY, name VARCHAR(64), pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bad_shots INTEGER);";
+        $cmd = "CREATE TABLE stats2 (id INTEGER PRIMARY KEY, name VARCHAR(64), pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bad_shots INTEGER, bomb_plants INTEGER, bomb_defuses INTEGER);";
         $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
         if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
 
-        $cmd = "CREATE INDEX stats2_index ON stats2 (name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots)";
+        $cmd = "CREATE INDEX stats2_index ON stats2 (name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses)";
         $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
         if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
 
@@ -3130,8 +3134,8 @@ sub stats {
     sleep 1; 
 
     # 2nd generation stats;
-    # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots
-    # 0  1    2            3             4          5             6            7           8                9              10         11
+    # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses
+    # 0  1    2            3             4          5             6            7           8                9              10         11        12          13
     $stats_msg = '"Статистика^2"' . "$name^7:";
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
     $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -3153,7 +3157,7 @@ sub stats {
 	    sleep 1;
 	}
 
-	# shotgun_kills,sniper_kills,rifle_kills,machinegun_kills
+	# shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,nice shots ratio,bad shots ratio
 	$stats_msg = '"Статистика^2"' . "$name^7:";
 	my $shotgun_ratio = (($row[5]) && ($kills)) ? int($row[5] / $kills * 10000) / 100 : 0;
     my $sniper_ratio = (($row[6]) && ($kills)) ? int($row[6] / $kills * 10000) / 100 : 0;
@@ -3191,6 +3195,22 @@ sub stats {
 	if (($row[10]) && ($config->{'nice_shots'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Понравившихся убийств:"' . "^1$row[10] ^7(^1$niceshot_ratio" . '"^7процентов)"';
+	    &rcon_command("say $stats_msg");
+	    print "$stats_msg\n";
+	    sleep 1;
+	}
+	# bomb plants
+	if ($row[12]) {
+	    $stats_msg = '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= '"Закладок бомб:"' . "^1$row[12]";
+	    &rcon_command("say $stats_msg");
+	    print "$stats_msg\n";
+	    sleep 1;
+	}
+	# bomb defuses
+	if ($row[13]) {
+	    $stats_msg = '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= '"Обезвреживаний бомб:"' . "^1$row[13]";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -3967,7 +3987,7 @@ sub awards {
     # Best Kill to Death ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 1 ORDER BY (kills * 10000 / deaths) DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and kills > 1 ORDER BY (kills * 10000 / deaths) DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Игроки с лучшим рейтингом^7:"');
     sleep 1;
@@ -3979,7 +3999,7 @@ sub awards {
     # Best Headshot Percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 1 ORDER BY (headshots * 10000 / kills) DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and kills > 1 ORDER BY (headshots * 10000 / kills) DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучший процент хедшотов^7:"');
     sleep 1;
@@ -3991,7 +4011,7 @@ sub awards {
     # Best Kill Spree
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 ORDER BY best_killspree DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" ORDER BY best_killspree DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучшие серии убийств^7:"');
     sleep 1;
@@ -4174,7 +4194,7 @@ sub suk {
     my $counter = 1;
     sleep 1;
     # Most deaths
-    $sth = $stats_dbh->prepare('SELECT * FROM stats ORDER BY deaths DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" ORDER BY deaths DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say" . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
@@ -4185,7 +4205,7 @@ sub suk {
     # Worst k2d ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 1) and (deaths > 1)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and ((kills > 1) and (deaths > 1)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Игроки с худшим рейтингом^7:"');
     sleep 1;
@@ -4196,7 +4216,7 @@ sub suk {
     # Worst headshot percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 1) and (headshots > 1)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and ((kills > 1) and (headshots > 1)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Худший процент хедшотов^7:"');
     sleep 1;
@@ -5074,13 +5094,12 @@ sub rank {
 	if ($name eq 'Unknown Soldier') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
 	else {
     my $rank_msg = "^2$name^7:";
-    my $rank_sth;
-    $rank_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
-    $rank_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    @row = $rank_sth->fetchrow_array;
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
+    $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    @row = $stats_sth->fetchrow_array;
     if ((!$row[0]) && ($name ne &strip_color($name))) {
-	$rank_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-	@row = $rank_sth->fetchrow_array; }
+	$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	@row = $stats_sth->fetchrow_array; }
 	if ($row[2] > 99 && $row[2] < 500) { $rank_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '"убийств)"'; }
 	if ($row[2] > 9 && $row[2] < 50) { $rank_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '"убийств)"'; }
 	if ($row[2] > 499 && $row[2] < 1000) { $rank_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '"убийств)"'; }
