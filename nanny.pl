@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 546';
+my $version = '3.1 RUS Build 547';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -3098,7 +3098,7 @@ sub stats {
     }
     # print "DEBUG: $name is set to: $name\n";
 	
-    if ($name eq 'Unknown Soldier') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
+    if ($name eq 'Unknown Soldier' or $name eq 'UnnamedPlayer') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
 	else {
     my $stats_msg = '"Статистика^2"' . "$name^7:";
     my $kills = 1;
@@ -3497,8 +3497,10 @@ sub clear_stats {
 	$victim = $name_by_slot{$matches[0]};
 	$sth = $stats_dbh->prepare('DELETE FROM stats where name=?;');
     $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	$sth->execute(&strip_color($victim)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	$sth = $stats_dbh->prepare('DELETE FROM stats2 where name=?;');
     $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	$sth->execute(&strip_color($victim)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	&rcon_command("say " . '"Удалена статистика для:"' . "$victim"); }
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . "$search_string"); }
 }
@@ -3975,7 +3977,7 @@ sub awards {
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
     # Most Kills
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" ORDER BY kills DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY kills DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество убийств^7:"');
     sleep 1;
@@ -3987,7 +3989,7 @@ sub awards {
     # Best Kill to Death ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and kills > 1 ORDER BY (kills * 10000 / deaths) DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 1 ORDER BY (kills * 10000 / deaths) DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Игроки с лучшим рейтингом^7:"');
     sleep 1;
@@ -3999,7 +4001,7 @@ sub awards {
     # Best Headshot Percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and kills > 1 ORDER BY (headshots * 10000 / kills) DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 1 ORDER BY (headshots * 10000 / kills) DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучший процент хедшотов^7:"');
     sleep 1;
@@ -4011,7 +4013,7 @@ sub awards {
     # Best Kill Spree
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" ORDER BY best_killspree DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY best_killspree DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучшие серии убийств^7:"');
     sleep 1;
@@ -4194,7 +4196,7 @@ sub suk {
     my $counter = 1;
     sleep 1;
     # Most deaths
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" ORDER BY deaths DESC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY deaths DESC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say" . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
@@ -4205,7 +4207,7 @@ sub suk {
     # Worst k2d ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and ((kills > 1) and (deaths > 1)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 1) and (deaths > 1)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Игроки с худшим рейтингом^7:"');
     sleep 1;
@@ -4216,7 +4218,7 @@ sub suk {
     # Worst headshot percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and ((kills > 1) and (headshots > 1)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 10;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 1) and (headshots > 1)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 10;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Худший процент хедшотов^7:"');
     sleep 1;
@@ -5091,7 +5093,7 @@ sub big_red_button_command {
 # BEGIN !rnk
 sub rank {
     if (&flood_protection('rank', 30, $slot)) { return 1; }
-	if ($name eq 'Unknown Soldier') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
+	if ($name eq 'Unknown Soldier' or $name eq 'UnnamedPlayer') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
 	else {
     my $rank_msg = "^2$name^7:";
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
