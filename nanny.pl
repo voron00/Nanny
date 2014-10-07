@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 547';
+my $version = '3.1 RUS Build 548';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1867,7 +1867,7 @@ sub chat{
 		}
 
 	# !stats
-	elsif ($message =~ /^!(stats|xlrstats)\s*(.*)/i) {
+	elsif ($message =~ /^!stats\s*(.*)/i) {
 	    my $stats_search = $1;
 	    if (!defined($stats_search)) { $stats_search = ''; }
 	    if (&check_access('stats')) {
@@ -2335,7 +2335,11 @@ sub chat{
 		}
 	    # !perl -v
         if ($message =~ /^!perl -v\b/i) {
-	    &rcon_command("say ^3Perl Runtime Version ^7- ^2$^V");
+	    &rcon_command("say $^V");
+		}
+		# !osinfo
+        if ($message =~ /^!osinfo\b/i) {
+	    &rcon_command("say $^O");
 		}
 		
     # !speed (number)
