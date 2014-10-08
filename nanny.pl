@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 555';
+my $version = '3.1 RUS Build 556';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -306,7 +306,7 @@ while (1) {
 		    $last_ping{$reset_slot} = 0;
 		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
-		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
+		    $last_killed_by{$reset_slot} = 'none';
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0; }
@@ -582,7 +582,7 @@ while (1) {
         $last_ping{$slot} = 0;
         $ping_average{$slot} = 0;
 		$penalty_points{$slot} = 0;
-		$last_killed_by{$slot} = '"...Хмм... Прости, но я забыла"';
+		$last_killed_by{$slot} = 'none';
 		$kill_spree{$slot} = 0;
 		$best_spree{$slot} = 0;
 		$ignore{$slot} = 0;
@@ -1523,7 +1523,7 @@ sub chat{
     # Call Bad shot
     if (($config->{'bad_shots'}) && (!$ignore{$slot})) {
 	if ($message =~ /^!?bs\W*$|^!?bad\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that was (bs|badshot)\W*$/i) {
-	    if ((defined($last_killed_by{$slot})) && (&strip_color($last_killed_by{$slot}) ne $name)) {
+	    if ((defined($last_killed_by{$slot})) && ($last_killed_by{$slot} ne 'none') && (&strip_color($last_killed_by{$slot}) ne $name)) {
 		if (&flood_protection('badshot', 60, $slot)) {
 		    # bad shot abuse
 		    if (&flood_protection('badshot-two', 60, $slot)) { }
@@ -1546,7 +1546,7 @@ sub chat{
     # Call Nice Shot
     if (($config->{'nice_shots'}) && (!$ignore{$slot})) {
 	if ($message =~ /\bnice\W? (one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
-	    if ((defined($last_killed_by{$slot})) && (&strip_color($last_killed_by{$slot}) ne $name)) {
+	    if ((defined($last_killed_by{$slot})) && ($last_killed_by{$slot} ne 'none') && (&strip_color($last_killed_by{$slot}) ne $name)) {
 		if (&flood_protection('niceshot', 60, $slot)) {
 		    # nice shot abuse
 			if (&flood_protection('niceshot-two', 60, $slot)) { }
@@ -1992,11 +1992,11 @@ sub chat{
 		    $last_ping{$reset_slot} = 0;
 		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
-		    $last_killed_by{$reset_slot} = '"...Хмм... Прости, но я забыла"';
+		    $last_killed_by{$reset_slot} = 'none';
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0; }
-		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" сбрасываю счетчики..."');
+		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" сбрасываю параметры..."');
 	    }
 	}
 
@@ -2553,25 +2553,25 @@ sub chat{
 			my @matches = &matching_users($lastkill_search);
 			if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$lastkill_search"); }
 			elsif ($#matches == 0) {
-			    if ((defined( $last_killed_by{$matches[0]} )) && ($last_killed_by{$matches[0]} ne '"...Хмм... Прости, но я забыла"')) {
+			    if ((defined( $last_killed_by{$matches[0]} )) && ($last_killed_by{$matches[0]} ne 'none')) {
 				&rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^3 ^7был убит игроком ^1"' . $last_killed_by{$matches[0]} );
 			    }
-				else { &rcon_command("say ^2$name^3:" . '"^7К сожалению, не удалось найти результат..."'); }
+				# else { &rcon_command("say ^2$name^3:" . '"^7В этой игре или раунде вас пока никто не убивал."'); }
 			}
 			elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$lastkill_search"); }
 		    }
 			else {
-			if ((defined( $last_killed_by{$slot} )) && ($last_killed_by{$slot} ne '"...Хмм... Прости, но я забыла"')) {
+			if ((defined( $last_killed_by{$slot} )) && ($last_killed_by{$slot} ne 'none') && (&strip_color($last_killed_by{$slot}) ne $name)) {
 			    &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком ^1"' . $last_killed_by{$slot} );
 			}
-			else { &rcon_command("say ^2$name^3:" . '"^7К сожалению, не удалось найти результат..."'); }
+			# else { &rcon_command("say ^2$name^3:" . '"^7В этой игре или раунде вас пока никто не убивал."'); }
 		    }
 		}
             }
         }
     }
 }
-# END of  !commands 
+# END of !commands 
 # END: chat
 
 # BEGIN: strip_color($string)

@@ -5,13 +5,12 @@ use strict;
 use diagnostics;
 use Rcon::KKrcon;
 
+local $| = 1;
 &load_config_file('nanny.cfg');
 my $address;
 my $port;
 my $password;
 my $type = 'old';
-local $| = 1;
-
 my $command = join("", @ARGV);
 my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => $type);
 my $result = 0;
@@ -42,7 +41,6 @@ while (1)
         }
 
         $result = &execute($command);
-
         exit($result) unless ($interactive);
 }
 
@@ -73,7 +71,6 @@ sub load_config_file {
             elsif ($config_name eq 'port') {
                 $port = $config_val;
 		        print "Server port number: $port\n"; }
-
             elsif ($config_name eq 'rcon_pass') {
                 $password = $config_val;
                 print "RCON password: " . '*'x length($password) . "\n"; }
@@ -90,8 +87,7 @@ sub execute
 
         if (my $error = $rcon->error) {
 	    print "Error: $error\n";
-	    return 1;
-        }
+	    return 1; }
         else { return 0; }
 }
 
