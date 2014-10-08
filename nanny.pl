@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 556';
+my $version = '3.1 RUS Build 557';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2039,7 +2039,7 @@ sub chat{
 	    if (&check_access('version')) {
 		if (&flood_protection('version', 60, $slot)) { }
 		else {
-		    &rcon_command("say NannyBot^7 for CoD2 version^2 $version");
+		    &rcon_command("say Nanny^7 for CoD2 version^2 $version");
 		    sleep 1;
 		    &rcon_command("say ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		    sleep 1;
@@ -2981,17 +2981,21 @@ sub geolocate_ip {
 	    $record = $gi->record_by_name($config->{'ip'});
 	    if ((defined($record)) && (defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
 		my ($home_lat, $home_lon) = ($record->latitude, $record->longitude);
+		if (($config->{'ip'}) eq '62.140.250.90') {
+		$home_lat = 55.7522;
+		$home_lon = 37.6155;
+		}
 		my $obj = Geo::Inverse->new; 
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($ip ne $config->{'ip'}) {
 		if ($metric) {
                     $dist = int($dist/1000);
-					if ($dist eq 0) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
+					if ($player_lat eq '60.0000' && $player_lon eq '100.0000') { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		            $dist = int($dist/1609.344);
-					if ($dist eq 0) { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
+					if ($player_lat eq '60.0000' && $player_lon eq '100.0000') { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
 					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 		}
