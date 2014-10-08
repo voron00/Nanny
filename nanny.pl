@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 558';
+my $version = '3.1 RUS Build 560';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -200,6 +200,7 @@ my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
 my $fail = 0;
+my $banned_guid = 0;
 
 # declare localhost
 my $localhost = '127.0.0.1';
@@ -2790,7 +2791,6 @@ sub rcon_status {
 	    # End of Ping Checks.
 	}
     }
-    
     my @row;
     my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
     # BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
@@ -2808,9 +2808,8 @@ sub rcon_status {
     }
     # END:  IP Guessing from cache
 
-    # BEGIN: Check for Banned GUID
+    # BEGIN: Check for Banned IP/GUID
     my $stripped;
-
     $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
         if ($slot >= 0) {
@@ -2828,11 +2827,36 @@ sub rcon_status {
 		sleep 1;
 		&rcon_command("clientkick $slot");
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	    $banned_guid = 1;
 	    }
 	}
     }
 	}
-    # END: Banned GUID check
+	if ($banned_guid ne 1) {
+	$sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+    foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
+        if ($slot >= 0) {
+	    $stripped = $ip_by_slot{$slot};
+	    $sth->execute($stripped);
+		if (!defined($ping)) { $ping = 999; }
+		if ($ping ne 999) {
+	    while (@row = $sth->fetchrow_array) {
+		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+		sleep 1;
+		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+		sleep 1;
+		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . '"^7У вас перманентный бан."'); }
+		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
+		sleep 1;
+		&rcon_command("clientkick $slot");
+		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	    }
+	}
+    }
+	}
+	}
+	$banned_guid = 0;
+    # END: Banned IP/GUID check
 }
 # END: rcon_status
 
