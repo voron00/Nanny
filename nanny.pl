@@ -57,18 +57,18 @@
 # NOTE:  rcon names have full color codes, kill lines have full colors, chat lines do not.
 
 # List of modules
-use warnings; # helps catch failure strings.
-use strict;   # strict keeps us from making stupid typos.
+use warnings; # helps catch failure strings
+use strict;   # strict keeps us from making stupid typos
 use diagnostics; # good for detailed explanations about any problems in code
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-# use DBD::mysql; # Support for MySQL based logging. Temporarily disabled
+use DBD::mysql; # Support for MySQL based logging
 use DBI; # databases
-use Geo::IP; # GeoIP is used for locating IP addresses.
+use Geo::IP; # GeoIP is used for locating IP addresses
 use Geo::Inverse; # Used for calculating the distance from the server
 use Time::Duration; # expresses times in plain english
 use Time::Format; # easy to use time formatting
 use Time::HiRes qw (usleep); # high resolution timers
-use Socket; # Used for asking activision for GUID numbers for sanity check.
+use Socket; # Used for asking activision for GUID numbers for sanity check
 use IO::Select; # also used by the udp routines for manual GUID lookup
 use LWP::Simple; # HTTP fetches are used for the dictionary
 use Net::FTP; # FTP support for remote logfiles
