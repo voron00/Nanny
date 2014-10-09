@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 560';
+my $version = '3.1 RUS Build 561';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1579,7 +1579,7 @@ sub chat{
 	$sth->execute($question) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 	while (@row = $sth->fetchrow_array) {
 	    print "DATABASE DEFINITION: $row[0]\n";
-	    push @results, "$name^7: ^1$question ^3is:^2" . '"' . "$row[0]";
+	    push @results, "$name^7:" . '"' . "^1$question ^3is:^2" . " $row[0]";
 	}
 	if ($#results ne -1) {
 	    if (&flood_protection('auto-define', 60, $slot)) { }
