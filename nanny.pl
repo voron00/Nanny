@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 562';
+my $version = '3.1 RUS Build 563';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -554,6 +554,7 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$ip_by_slot{$slot} = '"пока не известен"';
 		$spam_count{$slot} = 0;
+		$spam_last_said{$slot} = 'none';
 		$last_ping{$slot} = 0;
 		$ping_average{$slot} = 0;
 		$kill_spree{$slot} = 0;
@@ -2272,7 +2273,11 @@ sub chat{
 		    sleep 1;
 		}
 		if (&check_access('reset')) {
-            &rcon_command("say " . '"^7Вы можете использовать  ^1!reset ^7чтобы перезапустить программу"');
+            &rcon_command("say " . '"^7Вы можете использовать  ^1!reset ^7чтобы сбросить параметры"');
+            sleep 1;
+            }
+		if (&check_access('reboot')) {
+            &rcon_command("say " . '"^7Вы можете использовать  ^1!reboot ^7чтобы перезапустить программу"');
             sleep 1;
             }
 		if (&check_access('ignore')) {
@@ -2630,7 +2635,7 @@ sub locate {
 	    }
 	}
     }
-    if ($search_string =~ /^console$|^nanny$|^Nanny$|^server$|^Server$/) {
+    if ($search_string =~ /^console|nanny|server\b/i) {
 	$location = &geolocate_ip($config->{'ip'});
 	if ($location =~ /,.* - .+/) { $location = '"Этот сервер находится в ^2"' . $location; }
 	else { $location = '"Этот сервер находится в ^2"' . $location; }
@@ -4020,8 +4025,7 @@ sub awards {
     my $sth;
     my $counter = 1;
 
-    if (&flood_protection('awards', 300, $slot)) { return 1; }
-    if (&flood_protection('awards', 60)) { return 1; }
+    if (&flood_protection('awards', 300)) { return 1; }
 
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
@@ -4235,8 +4239,7 @@ sub aliases {
 }
 
 sub suk {
-    if (&flood_protection('suk', 300, $slot)) { return 1; }
-    if (&flood_protection('suk', 60)) { return 1; }
+    if (&flood_protection('suk', 300)) { return 1; }
 
     &rcon_command("say " . '"^1Худшие ^7игроки сервера:"');
 
