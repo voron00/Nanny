@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 561';
+my $version = '3.1 RUS Build 562';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1318,7 +1318,7 @@ sub initialize_databases {
 	
 	}
     }
-    
+
     print"
 ********************************************************************************
                 Сиделка для сервера Call of Duty 2
@@ -2596,7 +2596,7 @@ sub locate {
     if (&flood_protection('locate', 60, $slot)) { return 1; }
     foreach $slot (@matches) {
 	if ((&strip_color($name_by_slot{$slot}))) {
-	    print "MATCH: $name_by_slot{$slot}   IP = $ip_by_slot{$slot}\n";
+	    print "MATCH: " . &strip_color($name_by_slot{$slot}) . ", IP = $ip_by_slot{$slot}\n";
 	    $ip = $ip_by_slot{$slot};
 	    if ($ip =~ /\?$/) {
 		$guessed = 1;
@@ -2615,7 +2615,7 @@ sub locate {
 
 		# location spoofing
 		foreach $spoof_match (keys(%location_spoof)) {
-		    if ($name_by_slot{$slot} =~ /$spoof_match/i) {
+		    if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) {
 			$location = $name_by_slot{$slot} . '^7 ' . $location_spoof{$spoof_match};
 		    }
 		}
