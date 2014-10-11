@@ -830,7 +830,9 @@ while (1) {
 			$mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or print "WARNING: Unable to do MySQL nextmap update\n";
 		    }
 		}
-		else { print "WARNING: unable to predict next map:  $temporary\n"; }
+		else {
+		print "WARNING: unable to predict next map:  $temporary\n";
+		$freshen_next_map_prediction = 0; }
 	    }    	    
 	}
     }
