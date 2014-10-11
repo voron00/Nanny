@@ -206,7 +206,7 @@ my $banned_guid = 0;
 my $localhost = '127.0.0.1';
 
 # turn on auto-flush for STDOUT
-local $| = 1;
+$| = 1;
 
 # shake the snow-globe.
 srand;
@@ -2868,7 +2868,7 @@ sub rcon_status {
 # BEGIN: rcon_command($command)
 sub rcon_command {
     my ($command) = @_;
-    
+
     # odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
 
@@ -2877,7 +2877,7 @@ sub rcon_command {
 
     print $rcon->execute($command);
     sleep 1;
-    
+
     if (my $error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
 	# Try rebuilding the object
@@ -2886,7 +2886,7 @@ sub rcon_command {
 	    $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');	
 	}
 	else { print "WARNING: rcon_command error: $error\n"; }
-	
+
 	return 1;
     }
 	else { return 0; }

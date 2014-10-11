@@ -5,41 +5,28 @@ use strict;
 use diagnostics;
 use Rcon::KKrcon;
 
-local $| = 1;
+$| = 1;
 &load_config_file('nanny.cfg');
 my $address;
 my $port;
 my $password;
-my $type = 'old';
 my $command = join("", @ARGV);
-my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => $type);
+my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old');
 my $result = 0;
 my $interactive = 1 unless ($command);
 
-if ($interactive) { print "Type 'q' to quit.\n\n"; }
+print "Type 'q' to quit.\n\n";
 
-while (1)
-{
-        if ($interactive)
-        {
+while (1) {
 	    print "kkrcon> ";
-
 	    $command = <STDIN>;
-
             if (!defined($command)) {
-            # catch Ctrl+D
 		    print "\n";
 		    exit(0);
 			}
-
 	    chomp($command);
-
-	    if ( $command =~ /^\s*$/ ){ next; }
-            if ( $command eq "q" )    { exit(0); }
-            if ( $command eq "quit" ) { print "Type 'DIE' for server quit, or 'q' to quit kkrcon\n"; next; }
-            if ( $command eq "DIE" )  { print "\nquit sent\n"; $command = "quit"; }
-        }
-
+	    if ( $command =~ /^\s*$/ ) { next; }
+        if ($command eq "q" or $command eq "quit") { exit(0); }
         $result = &execute($command);
         exit($result) unless ($interactive);
 }
@@ -48,9 +35,7 @@ sub load_config_file {
     my $config_file = shift;
     if (!defined($config_file)) { &die_nice("load_config_file called without an argument\n"); }
     if (!-e $config_file) { &die_nice("load_config_file config file does not exist: $config_file\n"); }
-
     open (CONFIG, $config_file) or &die_nice("$config_file file exists, but i couldnt open it.\n");
-
     my $line;
     my $config_name;
     my $config_val;
@@ -58,9 +43,7 @@ sub load_config_file {
     my $temp;
     my $rule_name = 'undefined';
     my $response_count = 1;
-
     print "\nParsing config file: $config_file...\n\n";
-
     while (defined($line = <CONFIG>)) {
         $line =~ s/\s+$//;
         if ($line =~ /^\s*(\w+)\s*=\s*(.*)/) {
@@ -79,16 +62,17 @@ sub load_config_file {
     print "\n";
 }
 
-sub execute
-{
+sub execute {
     my ($command) = @_;
-
+	$command =~ s/\/\/+/\//g;
     print $rcon->execute($command) . "\n";
-
-        if (my $error = $rcon->error) {
-	    print "Error: $error\n";
-	    return 1; }
-        else { return 0; }
+    if (my $error = $rcon->error) {
+	if ($error eq 'Rcon timeout') {
+	print "rebuilding rcon object\n";
+	$rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old'); }
+	else { print "WARNING: rcon error: $error\n"; }
+	return 1; }
+	else { return 0; }
 }
 
 sub die_nice {
