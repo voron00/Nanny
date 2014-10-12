@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 563';
+my $version = '3.1 RUS Build 564';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -833,7 +833,7 @@ while (1) {
 		else {
 		print "WARNING: unable to predict next map:  $temporary\n";
 		$freshen_next_map_prediction = 0; }
-	    }    	    
+	    }
 	}
     }
 }
@@ -2057,18 +2057,13 @@ sub chat{
 		}	    
 	    }
 	}
-
-        # !nextmap  (not to be confused with !rotate)
+    # !nextmap  (not to be confused with !rotate)
         elsif ($message =~ /^!(nextmap|next|nextlevel|next_map|next_level)\b/i) {
             if (&check_access('nextmap')) {
 		if (&flood_protection('nextmap', 60, $slot)) { }
-		else {
-		    &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" .  
-		    $description{$next_gametype} . "^7)");
-		}
+		elsif ($next_map && $next_gametype) { &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" . $description{$next_gametype} . "^7)"); }
             }
         }
-
 	# !rotate
 	elsif ($message =~ /^!rotate\b/i) {
 	    if (&check_access('map_control')) {
@@ -4366,7 +4361,6 @@ sub guid_sanity_check {
 		print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
 		print "\tThis IP address is using a stolen copy of CoD2\n\n";
 	    }
-
 	    if ($reason eq 'INVALID_CDKEY') {
 		print "Explaination of: $reason\n";
 		print "\tThis IP Address is trying to use the same CD Key from multiple IPs.\n";
@@ -4374,22 +4368,16 @@ sub guid_sanity_check {
 		print "\tThis is a valid CD Key, but is being used from multiple locations\n";
 		print "\tActivision only allows one IP per key.\n\n";
 	    }
-
-	    # Now, check to make sure our GUID numbers match up.
+        # Now, check to make sure our GUID numbers match up.
 	    if ($guid) {
-		if ($guid == $should_be_guid) {
-		    print "\nOK: GUID Sanity check: PASSED\n\n";
-		}
+		if ($guid == $should_be_guid) { print "\nOK: GUID Sanity check: PASSED\n\n"; }
 		else {
 		    &rcon_command("say " . '"^1ПРЕДУПРЕЖДЕНИЕ: ^7Проверка корректности GUID не пройдена для"' . "$name_by_slot{$most_recent_slot}");
-
 		    print "\nFAIL: GUID Sanity check: FAILED\n";
 		    print "    IP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
-
 		    &log_to_file('logs/guid.log', "SANITY FAILED: $name_by_slot{$most_recent_slot}  IP: $ip was supposed to be GUID $should_be_guid but came back as $guid - Server has been up for: $uptime");
 		}
 	    }
-
 	}
 	else {
 	    print "\nERROR:\n\tGot a response, but not in the format expected\n";
@@ -4702,18 +4690,14 @@ sub check_guid_zero_players {
 		    sleep 1;
 		    &rcon_command("clientkick $slot");
 		    &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
-
 		    my $ban_ip = 'undefined';
 		    my $unban_time = $time + 28800;
-		    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-			$ban_ip = $ip_by_slot{$slot};
-		    }
+		    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 		    my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
 		    $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
 		}
 	    }
 	}
-	
 	# abort the rest if we are out of time.
 	if ((time - $start_time) > $max_time) { last; }
     }
@@ -5079,10 +5063,7 @@ sub get_server_info {
 		$value = shift(@parts);
 		$infohash{$value} = shift(@parts);
 	    }
-	    foreach (sort {$a cmp $b} keys %infohash) {
-		$return_text .= "$_: " . $infohash{$_} . "\n";
-	    }
-	    # print "\n";
+	    foreach (sort {$a cmp $b} keys %infohash) { $return_text .= "$_: " . $infohash{$_} . "\n"; }
 	}
     }
 	else {
