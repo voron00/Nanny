@@ -1981,6 +1981,16 @@ sub chat{
 		&rcon_command("say ^2OK^7. " . '"Название сервера изменено на: "' . "$server_name");
             }
         }
+		elsif ($message =~ /^!(host ?name|server ?name)\s*$/i) {
+            if (&check_access('hostname')) {
+			$server_result = &rcon_query("sv_hostname");
+            if ($server_result =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
+            $server_name = $1;
+            $server_name =~ s/\^7$//;
+            if ($server_name =~ /./) { &rcon_command("say " . '"Сейчас сервер называется"' . "$server_name^7," .  '"используйте !hostname чтобы изменить название сервера"'); }
+            }
+			}
+        }
 
 	# !reset
 	elsif ($message =~ /^!reset/i) {
@@ -2109,8 +2119,7 @@ sub chat{
 	elsif ($message =~ /^!killcam\s*$/i) {
 	    if (&check_access('killcam')) { &rcon_command("say  " . '"!killcam on  ... или !killcam off ... ?"'); }
 	}
-	
-        # !friendlyfire
+    # !friendlyfire
         elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i) ) {
             if (&check_access('friendlyfire')) { &friendlyfire_command($1); }
         }
@@ -2124,15 +2133,14 @@ sub chat{
 		sleep 1;
                 &rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^53 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам с совместным уроном"');
 		sleep 1;
-		my $state_string = '"неизвестен"';
+		my $state_string = 'unknown';
 		if ($friendly_fire == 0) { $state_string = '"Огонь по союзникам в настоящий момент ВЫКЛЮЧЕН"'; }
 		elsif ($friendly_fire == 1) { $state_string = '"Огонь по союзникам в настоящий момент ВКЛЮЧЕН"'; }
 		elsif ($friendly_fire == 2) { $state_string = '"Огонь по союзникам в настоящий момент РИКОШЕТНЫЙ УРОН"'; }
 		elsif ($friendly_fire == 3) { $state_string = '"Огонь по союзникам в настоящий момент СОВМЕСТНЫЙ УРОН"'; }
-		if ($state_string ne '"неизвестен"') { &rcon_command("say ^1$name: ^7 $state_string"); }
+		if ($state_string ne 'unknown') { &rcon_command("say ^1$name: ^7 $state_string"); }
             }
         }
-
 	# !glitch
 	elsif ($message =~ /^!glitch\s+(.+)/i) {
 	    if (&check_access('glitch')) { &glitch_command($1); }
@@ -4922,28 +4930,28 @@ sub friendlyfire_command {
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
         &rcon_command("scr_friendlyfire 1");
 	$friendly_fire = 1;
-        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам. Будьте аккуратны, старайтесь не ранить своих товарищей по команде"');
+        &rcon_command("say " . '"Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам. Будьте аккуратны, старайтесь не ранить своих товарищей по команде"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED by:  $name - GUID $guid");
     }
 	elsif ($state =~ /^(off|0|no|disabled?)$/i) {
         &rcon_command("scr_friendlyfire 0");
         $friendly_fire = 0;
-        &rcon_command("say " . '" Админ ^2ВЫКЛЮЧИЛ ^7Огонь по союзникам"');
+        &rcon_command("say " . '"Админ ^2ВЫКЛЮЧИЛ ^7Огонь по союзникам"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was DISABLED by:  $name - GUID $guid");
     }
 	elsif ($state =~ /^2$/i) {
         &rcon_command("scr_friendlyfire 2");
 	$friendly_fire = 2;
-        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с рикошетным уроном"');
+        &rcon_command("say " . '"Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с рикошетным уроном"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED with reflective team damage by:  $name - GUID $guid");
     }
 	elsif ($state =~ /^3$/i) {
         &rcon_command("scr_friendlyfire 3");
         $friendly_fire = 3;
-        &rcon_command("say " . '" Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с совместным уроном"');
+        &rcon_command("say " . '"Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с совместным уроном"');
         &log_to_file('logs/admin.log', "!friendlyfire: friendly fire was ENABLED with shared team damage by:  $name - GUID $guid");
     }
-	else { &rcon_command("say " . '" Неверное значение команды !friendlyfire. Доступны значения от 0 до 3"'); }
+	else { &rcon_command("say " . '"Неверное значение команды !friendlyfire. Доступны значения от 0 до 3"'); }
 }
 # END: &friendlyfire_command
 
