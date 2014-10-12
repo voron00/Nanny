@@ -14,7 +14,7 @@ Nanny
 
 Интсрукция по запуску в Linux:
 
-1. Установить через CPAN зависимые модули: DBI, DBD::SQLite, LWP::Simple, DBD::mysql
+1. Установить через CPAN зависимые модули: DBI, DBD::SQLite, LWP::Simple, DBD::mysql (В Ubuntu: sudo apt-get install mysql-client)
 2. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg). Подробно расписывать не буду, т.к там есть пояснения к каждому параметру.
 3. Запустить. В Linux можно запускать через nanny.sh
 
