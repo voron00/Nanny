@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 564';
+my $version = '3.1 RUS Build 565';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4461,12 +4461,13 @@ sub last_bans {
     $number = int($number);
     if (&flood_protection('lastbans', 60, $slot)) { return 1; }
     my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
-    $bans_sth->execute or &die_nice("Unable to do select recent bans\n"); 
+    $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
     while (@row = $bans_sth->fetchrow_array) {
 	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
 	my $txt_time = &duration($time - $ban_time);
         &rcon_command("say ^2$ban_name^7" . '" был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$ban_id^7)");
         sleep 1; }
+	if (!$ban_id) { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
 }
 # END: &last_bans($number);
 
