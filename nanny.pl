@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 567';
+my $version = '3.1 RUS Build 568';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2077,10 +2077,12 @@ sub chat{
 	# !rotate
 	elsif ($message =~ /^!rotate\b/i) {
 	    if (&check_access('map_control')) {
+		if ($next_map && $next_gametype) {
 		&rcon_command("say " . '"^2Смена карты^7..."');
 		sleep 1;
 		&rcon_command('map_rotate');
 	    }
+	}
 	}
 	# !restart
 	elsif ($message =~ /^!restart\b/i) {
