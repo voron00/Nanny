@@ -2942,7 +2942,7 @@ sub geolocate_ip {
 	if (!defined($record)) { return '"ниоткуда..."'; }
 
     # debugging
-    print"
+    print "
         Country Code: " . $record->country_code . "
         Country Code 3: " . $record->country_code3 . "
         Country Name: " . $record->country_name . "
@@ -2955,8 +2955,7 @@ sub geolocate_ip {
 		Time Zone: " . $record->time_zone . "
         Area Code: " . $record->area_code . "
 		Continent Code: " . $record->continent_code . "
-		Metro Code " . $record->metro_code . "
-		\n";
+		Metro Code " . $record->metro_code . "\n";
 
     # region code is built as COUNTRY.REGION
     my $region_code = $record->country_code . '.' . $record->region;
