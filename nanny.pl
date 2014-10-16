@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 568';
+my $version = '3.1 RUS Build 569';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -201,9 +201,6 @@ my %servername_cache;
 my @remote_servers;
 my $fail = 0;
 my $banned_guid = 0;
-
-# declare localhost
-my $localhost = '127.0.0.1';
 
 # turn on auto-flush for STDOUT
 $| = 1;
@@ -870,7 +867,7 @@ sub load_config_file {
 	    if ($config_name eq 'ip_address') { 
 		$config->{'ip'} = $config_val;
 		if ($config_val eq 'localhost|loopback') {
-		$config->{'ip'} = $localhost; }
+		$config->{'ip'} = '127.0.0.1'; }
 		print "Server IP address: $config->{'ip'}\n"; 
 	    }
 	    elsif ($config_name eq 'port') { 
