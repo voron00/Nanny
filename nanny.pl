@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 569';
+my $version = '3.1 RUS Build 571';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -199,7 +199,7 @@ my @affiliate_server_prenouncements;
 my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
-my $fail = 0;
+my $ftpfail = 0;
 my $banned_guid = 0;
 
 # turn on auto-flush for STDOUT
@@ -207,8 +207,6 @@ $| = 1;
 
 # shake the snow-globe.
 srand;
-
-# End of global variable declarations
 
 # Read the configuration from the .cfg file.
 &load_config_file('nanny.cfg');
@@ -1007,21 +1005,22 @@ sub load_config_file {
 
 # BEGIN: die_nice(message)
 sub die_nice {
-    # check if some idiot error happend (like ftp failed to connect), in this case nanny will restart automatically
-	if ($fail eq 1) {
-    my $restart = 'perl nanny.pl';
-    print "Idiot ERROR detected...Will restart in 3 seconds\n";
-	sleep 3;
-    exec $restart; }
-    else {
     my $message = shift;
-    if ((!defined($message)) or ($message !~ /./)) {
-	$message = 'default die_nice message.\n\n'; }
+    if ((!defined($message)) or ($message !~ /./)) { $message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
+	# dirty workaround, but sometimes server can drop a ftp connection or it can be lost on client side
+	if ($ftpfail eq 1) {
+    print "Can't connect to ftp server. Please check your config and internet connection.\nWill try to reconnect in 10 seconds\n\n";
+	sleep 10;
+	&ftp_connect;
+	$ftpfail = 0;
+	}
+	elsif ($ftpfail eq 0) {
 	print "Press <ENTER> to close this program\n";
 	my $who_cares = <STDIN>;
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
-    exit 1; }
+    exit 1; 
+	}
 }
 # END: die_nice
 
@@ -1041,12 +1040,10 @@ sub open_server_logfile {
 sub cache_guid_to_name {
     my $guid = shift;
     my $name = shift;
-    
     # idiot gates
     if (!defined($guid)) { &die_nice("cache_guid_to_name was called without a guid number\n"); }
 	elsif ($guid !~ /^\d+$/) { &die_nice("cache_guid_to_name guid was not a number: |$guid|\n"); }
-	elsif (!defined($name)) { &die_nice("cache_guid_to_name was called without a name\n"); }
-    
+	elsif (!defined($name)) { &die_nice("cache_guid_to_name was called without a name\n"); }  
     if ($guid) {
 	# only log this if the guid isn't zero
 	my $sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE guid=? AND name=?");
@@ -1318,9 +1315,9 @@ sub initialize_databases {
 	
 	}
     }
-
-    print"
-********************************************************************************
+    # The big welcome message
+    print
+"********************************************************************************
                 Сиделка для сервера Call of Duty 2
                     Версия $version
                         Автор - smugllama
@@ -1342,8 +1339,8 @@ sub initialize_databases {
                 Последняя Русская версия доступна на:
                    https://github.com/voron00/Nanny
 
-********************************************************************************
-"; }
+********************************************************************************"
+; }
 # END: initialize_databases
 
 # BEGIN: idle_check
@@ -1608,7 +1605,6 @@ sub chat{
         else { &rcon_command("say " . '"!locate кого?"'); }
 	    }
 	}
-
         # !ignore (search_string)
         if ($message =~ /^!ignore\s+(.+)/i) {
             if (&check_access('ignore')) { &ignore($1); }
@@ -1619,17 +1615,6 @@ sub chat{
                 else { &rcon_command("say " . '"!ignore кого?"'); }
             }
         }
-		# !unignore (search_string)
-        if ($message =~ /^!unignore\s+(.+)/i) {
-            if (&check_access('ignore')) { &unignore($1); }
-        }
-        elsif ($message =~ /^!unignore\s*$/i) {
-            if (&check_access('ignore')) {
-                if (&flood_protection('ignore', 60, $slot)) { }
-                else { &rcon_command("say " . '"!unignore кого?"'); }
-            }
-        }
-
         # !forgive (search_string)
         if ($message =~ /^!forgive\s+(.+)/i) {
             if (&check_access('forgive')) { &forgive($1); }
@@ -1640,7 +1625,6 @@ sub chat{
                 else { &rcon_command("say " . '"!forgive кого?"'); }
             }
         }
-
 	# !seen (search_string)
 	elsif ($message =~ /^!seen\s+(.+)/i) { 
 	    if (&check_access('seen')) { &seen($1); }
@@ -1651,7 +1635,6 @@ sub chat{
 		else { &rcon_command("say " . '"!seen кого?"'); }
 	    }
 	}
-
 	# !kick (search_string)
 	elsif ($message =~ /^!kick\s+(.+)/i) {
 	    if (&check_access('kick')) { &kick_command($1); }
@@ -1663,7 +1646,6 @@ sub chat{
 	elsif ($message =~ /^!kick\s*$/i) {
 	    if (&check_access('kick')) { &rcon_command("say " . '"!kick кого?"'); }
 	}
-
 	# !tempban (search_string)
 	elsif ($message =~ /^!tempban\s+(.+)/i) {
 	    if (&check_access('tempban')) { &tempban_command($1); }
@@ -1675,7 +1657,6 @@ sub chat{
 	elsif ($message =~ /^!tempban\s*$/i) {
 	    if (&check_access('tempban')) { &rcon_command("say " . '"!tempban кого?"'); }
 	}
-
 	# !ban (search_string)
 	elsif ($message =~ /^!ban\s+(.+)/i) {
 	    if (&check_access('ban')) { &ban_command($1); }
@@ -1687,7 +1668,6 @@ sub chat{
 	elsif ($message =~ /^!ban\s*$/i) {
 	    if (&check_access('ban')) { &rcon_command("say " . '"!ban кого?"'); }
 	}
-
         # !unban (search_string)
         elsif ($message =~ /^!unban\s+(.+)/i) {
             if (&check_access('ban')) { &unban_command($1); }
@@ -1695,7 +1675,6 @@ sub chat{
         elsif ($message =~ /^!unban\s*$/i) {
             if (&check_access('ban')) { &rcon_command("say " . '"Снять бан можно при помощи BAN ID, проверьте !lastbans чтобы узнать ID игроков которые были забанены"'); }
         }
-		
 		# !clearstats (search_string)
         elsif ($message =~ /^!clearstats\s+(.+)/i) {
             if (&check_access('clearstats')) { &clear_stats($1); }
@@ -1703,7 +1682,6 @@ sub chat{
         elsif ($message =~ /^!clearstats\s*$/i) {
             if (&check_access('clearstats')) { &rcon_command("say " . '"!clearstats для кого?"'); }
         }
-		
 		# !clearnames (search_string)
         elsif ($message =~ /^!clearnames\s+(.+)/i) {
             if (&check_access('clearnames')) { &clear_names($1); }
@@ -1711,7 +1689,6 @@ sub chat{
         elsif ($message =~ /^!clearnames\s*$/i) {
             if (&check_access('clearnames')) { &rcon_command("say " . '"!clearnames для кого?"'); }
         }
-
 		# !disarm (search_string) (admin mod)
         elsif (($message =~ /^!disarm\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('disarm')) { &disarm_command($1); }
@@ -1719,7 +1696,6 @@ sub chat{
         elsif (($message =~ /^!disarm\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('disarm')) { &rcon_command("say " . '"!disarm кого?"'); }
         }
-
 		# !explode (search_string) (admin mod)
         elsif (($message =~ /^!explode\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('explode')) { &explode_command($1); }
@@ -1727,7 +1703,6 @@ sub chat{
         elsif (($message =~ /^!explode\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('explode')) { &rcon_command("say " . '"!explode кого?"'); }
         }
-		
 		# !goprone (search_string) (admin mod)
         elsif (($message =~ /^!goprone\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('goprone ')) { &goprone_command($1); }
@@ -1735,7 +1710,6 @@ sub chat{
         elsif (($message =~ /^!goprone \s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('goprone ')) { &rcon_command("say " . '"!goprone  кого?"'); }
         }
-		
 		# !giveammo (search_string) (admin mod)
         elsif (($message =~ /^!giveammo\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('giveammo ')) { &giveammo_command($1); }
@@ -1743,7 +1717,6 @@ sub chat{
         elsif (($message =~ /^!giveammo\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('giveammo ')) { &rcon_command("say " . '"!giveammo для кого?"'); }
         }
-
 		# !swapteam (search_string) (admin mod)
         elsif (($message =~ /^!swapteam\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('swapteam')) { &swapteam_command($1); }
@@ -1751,7 +1724,6 @@ sub chat{
         elsif (($message =~ /^!swapteam\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('swapteam')) { &rcon_command("say " . '"!swapteam кого?"'); }
         }
-
 		# !tospec (search_string) (admin mod)
         elsif (($message =~ /^!tospec\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('tospec')) { &tospec_command($1); }
@@ -1759,7 +1731,6 @@ sub chat{
         elsif (($message =~ /^!tospec\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('tospec')) { &rcon_command("say " . '"!tospec кого?"'); }
         }
-
 		# !burn (search_string) (admin mod)
         elsif (($message =~ /^!burn\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('burn')) { &burn_command($1); }
@@ -1767,7 +1738,6 @@ sub chat{
         elsif (($message =~ /^!burn\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('burn')) { &rcon_command("say " . '"!burn кого?"'); }
         }
-
 		# !mortar (search_string) (admin mod)
         elsif (($message =~ /^!mortar\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('mortar')) { &mortar_command($1); }
@@ -1775,7 +1745,6 @@ sub chat{
         elsif (($message =~ /^!mortar\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('mortar')) { &rcon_command("say " . '"!mortar кого?"'); }
         }
-
 		# !lock (search_string) (admin mod)
         elsif (($message =~ /^!lock\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('lock')) { &lock_command($1); }
@@ -1783,7 +1752,6 @@ sub chat{
         elsif (($message =~ /^!lock\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('lock')) { &rcon_command("say " . '"!lock кого?"'); }
         }
-
 		# !cow (search_string) (admin mod)
         elsif (($message =~ /^!cow\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('cow')) { &cow_command($1); }
@@ -1791,7 +1759,6 @@ sub chat{
         elsif (($message =~ /^!cow\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('cow')) { &rcon_command("say " . '"!cow кого?"'); }
         }
-
 		# !kill (search_string) (admin mod)
         elsif (($message =~ /^!kill\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('kill')) { &kill_command($1); }
@@ -1799,7 +1766,6 @@ sub chat{
         elsif (($message =~ /^!kill\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('kill')) { &rcon_command("say " . '"!kill кого?"'); }
         }
-
 		# !unlock (search_string) (admin mod)
         elsif (($message =~ /^!unlock\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('unlock')) { &unlock_command($1); }
@@ -1807,7 +1773,6 @@ sub chat{
         elsif (($message =~ /^!unlock\s*$/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('unlock')) { &rcon_command("say " . '"!unlock кого?"'); }
         }
-
 		# !ip (search_string)
         elsif ($message =~ /^!ip\s+(.+)/i) {
             if (&check_access('ip')) { &ip_player($1); }
@@ -1815,7 +1780,6 @@ sub chat{
         elsif ($message =~ /^!ip\s*$/i) {
             if (&check_access('ip')) { &rcon_command("say " . '"!ip для кого?"'); }
         }
-		
 		# !id (search_string)
         elsif ($message =~ /^!id\s+(.+)/i) {
             if (&check_access('id')) { &id_player($1); }
@@ -1823,7 +1787,6 @@ sub chat{
         elsif ($message =~ /^!id\s*$/i) {
             if (&check_access('id')) { &rcon_command("say " . '"!id для кого?"'); }
         }
-		
 		# !guid (search_string)
         elsif ($message =~ /^!guid\s+(.+)/i) {
             if (&check_access('guid')) { &guid_player($1); }
@@ -1831,7 +1794,6 @@ sub chat{
         elsif ($message =~ /^!guid\s*$/i) {
             if (&check_access('guid')) { &rcon_command("say " . '"!guid для кого?"'); }
         }
-		
 		# !report (search_string)
         elsif ($message =~ /^!report\s+(.+)/i) {
             if (&check_access('report')) { &report_player($1); }
@@ -1839,7 +1801,6 @@ sub chat{
 		 elsif ($message =~ /^!report\s*$/i) {
             if (&check_access('report')) { &rcon_command("say " . '"!report кого?"'); }
 		}
-
        # !define (word)
         elsif ($message =~ /^!(define|dictionary|dict|словарь)\s+(.+)/i) {
             if (&check_access('define')) {
@@ -1853,7 +1814,6 @@ sub chat{
 		else { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7Что нужно добавить в словарь?"'); }
 		    }
 		}
-
 	# !undefine (word)
         elsif ($message =~ /^!undefine\s+(.+)/i) {
 	    my $undefine = $1;
@@ -1870,7 +1830,6 @@ sub chat{
 		else { &rcon_command("say " . '"^2Больше нет определений для: "' . '"' . "^1$undefine");}
 		    }
 		}
-
 	# !stats
 	elsif ($message =~ /^!stats\s*(.*)/i) {
 	    my $stats_search = $1;
@@ -1880,7 +1839,6 @@ sub chat{
 		else { &stats($name,''); }
 		}
 	}
-	
 	# !awards
 	elsif ($message =~ /^!(awards|best|top)\b/i) {
 	    if (&check_access('awards')) { &awards; }
@@ -1913,7 +1871,6 @@ sub chat{
 	elsif ($message =~ /^!sd\b/i) {
 	    if (&check_access('map_control')) { &change_gametype('sd'); }
 	}
-
 	# !smoke
         elsif ($message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s+(.+)/i) {
 	    if (&check_access('weapon_control')) { &toggle_weapon('scr_allow_smokegrenades', '"Дымовые гранаты"', $2); }
@@ -1921,7 +1878,6 @@ sub chat{
 	elsif ($message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s*$/i) {
 	    if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
 	}
-
         # !grenades
         elsif ($message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s+(.+)/i) {
             if (&check_access('weapon_control')) { &toggle_weapon('scr_allow_fraggrenades', '"Осколочные гранаты"', $2); }
@@ -1929,7 +1885,6 @@ sub chat{
         elsif ($message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s*$/i) {
             if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
         }
-
         # !shotguns
         elsif ($message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s+(.+)/i) {
             if (&check_access('weapon_control')) { &toggle_weapon('scr_allow_shotgun', '"Дробовики"', $2); }
@@ -1937,37 +1892,30 @@ sub chat{
         elsif ($message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s*$/i) {
             if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
         }
-
 	# !say
         elsif ($message =~ /^!say\s+(.+)/i) {
             if (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
         }
-
 	# !rcon
         elsif ($message =~ /^!rcon\s+(.+)/i) {
             if (&check_access('rcon')) { &rcon_command("$1"); }
         }
-
 	# !saybold (Admin mod)
         elsif (($message =~ /^!saybold\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('saybold')) { &rcon_command("set saybold" . '"' . "$1"); }
         }
-
 	# !sayline (Admin mod)
         elsif (($message =~ /^!sayline\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('sayline')) { &rcon_command("set say" . '"' . "$1"); }
         }
-
 	# !broadcast
         elsif ($message =~ /^!broadcast\s+(.+)/i) {
             if (&check_access('broadcast')) { &broadcast_message($1); }
         }
-
     # !tell
         elsif ($message =~ /^!tell\s+([^\s]+)\s+(.*)/i) {
             if (&check_access('tell')) { &tell($1,$2); }
         }
-
 	# !hostname
         elsif ($message =~ /^!(host ?name|server ?name)\s+(.+)/i) {
             if (&check_access('hostname')) {
@@ -1988,7 +1936,6 @@ sub chat{
             }
 			}
         }
-
 	# !reset
 	elsif ($message =~ /^!reset/i) {
 	    if (&check_access('reset')) {
@@ -2010,7 +1957,6 @@ sub chat{
 		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" сбрасываю параметры..."');
 	    }
 	}
-
 	# !reboot
 	elsif ($message =~ /^!reboot/i) {
 	    if (&check_access('reboot')) {
@@ -2019,7 +1965,6 @@ sub chat{
         exec $restart;
 	    }
 	}
-
 	# !fixnames
         elsif ($message =~ /^!(fixaliases|fixnames)/i) {
             my @row;
@@ -2027,24 +1972,20 @@ sub chat{
                 $sth = $guid_to_name_dbh->prepare('SELECT count(*) FROM guid_to_name;');
                 $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
                 @row = $sth->fetchrow_array;
-
                 $sth = $guid_to_name_dbh->prepare('DELETE FROM guid_to_name;');
                 $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
                 if ($row[0] == 1) { &rcon_command("say " . '"^7Удалена одна запись из базы ^2GUID <-> NAME"'); }
                 elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2GUID <-> NAME"'); }
 				else { &rcon_command("say " . '"^7В базе данных не найдено нужных записей для удаления"'); }
-
                 $sth = $ip_to_name_dbh->prepare('SELECT count(*) FROM ip_to_name WHERE length(name) > 31;');
                 $sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
                 @row = $sth->fetchrow_array;
-
                 $sth = $ip_to_name_dbh->prepare('DELETE FROM ip_to_name WHERE length(name) > 31;');
                 $sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
                 if ($row[0] == 1) { &rcon_command("say " . '"^7Удалена одна запись из базы ^2IP <-> NAME"'); }
 				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2IP <-> NAME^7 которые имели слишком длинный формат"'); }
             }
         }
-
 	# !version
 	elsif ($message =~ /^!(version|ver)\b/i) {
 	    if (&check_access('version')) {
@@ -2159,7 +2100,6 @@ sub chat{
 		elsif ($message =~ /^!spectatefree\s*$/i) {
 	    if (&check_access('spectatefree')) { &rcon_command("say !spectatefree on" . '" или !spectatefree off?"'); }
 	}
-
         # !names (search_string)
         elsif ($message =~ /^!names\s+(.+)/i) {
             if (&check_access('aliases')) { &aliases($1); }
@@ -2167,7 +2107,6 @@ sub chat{
         elsif ($message =~ /^!(names)\s*$/i) {
             if (&check_access('aliases')) { &rcon_command("say " . '"!names для кого?"'); }
         }
-
         # !uptime
         elsif ($message =~ /^!uptime\b/i) {
             if (&check_access('uptime')) {
@@ -2179,7 +2118,6 @@ sub chat{
 		}
 	        }
     }
-
 	# !help
 	elsif ($message =~ /^!help|^!помощь\b/i) {
 	    if (&flood_protection('help', 60, $slot)) {}
@@ -2302,7 +2240,6 @@ sub chat{
             }
 	    }
 	}
-
 	# !fly
 	elsif ($message =~ /^!(fly|ufo)\b/i) {
 	    if (&check_access('fly')) {
@@ -2316,29 +2253,24 @@ sub chat{
 		    &rcon_command("say " . '"Думаю стоит продолжить нормальную игру"'); }
 	    }
 	}
-
         # !gravity (number)
         if ($message =~ /^!(g_gravity|gravity)\s*(.*)/i) {
             if (&check_access('gravity')) { &gravity_command($2); }
         }
-
         # !calc (expression)
         if ($message =~ /^!(calculater?|calc|calculator)\s+(.+)/i) {
 	    my $expression = $2;
 	    if  ($expression =~ /[^\d\.\+\-\/\* \(\)]/) {}
 	    else { &rcon_command("say ^2$expression ^7=^1 " . eval($expression) ); }
         }
-		
 		# !sin (value)
         if ($message =~ /^!sin\s+(.+)/i) {
 	    &rcon_command("say ^2sin $1 ^7=^1 " . sin($1));
 		}
-		
 		# !cos (value)
         if ($message =~ /^!cos\s+(.+)/i) {
 	    &rcon_command("say ^2cos $1 ^7=^1 " . cos($1));
 		}
-		
 	    # !tan (value)
         if ($message =~ /^!tan\s+(.+)/i) {
 	    &rcon_command("say ^2tan $1 ^7=^1 " . &tan($1));
@@ -2351,22 +2283,18 @@ sub chat{
         if ($message =~ /^!osinfo\b/i) {
 	    &rcon_command("say $^O");
 		}
-
     # !speed (number)
         if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
             if (&check_access('speed')) { &speed_command($2); }
         }
-
     # !tempbantime (value)
         if ($message =~ /^!(tempbantime|kickbantime|sv_kickbantime)\s*(.*)/i) {
             if (&check_access('tempbantime')) { &tempbantime_command($2); }
         }
-
 	# !big red button
 	if ($message =~ /^!(big red button|nuke)/i) {
 	    if (&check_access('nuke')) { &big_red_button_command; }
 	}
-
 	# Map Commands
 	# !beltot and !farmhouse command
 	elsif ($message =~ /^!beltot\b|!farmhouse\b/i) {
@@ -2473,7 +2401,6 @@ sub chat{
 	    }
 	}
 	# End of map !commands
-
 	# !time
 	elsif ($message =~ /^!time\b/i) {
     if (&check_access('time')) { &rcon_command("say " . '"^2Московское время^7:^3"' . "$time{'h:mm'} ^7|^3 $time{'dd.mm.yyyy'}"); }
@@ -2559,7 +2486,6 @@ sub chat{
 		if (&flood_protection('lastkill', 60, $slot)) { }
 		else {
 		    if (($lastkill_search ne '') && (&check_access('peek'))) {
-			
 			my @matches = &matching_users($lastkill_search);
 			if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$lastkill_search"); }
 			elsif ($#matches == 0) {
@@ -2621,14 +2547,12 @@ sub locate {
 		    if ($guessed) { $location = $name_by_slot{$slot} . '"^7 вероятно зашел к нам из ^2"' . $location; }
 		    else { $location = $name_by_slot{$slot} . '"^7 зашел к нам из ^2"' . $location; }
 		}
-
 		# location spoofing
 		foreach $spoof_match (keys(%location_spoof)) {
 		    if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) {
 			$location = $name_by_slot{$slot} . '^7 ' . $location_spoof{$spoof_match};
 		    }
 		}
-
 		&rcon_command("say " . "$location");
 		print "$location\n";
 		sleep 1;
@@ -2926,14 +2850,12 @@ sub rcon_query {
 sub geolocate_ip {
     my $ip = shift;
     my $metric = 0;
+
     if (!defined($ip)) { return '"Неверный IP-Адрес"'; }
-
 	if ($ip =~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
-
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:  "' . "$ip"; }
 
     my $gi = Geo::IP->open("Geo/GeoLiteCity.dat", GEOIP_STANDARD);
-
     my $record = $gi->record_by_addr($ip);
 
 	if (!defined($record)) { return '"ниоткуда..."'; }
@@ -3042,19 +2964,17 @@ sub geolocate_ip {
 sub cache_ip_to_guid {
     my $ip = shift;
     my $guid = shift;
-
     # idiot gates
     if (!defined($guid)) { &die_nice("cache_ip_to_guid was called without a guid number\n"); }
 	elsif ($guid !~ /^\d+$/) { &die_nice("cache_ip_to_guid guid was not a number: |$guid|\n"); }
 	elsif (!defined($ip)) { &die_nice("cache_ip_to_guid was called without an ip\n"); }
-
     if ($guid) {
 	# only log this if the guid isn't zero
 	my $sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid WHERE ip=? AND guid=?");
 	$sth->execute($ip,$guid) or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
 	my @row = $sth->fetchrow_array;
 	if ($row[0]) { }
-	else { 
+	else {
 	    &log_to_file('logs/guid.log', "New IP to GUID mapping: $ip - $guid");
 	    print "New IP to GUID mapping: $ip - $guid\n";
 	    $sth = $ip_to_guid_dbh->prepare("INSERT INTO ip_to_guid VALUES (NULL, ?, ?)");
@@ -3068,11 +2988,9 @@ sub cache_ip_to_guid {
 sub cache_ip_to_name {
     my $ip = shift;
     my $name = shift;
-
     # idiot gates
     if (!defined($name)) { &die_nice("cache_ip_to_name was called without a name\n"); }
 	elsif (!defined($ip)) { &die_nice("cache_ip_to_name was called without an ip\n"); }
-
     my $sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name WHERE ip=? AND name=?");
     $sth->execute($ip,$name) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
     my @row = $sth->fetchrow_array;
@@ -3089,15 +3007,10 @@ sub cache_ip_to_name {
 # BEGIN: seen($search_string)
 sub seen {
     my $search_string = shift;
-
-    # print "Searching Seen for: $search_string\n";
-
     my $sth = $seen_dbh->prepare("SELECT name,time,saying FROM seen WHERE name LIKE ? ORDER BY time DESC LIMIT 5");
     $sth->execute("\%$search_string\%") or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     my @row;
-
     if (&flood_protection('seen', (10 + ( $sth->rows * 5 ) ), $slot)) { return 1; }
-
     while (@row = $sth->fetchrow_array) {
 	&rcon_command("say " . " $row[0] " . '" ^7был замечен на сервере "' . "" . duration($time - $row[1]) . "" . '" назад, и сказал:"' . '"' . " $row[2]");
 	print "SEEN: $row[0] was last seen " . duration($time - $row[1]) . " ago, saying: $row[2]\n";
@@ -3466,27 +3379,6 @@ sub ignore {
         &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7теперь будет игнорироватся."');
         $ignore{$matches[0]} = 1;
         &log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$matches[0]} was ignored by $name - GUID $guid - (Search: $search_string)");
-    }
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
-}
-
-# BEGIN: unignore($search_string)
-sub unignore {
-    my $search_string = shift;
-    my $key;
-    if ($search_string =~ /^\#(\d+)$/) {
-        my $slot = $1;
-        &rcon_command("say ^2$name_by_slot{$slot}" . '" ^больше не будет игнорироватся."');
-	$ignore{$slot} = 0;
-        &log_to_file('logs/admin.log', "!UNIGNORE: $name_by_slot{$slot} was unignored by $name - GUID $guid - (Search: $search_string)");
-        return 0;
-    }
-    my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
-        &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7больше не будет игнорироватся."');
-        $ignore{$matches[0]} = 0;
-        &log_to_file('logs/admin.log', "!UNIGNORE: $name_by_slot{$matches[0]} was unignored by $name - GUID $guid - (Search: $search_string)");
     }
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
@@ -4066,7 +3958,7 @@ sub awards {
     # Best Kill Spree
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY best_killspree DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and best_killspree > 0 ORDER BY best_killspree DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучшие серии убийств^7:"');
     sleep 1;
@@ -4077,7 +3969,7 @@ sub awards {
 	# Best Bomb Plants
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY bomb_plants DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество заложенной взрывчатки^7:"');
     sleep 1;
@@ -4088,7 +3980,7 @@ sub awards {
 	# Best Bomb Defuses
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY bomb_defuses DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество обезвреженной взрывчатки^7:"');
     sleep 1;
@@ -4748,7 +4640,7 @@ sub tan {
     fileparse_set_fstype; # FTP uses UNIX rules
     $ftp_tmpFileName = tmpnam;
     $ftp_verbose && warn "FTP $ftp_host\n";
-    $ftp=Net::FTP->new($ftp_host,Timeout=>60) or &die_nice("FTP: Cannot ftp to $ftp_host: $!");
+    $ftp=Net::FTP->new($ftp_host,Timeout=>60) or &die_nice("FTP: Cannot ftp to $ftp_host: $!", $ftpfail = 1);
     $ftp_verbose && warn "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
     $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!");
     $ftp_verbose && warn "CWD: $ftp_dirname\n";
@@ -4798,7 +4690,7 @@ sub ftp_flushPipe {
 sub ftp_getNchars {
     my ($bytes) = @_;
     my $type = $ftp->binary;
-    my $size = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $fail = 1);
+    my $size = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $ftpfail = 1);
     my $startPos = $size - $bytes;
     if ($startPos<0) { $startPos=0; $bytes=$size; } #file is smaller than requested number of bytes
     -e $ftp_tmpFileName && &die_nice("FTP: $ftp_tmpFileName exists");
@@ -4811,7 +4703,7 @@ sub ftp_get_line {
     my $line;
     if (!defined($ftp_buffer[0])) {
 	$ftp_type = $ftp->binary;
-        $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $fail = 1);
+        $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $ftpfail = 1);
         if ($ftp_currentEnd > $ftp_lastEnd) {
             $ftp_verbose && warn "FTP: SIZE $ftp_basename increased: ".($ftp_currentEnd-$ftp_lastEnd)." bytes\n";
             $ftp_verbose && warn "FTP: GET: $ftp_basename, $ftp_tmpFileName, $ftp_lastEnd\n";
