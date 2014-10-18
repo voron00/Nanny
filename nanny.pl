@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 571';
+my $version = '3.1 RUS Build 572';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2796,25 +2796,21 @@ sub rcon_status {
 # BEGIN: rcon_command($command)
 sub rcon_command {
     my ($command) = @_;
-
     # odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
-
     if ($config->{'show_rcon'}) {
-	print "RCON: $command\n"; }
-
-    print $rcon->execute($command);
+	print "RCON: $command\n";
+	}
+    $rcon->execute($command);
     sleep 1;
-
     if (my $error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
 	# Try rebuilding the object
 	if ($error eq 'Rcon timeout') {
-	    print "rebuilding rcon object\n";
-	    $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');	
+	print "rebuilding rcon object\n";
+	$rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');	
 	}
 	else { print "WARNING: rcon_command error: $error\n"; }
-
 	return 1;
     }
 	else { return 0; }
@@ -2824,24 +2820,23 @@ sub rcon_command {
 # BEGIN: rcon_query($command)
 sub rcon_query {
     my ($command) = @_;
-    
+	# odd bug regarding double slashes.
+    $command =~ s/\/\/+/\//g;
     if ($config->{'show_rcon'}) {
-        print "RCON: $command\n"; }
-
-    my $result = "rcon_command error";
-    $result = $rcon->execute($command);
-    sleep 1;
-    
+    print "RCON: $command\n";
+	}
+    my $result = $rcon->execute($command);
+    sleep 1; 
     if (my $error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
-        # Try rebuilding the object
-        if ($error eq 'Rcon timeout') {
-            print "rebuilding rcon object\n";
-            $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
-        }
-		else { print "WARNING: rcon_command error: $error\n"; }
-
-	return $result; }
+    # Try rebuilding the object
+    if ($error eq 'Rcon timeout') {
+    print "rebuilding rcon object\n";
+    $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
+    }
+	else { print "WARNING: rcon_command error: $error\n"; }
+	return $result;
+	}
     else { return $result; }
 }
 # END: rcon_query
@@ -4708,9 +4703,7 @@ sub ftp_get_line {
             $ftp_verbose && warn "FTP: SIZE $ftp_basename increased: ".($ftp_currentEnd-$ftp_lastEnd)." bytes\n";
             $ftp_verbose && warn "FTP: GET: $ftp_basename, $ftp_tmpFileName, $ftp_lastEnd\n";
             -e $ftp_tmpFileName && &die_nice("FTP: $ftp_tmpFileName exists");
-	    while (!-e $ftp_tmpFileName) {
-		$ftp->get($ftp_basename,$ftp_tmpFileName,$ftp_lastEnd);
-	    }
+	    while (!-e $ftp_tmpFileName) { $ftp->get($ftp_basename,$ftp_tmpFileName,$ftp_lastEnd); }
             open(FILE,$ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
             $ftp_inbandSignaling && print "#START: (This is a hack to signal start of data in pipe)\n";
 	    while ($line = <FILE>) { push @ftp_buffer, $line; }
@@ -4718,8 +4711,7 @@ sub ftp_get_line {
             $ftp_inbandSignaling && print "#END: (This is a hack to signal end of data in pipe)\n";
             $ftp_inbandSignaling && &ftp_flushPipe;
             unlink($ftp_tmpFileName);
-            $ftp_lastEnd = $ftp_currentEnd;
-	    
+            $ftp_lastEnd = $ftp_currentEnd;  
 	    # we reverse the order so that lines pop out in chronological order
 	    @ftp_buffer = reverse @ftp_buffer;	    
         }
