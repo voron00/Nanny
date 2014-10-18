@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 572';
+my $version = '3.1 RUS Build 573';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -3027,29 +3027,22 @@ sub log_to_file {
 sub stats {
     my $name = shift;
     my $search_string = shift;
-
+	my $kills;
     if (&flood_protection('stats', 60, $slot)) { return 1; }
-
     if ($search_string ne '') {
-
 	my @matches = &matching_users($search_string);
-	if ($#matches == 0) {
-	    # $name = &strip_color($name_by_slot{$matches[0]});
-	    $name = $name_by_slot{$matches[0]};
-	}
+	if ($#matches == 0) { $name = $name_by_slot{$matches[0]}; }
 	elsif ($#matches > 0) {
-	    &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string" . " , ^7введите более точные данные.");
+	    &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
 	    return 1;
 	}
-
     }
-    # print "DEBUG: $name is set to: $name\n";
-
     if ($name eq 'Unknown Soldier' or $name eq 'UnnamedPlayer') { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
 	else {
+	# 1st generation stats;
+    # id,name,kills,deaths,headshots
+    # 0  1    2     3      4
     my $stats_msg = '"Статистика^2"' . "$name^7:";
-    my $kills = 1;
-
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
     $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     @row = $stats_sth->fetchrow_array;
@@ -3057,14 +3050,17 @@ sub stats {
 	$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	@row = $stats_sth->fetchrow_array;
     }
+	# kills, deaths, headshots
     if ($row[0]) {
-	$stats_msg .= " ^1$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7хедшотов,"';
 	$kills = $row[2];
+	$stats_msg .= " ^1$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7хедшотов,"';
+	# k2d_ratio
 	if ($row[3]) {
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
 	    $stats_msg .= "^1$k2d_ratio^7" . '"^7рейтинга,"';
 	}
 	else { $stats_msg .= '"^7рейтинг не определен,"'; }
+	# headshot_percent
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
 	    $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
@@ -3075,11 +3071,9 @@ sub stats {
 	$stats_sth->execute($name, 0, 0, 0) or &die_nice("Unable to do insert\n");
 	$stats_msg = '"Не найдено статистики для:"' . "$name";
     }
-
     &rcon_command("say $stats_msg");
     print "$stats_msg\n"; 
     sleep 1; 
-
     # 2nd generation stats;
     # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses
     # 0  1    2            3             4          5             6            7           8                9              10         11        12          13
@@ -3091,45 +3085,39 @@ sub stats {
         $stats_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
         @row = $stats_sth->fetchrow_array;
     }
+	# pistol_ratio,grenade_ratio,bash_ratio
     if (($row[0]) && $kills) {
 	my $pistol_ratio = ($row[2]) ? int($row[2] / $kills * 10000) / 100 : 0;
 	my $grenade_ratio = ($row[3]) ? int($row[3] / $kills * 10000) / 100 : 0;
 	my $bash_ratio = ($row[4]) ? int($row[4] / $kills * 10000) / 100 : 0;
-	my $best_killspree = $row[9];
 	$stats_msg .= " ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7ближнего боя"';
-	
-	if (($row[2]) or ($row[3]) or ($row[4])) { 
+	if (($row[2]) or ($row[3]) or ($row[4])) {
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
-
-	# shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,nice shots ratio,bad shots ratio
+	# shotgun_ratio,sniper_ratio,rifle_ratio,machinegun_ratio
 	$stats_msg = '"Статистика^2"' . "$name^7:";
 	my $shotgun_ratio = (($row[5]) && ($kills)) ? int($row[5] / $kills * 10000) / 100 : 0;
     my $sniper_ratio = (($row[6]) && ($kills)) ? int($row[6] / $kills * 10000) / 100 : 0;
     my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
-	my $niceshot_ratio = (($row[10]) && ($kills)) ? int($row[10] / $kills * 10000) / 100 : 0;
-	my $badshot_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 10000) / 100 : 0;
-        $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7автоматов"';
-
+    $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7автоматов"';
 	if (($row[5]) or ($row[6]) or ($row[7]) or ($row[8])) {
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
-	} 
-
-    # best killing spree 
-	if ($best_killspree) {
+	}
+    # best_killspree
+	if ($row[9]) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Лучшая серия убийств -^1"' . "$best_killspree";
+	    $stats_msg .= '"Лучшая серия убийств -^1"' . "$row[9]";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
-
-    # badshot kills
+    # bad_shots
+	my $badshot_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 10000) / 100 : 0;
 	if (($row[11]) && ($config->{'bad_shots'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Не понравившихся убийств:"' . "^1$row[11] ^7(^1$badshot_ratio" . '"^7процентов)"';
@@ -3137,8 +3125,8 @@ sub stats {
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
-
-    # niceshot kills
+    # nice_shots
+	my $niceshot_ratio = (($row[10]) && ($kills)) ? int($row[10] / $kills * 10000) / 100 : 0;
 	if (($row[10]) && ($config->{'nice_shots'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Понравившихся убийств:"' . "^1$row[10] ^7(^1$niceshot_ratio" . '"^7процентов)"';
@@ -3146,7 +3134,7 @@ sub stats {
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
-	# bomb plants
+	# bomb_plants
 	if ($row[12]) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Взрывчатки заложено:"' . "^1$row[12]";
@@ -3154,7 +3142,7 @@ sub stats {
 	    print "$stats_msg\n";
 	    sleep 1;
 	}
-	# bomb defuses
+	# bomb_defuses
 	if ($row[13]) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Взрывчатки обезврежено:"' . "^1$row[13]";
