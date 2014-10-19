@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 573';
+my $version = '3.1 RUS Build 574';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -3057,9 +3057,9 @@ sub stats {
 	# k2d_ratio
 	if ($row[3]) {
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
-	    $stats_msg .= "^1$k2d_ratio^7" . '"^7рейтинга,"';
+	    $stats_msg .= "^1$k2d_ratio^7" . '"^7к/д соотношение,"';
 	}
-	else { $stats_msg .= '"^7рейтинг не определен,"'; }
+	else { $stats_msg .= '"^7к/д соотношение пока не определено,"'; }
 	# headshot_percent
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
@@ -3902,9 +3902,7 @@ sub awards {
     my @row;
     my $sth;
     my $counter = 1;
-
     if (&flood_protection('awards', 300)) { return 1; }
-
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
     # Most Kills
@@ -3919,18 +3917,18 @@ sub awards {
     # Best Kill to Death ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 10 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 50 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command("say " . '"^2Игроки с лучшим рейтингом^7:"');
+    &rcon_command("say " . '"^2Игроки с лучшим к/д соотношением^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-    &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7рейтингом убийств/смертей"');
+    &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7к/д соотношением"');
     sleep 1;
     }
     # Best Headshot Percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 10 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 50 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучший процент хедшотов^7:"');
     sleep 1;
@@ -4000,11 +3998,8 @@ sub check_player_names {
 	    foreach $match_string (@banned_names) {
 		# print "DEBUG: if name: $name_by_slot{$slot} =~ $match_string\n"; 
 		if ($name_by_slot{$slot} =~ /$match_string/) {
-
 		    $warned = 1;
-
 		    if (!defined($name_warn_level{$slot})) { $name_warn_level{$slot} = 0; }
-
 		    if ($name_warn_level{$slot} == 0) {
 			print "NAME_WARN1: $name_by_slot{$slot} is using a banned name.  Match: $match_string\n";
 			&rcon_command("say ^1$name_by_slot{$slot}^7" . $config->{'banned_name_warn_message_1'} );
@@ -4137,9 +4132,7 @@ sub aliases {
 
 sub suk {
     if (&flood_protection('suk', 300)) { return 1; }
-
     &rcon_command("say " . '"^1Худшие ^7игроки сервера:"');
-
     my @row;
     my $sth;
     my $counter = 1;
@@ -4156,18 +4149,18 @@ sub suk {
     # Worst k2d ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 10) and (deaths > 10)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 50) and (deaths > 10)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command("say " . '"^1Игроки с худшим рейтингом^7:"');
+    &rcon_command("say " . '"^1Игроки с худшим к/д соотношением^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7рейтингом убийств/смертей"');
+        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7к/д соотношением"');
         sleep 1;
     }
     # Worst headshot percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 10) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 50) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Худший процент хедшотов^7:"');
     sleep 1;
