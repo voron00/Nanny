@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 574';
+my $version = '3.1 RUS Build 575';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -3053,17 +3053,17 @@ sub stats {
 	# kills, deaths, headshots
     if ($row[0]) {
 	$kills = $row[2];
-	$stats_msg .= " ^1$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^1$row[4]" . '"^7хедшотов,"';
+	$stats_msg .= " ^2$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^3$row[4]" . '"^7хедшотов,"';
 	# k2d_ratio
 	if ($row[3]) {
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
-	    $stats_msg .= "^1$k2d_ratio^7" . '"^7к/д соотношение,"';
+	    $stats_msg .= "^8$k2d_ratio^7" . '"^7к/д соотношение,"';
 	}
 	else { $stats_msg .= '"^7к/д соотношение пока не определено,"'; }
 	# headshot_percent
 	if ($row[2]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	    $stats_msg .= "^1$headshot_percent" . '"^7процентов хедшотов"';
+	    $stats_msg .= "^3$headshot_percent" . '"^7процентов хедшотов"';
 	} 
     }
     else {
@@ -3090,7 +3090,7 @@ sub stats {
 	my $pistol_ratio = ($row[2]) ? int($row[2] / $kills * 10000) / 100 : 0;
 	my $grenade_ratio = ($row[3]) ? int($row[3] / $kills * 10000) / 100 : 0;
 	my $bash_ratio = ($row[4]) ? int($row[4] / $kills * 10000) / 100 : 0;
-	$stats_msg .= " ^1$pistol_ratio" . '"^7пистолетов,"' . "^1$grenade_ratio" . '"^7гранат,"' . "^1$bash_ratio" . '"^7ближнего боя"';
+	$stats_msg .= " ^9$pistol_ratio" . '"^7пистолетов,"' . "^9$grenade_ratio" . '"^7гранат,"' . "^9$bash_ratio" . '"^7ближнего боя"';
 	if (($row[2]) or ($row[3]) or ($row[4])) {
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
@@ -3102,7 +3102,7 @@ sub stats {
     my $sniper_ratio = (($row[6]) && ($kills)) ? int($row[6] / $kills * 10000) / 100 : 0;
     my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
 	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
-    $stats_msg .= " ^7^1$shotgun_ratio" . '"^7дробовиков,"' . "^1$sniper_ratio" . '"^7снайп.винтовок,"' . "^1$rifle_ratio" . '"^7винтовок,"' . "^1$machinegun_ratio" . '"^7автоматов"';
+    $stats_msg .= " ^7^9$shotgun_ratio" . '"^7дробовиков,"' . "^9$sniper_ratio" . '"^7снайп.винтовок,"' . "^9$rifle_ratio" . '"^7винтовок,"' . "^9$machinegun_ratio" . '"^7автоматов"';
 	if (($row[5]) or ($row[6]) or ($row[7]) or ($row[8])) {
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
@@ -3111,7 +3111,7 @@ sub stats {
     # best_killspree
 	if ($row[9]) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Лучшая серия убийств -^1"' . "$row[9]";
+	    $stats_msg .= '"Лучшая серия убийств -^6"' . "$row[9]";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -3129,7 +3129,7 @@ sub stats {
 	my $niceshot_ratio = (($row[10]) && ($kills)) ? int($row[10] / $kills * 10000) / 100 : 0;
 	if (($row[10]) && ($config->{'nice_shots'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Понравившихся убийств:"' . "^1$row[10] ^7(^1$niceshot_ratio" . '"^7процентов)"';
+	    $stats_msg .= '"Понравившихся убийств:"' . "^2$row[10] ^7(^2$niceshot_ratio" . '"^7процентов)"';
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -3137,7 +3137,7 @@ sub stats {
 	# bomb_plants
 	if ($row[12]) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Взрывчатки заложено:"' . "^1$row[12]";
+	    $stats_msg .= '"Взрывчатки заложено:"' . "^4$row[12]";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -3145,7 +3145,7 @@ sub stats {
 	# bomb_defuses
 	if ($row[13]) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Взрывчатки обезврежено:"' . "^1$row[13]";
+	    $stats_msg .= '"Взрывчатки обезврежено:"' . "^5$row[13]";
 	    &rcon_command("say $stats_msg");
 	    print "$stats_msg\n";
 	    sleep 1;
@@ -3705,8 +3705,7 @@ sub tempban_command {
     my $tempbantime = $1; 
     my $unban_time = $time + $tempbantime;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом"');
-    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-	$ban_ip = $ip_by_slot{$slot}; }
+    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
     &log_to_file('logs/kick.log', "!TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
@@ -3727,8 +3726,7 @@ sub ban_command {
     my $ban_ip = 'undefined';
     my $unban_time = 2125091758;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был забанен админом"');
-    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-	$ban_ip = $ip_by_slot{$slot}; }
+    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
     &log_to_file('logs/kick.log', "!BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");	   
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
@@ -3911,7 +3909,7 @@ sub awards {
     &rcon_command("say " . '"^2Наибольшее количество убийств^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-	&rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . "$row[2]" . '"^7убийствами"');
+	&rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^2"' . "$row[2]" . '"^7убийствами"');
 	sleep 1;
     }
     # Best Kill to Death ratio
@@ -3922,7 +3920,7 @@ sub awards {
     &rcon_command("say " . '"^2Игроки с лучшим к/д соотношением^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-    &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7к/д соотношением"');
+    &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^8"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7к/д соотношением"');
     sleep 1;
     }
     # Best Headshot Percentages
@@ -3933,7 +3931,7 @@ sub awards {
     &rcon_command("say " . '"^2Лучший процент хедшотов^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^3"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
         sleep 1;
    }
     # Best Kill Spree
@@ -3944,7 +3942,7 @@ sub awards {
     &rcon_command("say " . '"^2Лучшие серии убийств^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' .  "$row[9]" . '"^7убийствами подряд"');
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^6"' .  "$row[9]" . '"^7убийствами подряд"');
         sleep 1;
     }
 	# Best Bomb Plants
@@ -3955,7 +3953,7 @@ sub awards {
     &rcon_command("say " . '"^2Наибольшее количество заложенной взрывчатки^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' .  "$row[12]" . '"^7закладками взрывчатки"');
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^4"' .  "$row[12]" . '"^7закладками взрывчатки"');
         sleep 1;
     }
 	# Best Bomb Defuses
@@ -3966,19 +3964,21 @@ sub awards {
     &rcon_command("say " . '"^2Наибольшее количество обезвреженной взрывчатки^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^1"' .  "$row[13]" . '"^7обезвреживаниями взрывчатки"');
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^5"' .  "$row[13]" . '"^7обезвреживаниями взрывчатки"');
         sleep 1;
     }
 }
 
 sub change_gametype {
     my $gametype = shift;
-    if (!defined($gametype)) { 
+    if (!defined($gametype)) {
 	print "WARNING: change_gametype was called without a game type\n";
-	return; }
-    if ($gametype !~ /^(dm|tdm|ctf|hq|sd|codjumper|phnt|zom)$/) {
+	return;
+	}
+    if ($gametype !~ /^(dm|tdm|ctf|hq|sd)$/) {
 	print "WARNING: change_gametype was called with an invalid game_type: $gametype\n";
-    return; }
+    return;
+	}
     if (&flood_protection('gametype', 60, $slot)) { return 1; }
     &rcon_command("say " . '"^2Смена режима игры на^7:^3"' . ($description{$gametype}));
     &rcon_command("g_gametype $gametype");
@@ -4122,9 +4122,7 @@ sub aliases {
 		    $found_none = 0;
                 }
             }
-	    if ($found_none) {
-		&rcon_command("say " . '"Не найдено имен для"' ." $name_by_slot{$matches[0]}");
-	    }
+	    if ($found_none) { &rcon_command("say " . '"Не найдено имен для"' ." $name_by_slot{$matches[0]}"); }
         }
     }
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
@@ -4143,7 +4141,7 @@ sub suk {
     &rcon_command("say" . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . "$row[3]" . '"^7смертями"');
+        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^1"' . "$row[1]" . '"^7с^1"' . "$row[3]" . '"^7смертями"');
         sleep 1;
     }
     # Worst k2d ratio
@@ -4154,7 +4152,7 @@ sub suk {
     &rcon_command("say " . '"^1Игроки с худшим к/д соотношением^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' . "$row[1]" . '"^7с^1"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7к/д соотношением"');
+        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^1"' . "$row[1]" . '"^7с^8"' . ( int($row[2] / $row[3] * 100) / 100 ) . '"^7к/д соотношением"');
         sleep 1;
     }
     # Worst headshot percentages
@@ -4165,7 +4163,7 @@ sub suk {
     &rcon_command("say " . '"^1Худший процент хедшотов^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^2"' .  "$row[1]" . '"^7c^1"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
+        &rcon_command("say ^3" . ($counter++) . "^7" . '"место:^1"' .  "$row[1]" . '"^7c^3"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
         sleep 1;
     }
 }
