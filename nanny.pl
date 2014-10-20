@@ -87,14 +87,14 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 575';
+my $version = '3.1 RUS Build 576';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
 my %name_warn_level;
 my $last_namecheck;
 my $rconstatus_interval = 30;
-my $guid_sanity_check_interval = 100;
+my $guid_sanity_check_interval = 597;
 my $problematic_characters = "\x86|\x99|\xAE|\xBB|\xAB";
 my $config;
 my $line;
@@ -167,7 +167,7 @@ my $private_clients = 0;
 my $pure = 1;
 my $voice = 0;
 my $last_guid0_audit = time;
-my $guid0_audit_interval = 70;
+my $guid0_audit_interval = 295;
 my %ignore;
 my $ftp_lines = 0;
 my $ftp_inbandSignaling = 0;
@@ -3996,23 +3996,22 @@ sub check_player_names {
 	$warned = 0;
         if ($slot >= 0) {
 	    foreach $match_string (@banned_names) {
-		# print "DEBUG: if name: $name_by_slot{$slot} =~ $match_string\n"; 
 		if ($name_by_slot{$slot} =~ /$match_string/) {
 		    $warned = 1;
 		    if (!defined($name_warn_level{$slot})) { $name_warn_level{$slot} = 0; }
 		    if ($name_warn_level{$slot} == 0) {
 			print "NAME_WARN1: $name_by_slot{$slot} is using a banned name.  Match: $match_string\n";
-			&rcon_command("say ^1$name_by_slot{$slot}^7" . $config->{'banned_name_warn_message_1'} );
+			&rcon_command("say " . '"' . "^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_warn_message_1'} );
 			$name_warn_level{$slot} = 1;
 		    }
 			elsif ($name_warn_level{$slot} == 1) {
 			print "NAME_WARN2: $name_by_slot{$slot} is using a banned name.  (2nd warning) Match: $match_string\n";
-                        &rcon_command("say ^1$name_by_slot{$slot}^7" . $config->{'banned_name_warn_message_2'} );
+                        &rcon_command("say " . '"' . "^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_warn_message_2'} );
                         $name_warn_level{$slot} = 2;
                     }
 					elsif ($name_warn_level{$slot} == 2) {
                         print "NAME_KICK: $name_by_slot{$slot} is using a banned name.  (3rd strike) Match: $match_string\n";
-                        &rcon_command("say ^1$name_by_slot{$slot}^7" . $config->{'banned_name_kick_message'} );
+                        &rcon_command("say " . '"' . "^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_kick_message'} );
                         sleep 1;
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
@@ -4895,7 +4894,6 @@ sub make_affiliate_server_announcement {
 
 # BEGIN: &get_server_info($ip_address)
 sub get_server_info {
-    # ripped from my getinfo.pl
     my $ip_address = shift;
     my $total_tries = 3; # The total number of attempts to get an answer out of the server.
     my $read_timeout = 1; # Number of seconds per attempt to wait for the response packet.
@@ -4974,7 +4972,6 @@ sub broadcast_message {
     my $password;
     my $rcon;
     $message = "say ^1[^7$name^2\@^3$server_name^1]^7: $message";
-
     foreach $config_val (@remote_servers) {
 	if ($config_val =~ /^([\d\.]+):(\d+):(.*)/) {
 	    ($ip_address,$port,$password) = ($1,$2,$3);
