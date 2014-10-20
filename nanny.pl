@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 578';
+my $version = '3.1 RUS Build 579';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2701,7 +2701,7 @@ sub rcon_status {
 	    if ($ping ne 'CNCT') {
 		if ($ping eq '999') {
 		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
-		    if (($last_ping{$slot} == 999) && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
+		    if (($last_ping{$slot} eq '999') && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
 			print "PING ENFORCEMENT: 999 ping for $name\n";
 			&rcon_command("say " . &strip_color($name) . '" ^7был выкинут за 999 пинг."');
 			sleep 1;
@@ -2742,6 +2742,7 @@ sub rcon_status {
     }
     # END:  IP Guessing from cache
 	# Check for banned guid/ip
+	if (!defined($ping)) { $ping = '0'; }
 	if ($ping ne '999') { &check_banned_guid_ip; }
 }
 # END: rcon_status
@@ -2791,7 +2792,7 @@ sub check_banned_guid_ip {
 	}
 	$banned_guid = 0;
 }
-    # END: Banned GUID/IP check
+# END: Banned GUID/IP check
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
