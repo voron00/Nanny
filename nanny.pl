@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 577';
+my $version = '3.1 RUS Build 578';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -547,7 +547,7 @@ while (1) {
 		$idle_warn_level{$slot} = 0;
 		$guid_by_slot{$slot} = $guid;
 		&update_name_by_slot($name, $slot);
-		$ip_by_slot{$slot} = '"пока не известен"';
+		$ip_by_slot{$slot} = 'not_yet_known';
 		$spam_count{$slot} = 0;
 		$spam_last_said{$slot} = 'none';
 		$last_ping{$slot} = 0;
@@ -560,6 +560,8 @@ while (1) {
         }
 		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"'. "$name" . '^7 присоединился к игре'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
+		# Check for banned guid/ip
+		&check_banned_guid_ip;
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
 	}
@@ -2697,15 +2699,16 @@ sub rcon_status {
 	    }
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
-		if ($ping == 999) {
+		if ($ping eq '999') {
 		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
 		    if (($last_ping{$slot} == 999) && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
 			print "PING ENFORCEMENT: 999 ping for $name\n";
-			&rcon_command("say " . "$name" . '" ^7был выкинут за 999 пинг."');
+			&rcon_command("say " . &strip_color($name) . '" ^7был выкинут за 999 пинг."');
 			sleep 1;
 			&rcon_command("clientkick $slot");
-			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long"); }
+			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long");
 			}
+		}
 		else {
 		    if (!defined($ping_average{$slot})) { $ping_average{$slot} = 0; }
 		    $ping_average{$slot} = int(($ping_average{$slot} * 0.85) + ($ping * 0.15));
@@ -2713,7 +2716,8 @@ sub rcon_status {
 			&rcon_command("say $name " . '"^7 был выкинут за слишком высокий пинг."' . " ($ping_average{$slot} / 350)");
 			&log_to_file('logs/kick.log', "$name was kicked for having too high of an average ping. ($ping_average{$slot} / 350)");
 			sleep 1;
-			&rcon_command("clientkick $slot"); }
+			&rcon_command("clientkick $slot");
+			}
 		}
 		# we need to remember this for the next ping we check.
 		$last_ping{$slot} = $ping;
@@ -2726,8 +2730,8 @@ sub rcon_status {
     # BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
     foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
 	if ($slot >= 0) {
-	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq '"пока не известен"')) {
-		$ip_by_slot{$slot} = 'неизвестен';
+	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
+		$ip_by_slot{$slot} = 'unknown';
 		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
 		    $ip_by_slot{$slot} = $row[0] . '?';
@@ -2737,29 +2741,32 @@ sub rcon_status {
 	}
     }
     # END:  IP Guessing from cache
+	# Check for banned guid/ip
+	if ($ping ne '999') { &check_banned_guid_ip; }
+}
+# END: rcon_status
 
-    # BEGIN: Check for Banned IP/GUID
+# BEGIN: Check for Banned GUID/IP
+sub check_banned_guid_ip {
     my $stripped;
-    $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	my $sth;
+    my $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
         if ($slot >= 0) {
 	    $stripped = $guid_by_slot{$slot};
 	    $sth->execute($stripped);
-		if (!defined($ping)) { $ping = 999; }
-		if ($ping ne 999) {
 	    while (@row = $sth->fetchrow_array) {
 		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
 		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 		sleep 1;
-		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . '"^7У вас перманентный бан."'); }
+		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . "^7: " . '"^7У вас перманентный бан."'); }
 		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
 		sleep 1;
 		&rcon_command("clientkick $slot");
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
 	    $banned_guid = 1;
 	    }
-	}
     }
 	}
 	if ($banned_guid ne 1) {
@@ -2768,8 +2775,6 @@ sub rcon_status {
         if ($slot >= 0) {
 	    $stripped = $ip_by_slot{$slot};
 	    $sth->execute($stripped);
-		if (!defined($ping)) { $ping = 999; }
-		if ($ping ne 999) {
 	    while (@row = $sth->fetchrow_array) {
 		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
@@ -2782,13 +2787,11 @@ sub rcon_status {
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
 	    }
 	}
-    }
 	}
 	}
 	$banned_guid = 0;
-    # END: Banned IP/GUID check
 }
-# END: rcon_status
+    # END: Banned GUID/IP check
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
@@ -3748,7 +3751,7 @@ sub unban_command {
 	$bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE name LIKE ?"); }
     $bans_sth->execute($unban) or &die_nice("Unable to do unban SELECT: $unban\n");
     while (@row = $bans_sth->fetchrow_array) {
-	&rcon_command("say $row[5]" . '" был разбанен админом"' . "   (BAN ID#: ^1$row[0]^7" . '" удален)"');
+	&rcon_command("say $row[5]" . '" ^7был разбанен админом"' . "   (BAN ID#: ^1$row[0]^7" . '" удален)"');
 	push (@unban_these, $row[0]);
 	&log_to_file('logs/commands.log', "UNBAN: $row[5] was unbanned by an admin.   (ban id#: $row[0] deleted)"); }
     # now clean up the database ID's.
