@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 579';
+my $version = '3.1 RUS Build 580';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -650,7 +650,7 @@ while (1) {
 		else { print "GAME OVER: $name has WON this game of $game_type on $map_name\n"; }
 
 		# Buy some time so we don't do an rcon status during a level change
-		$last_rconstatus = $time;
+		if ($game_type ne 'sd') { $last_rconstatus = $time; }
 
 		# cache the guid and name
 		if ($guid) { &cache_guid_to_name($guid,$name); }
@@ -2595,7 +2595,6 @@ sub rcon_status {
     foreach $line (@lines) {
 	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)/) {
 	    ($slot,$score,$ping,$guid,$remainder) = ($1,$2,$3,$4,$5);
-
 	    # rate
 	    if ($remainder =~ /\s+(\d+)\s*$/) {
 		$rate = $1;
@@ -2605,7 +2604,6 @@ sub rcon_status {
 		print "Skipping malformed line: $line\n";
 		next;
 	    }
-
 	    # qport
 	    if ($remainder =~ /\s+(\d+)$/) {
 		$qport = $1;
@@ -2615,7 +2613,6 @@ sub rcon_status {
 		print "Skipping malformed line: $line\n";
 		next;
 	    }
-
 	    # ip and port
 	    if ($remainder =~ /\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)$/) {
 		($ip,$port) = ($1,$2);
@@ -2638,7 +2635,6 @@ sub rcon_status {
 		print "Skipping malformed line: $line\n";
 		next;
 	    }
-
 	    # lastmsg
 	    if ($remainder =~ /(.*)\^7$/) {
 		$name = $1;
@@ -2649,12 +2645,8 @@ sub rcon_status {
 		print "Skipping malformed line: $line\n";
 		next;
 	    }
-
 	    # Name sanity check.  New rcon library gets crazy sometimes.
-	    if (length($name) > 31) {
-		# print "DEBUG: Skipping Malformed Name: $name\n";
-		next;
-	    }
+	    if (length($name) > 31) { next; }
 
 	    # we know at this point that the line is complete.
 	    # the record is intact
@@ -2665,8 +2657,8 @@ sub rcon_status {
 	    # cache the guid
 	    $guid_by_slot{$slot} = $guid;
 
-            # cache slot to IP mappings
-            $ip_by_slot{$slot} = $ip;
+        # cache slot to IP mappings
+        $ip_by_slot{$slot} = $ip;
 
 	    # cache the ip to guid mapping
 	    if ($guid) { &cache_ip_to_guid($ip,$guid); }
@@ -2691,9 +2683,7 @@ sub rcon_status {
 		    # was it recent enough to still be cached by activision?
 		    if ( ($time - $most_recent_time) < (2 * $rconstatus_interval) ) {
 			# Is it time to run another sanity check?
-			if ( ($time - $last_guid_sanity_check) > $guid_sanity_check_interval ) {
-                            &guid_sanity_check($guid,$ip);
-			}
+			if ( ($time - $last_guid_sanity_check) > $guid_sanity_check_interval ) { &guid_sanity_check($guid,$ip); }
 		    } 
 		}
 	    }
@@ -2703,7 +2693,7 @@ sub rcon_status {
 		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
 		    if (($last_ping{$slot} eq '999') && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
 			print "PING ENFORCEMENT: 999 ping for $name\n";
-			&rcon_command("say " . &strip_color($name) . '" ^7был выкинут за 999 пинг."');
+			&rcon_command("say " . &strip_color($name) . '" ^7был выкинут за 999 пинг"');
 			sleep 1;
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long");
@@ -2713,7 +2703,7 @@ sub rcon_status {
 		    if (!defined($ping_average{$slot})) { $ping_average{$slot} = 0; }
 		    $ping_average{$slot} = int(($ping_average{$slot} * 0.85) + ($ping * 0.15));
 		    if (($config->{'ping_enforcement'}) && ($ping_average{$slot} > ($config->{'max_ping_average'}))) {
-			&rcon_command("say $name " . '"^7 был выкинут за слишком высокий пинг."' . " ($ping_average{$slot} / 350)");
+			&rcon_command("say $name " . '"^7 был выкинут за слишком высокий пинг"' . " ($ping_average{$slot} / 350)");
 			&log_to_file('logs/kick.log', "$name was kicked for having too high of an average ping. ($ping_average{$slot} / 350)");
 			sleep 1;
 			&rcon_command("clientkick $slot");
@@ -2742,7 +2732,7 @@ sub rcon_status {
     }
     # END:  IP Guessing from cache
 	# Check for banned guid/ip
-	if (!defined($ping)) { $ping = '0'; }
+	if (!defined($ping)) { $ping = 0; }
 	if ($ping ne '999') { &check_banned_guid_ip; }
 }
 # END: rcon_status
