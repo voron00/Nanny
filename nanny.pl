@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 576';
+my $version = '3.1 RUS Build 577';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -562,7 +562,6 @@ while (1) {
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
-		$last_rconstatus = 0;
 	}
 	elsif ($first_char eq 'Q') {
 	    # A "QUIT" Event has happened
@@ -696,7 +695,6 @@ while (1) {
             if ($line =~ /\\sv_voice\\([^\\]+)/) { $voice = $1; }
 	    print "MAP STARTING: $map_name $game_type\n";
 	        $freshen_next_map_prediction = 1;
-	        $last_rconstatus = 0;
 	}
 	elsif ($first_char eq 'S') {
 	    # Server Shutdown - Triggers when the server shuts down?
@@ -726,7 +724,6 @@ while (1) {
 		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_defuses = bomb_defuses + 1 WHERE name=?");
 		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats2\n");
 		}
-
         else { print "WARNING: unrecognized A line format:\n\t$line\n"; }
 	}
 	elsif (($first_char eq chr(13)) or ($first_char eq '')) {
