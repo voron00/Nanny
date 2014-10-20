@@ -2741,7 +2741,7 @@ sub rcon_status {
 sub check_banned_guid_ip {
     my $stripped;
 	my $sth;
-    my $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+    $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
         if ($slot >= 0) {
 	    $stripped = $guid_by_slot{$slot};
