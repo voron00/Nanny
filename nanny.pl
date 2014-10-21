@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 581';
+my $version = '3.1 RUS Build 582';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -954,7 +954,7 @@ sub load_config_file {
 	    }
 	    elsif ($config_name eq 'announcement') {
                 push @announcements, $config_val;
-                print "Anouncement: $config_val\n";
+				print "Announcement: $config_val\n";
             }
 	    elsif ($config_name eq 'affiliate_server') {
                 push @affiliate_servers, $config_val;
@@ -1314,26 +1314,26 @@ sub initialize_databases {
     # The big welcome message
     print
 "********************************************************************************
-                Сиделка для сервера Call of Duty 2
-                    Версия $version
-                        Автор - smugllama
-                   Доработка и перевод - VoroN
+                     Сиделка для сервера Call of Duty 2
+                         Версия $version
+                            Автор - smugllama
+                        Доработка и перевод - VoroN
 
-                  RCON-модуль основан на KKrcon
-                  http://kkrcon.sourceforge.net
+                       RCON-модуль основан на KKrcon
+                       http://kkrcon.sourceforge.net
 
-                IP-Геолокация предоставлена MaxMind
-                      http://www.maxmind.com
+                     IP-Геолокация предоставлена MaxMind
+                          http://www.maxmind.com
 
-                Поддержка удаленных FTP лог-файлов
-                основана на ftptail от Will Moffat
-                http://hamstersoup.wordpress.com/ftptail
+                      Поддержка удаленных FTP лог-файлов
+                      основана на ftptail от Will Moffat
+                    http://hamstersoup.wordpress.com/ftptail
 
-                Оригинанльная версия NannyBot доступна на:
-                   http://smaert.com/nannybot.zip
+                    Оригинанльная версия NannyBot доступна на:
+                        http://smaert.com/nannybot.zip
 		
-                Последняя Русская версия доступна на:
-                   https://github.com/voron00/Nanny
+                    Последняя Русская версия доступна на:
+                      https://github.com/voron00/Nanny
 
 ********************************************************************************"
 ; }
@@ -4017,7 +4017,7 @@ sub check_player_names {
 sub make_announcement {
     my $total = $#announcements;
     my $announce = $announcements[int(rand($total))];
-    print "Making Anouncement: $announce\n";
+    print "Making Announcement: $announce\n";
     &rcon_command("say $announce");
 }
 # END: make_announcement
@@ -4033,7 +4033,7 @@ sub aliases {
     my $guessed = 0;
     if ($#matches == -1) {
 	if (&flood_protection('aliases-nomatch', 15, $slot)) { return 1; }
-	&rcon_command("say " .  '"Нет совпадений с: "' . "$search_string");
+	&rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
     }
     elsif ($#matches == 0) {
 	
