@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 582';
+my $version = '3.1 RUS Build 583';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2391,10 +2391,30 @@ sub chat{
 	# !caen  !trainstation
 	elsif ($message =~ /^!(caen|train.?station)\b/i) {
 	    if (&check_access('map_control')) {
-		&rcon_command("say " . '"^2—мена на: "' . "^3Caen France      ^7(mp_trainstation)");
+		&rcon_command("say " . '"^2—мена на: "' . "^3Caen, France      ^7(mp_trainstation)");
 		sleep 1;
 		&rcon_command('map mp_trainstation');
 	    }
+	}
+    # !rostov  !harbor
+	elsif ($message =~ /^!(harbor|rostov)\b/i) {
+	    if($cod_version eq '1.3') {
+	    if (&check_access('map_control')) {
+		&rcon_command("say " . '"^2—мена на: "' . "^3Rostov, Russia      ^7(mp_harbor)");
+		sleep 1;
+		&rcon_command('map mp_harbor');
+		}
+	    }
+	}
+	# !rhine  !wallendar
+	elsif ($message =~ /^!(rhine|wallendar)\b/i) {
+	    if($cod_version eq '1.3') {
+	    if (&check_access('map_control')) {
+		&rcon_command("say " . '"^2—мена на: "' . "^3Wallendar, Germany      ^7(mp_rhine)");
+		sleep 1;
+		&rcon_command('map mp_rhine');
+	    }
+		}
 	}
 	# End of map !commands
 	# !time
