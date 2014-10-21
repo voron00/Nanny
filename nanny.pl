@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 580';
+my $version = '3.1 RUS Build 581';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -200,7 +200,6 @@ my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
 my $ftpfail = 0;
-my $banned_guid = 0;
 
 # turn on auto-flush for STDOUT
 $| = 1;
@@ -560,8 +559,8 @@ while (1) {
         }
 		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"'. "$name" . '^7 присоединился к игре'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
-		# Check for banned guid/ip
-		&check_banned_guid_ip;
+		# Check for banned GUID
+		&check_banned_guid($guid,$name);
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
 	}
@@ -1026,11 +1025,9 @@ sub die_nice {
 # BEGIN: open_server_logfile(logfile)
 sub open_server_logfile {
     my $log_file = shift;
-    if (!defined($log_file)) {
-	&die_nice("open_server_logfile called without an argument\n"); }
-    if (!-e $log_file) { 
-	&die_nice("open_server_logfile file does not exist: $log_file\n"); }
-    print "Opening $log_file for reading...\n\n"; 
+    if (!defined($log_file)) { &die_nice("open_server_logfile called without an argument\n"); }
+    if (!-e $log_file) { &die_nice("open_server_logfile file does not exist: $log_file\n"); }
+    print "Opening $log_file for reading...\n\n";
 	open (LOGFILE, $log_file) or &die_nice("unable to open $log_file: $!\n");
 	}
 # END: open_server_logfile
@@ -2731,42 +2728,45 @@ sub rcon_status {
 	}
     }
     # END:  IP Guessing from cache
-	# Check for banned guid/ip
+	# Check for banned ip
 	if (!defined($ping)) { $ping = 0; }
-	if ($ping ne '999') { &check_banned_guid_ip; }
+	if ($ping ne '999') { &check_banned_ip; }
 }
 # END: rcon_status
 
-# BEGIN: Check for Banned GUID/IP
-sub check_banned_guid_ip {
-    my $stripped;
+# BEGIN: Check for Banned GUID
+sub check_banned_guid {
+    my $guid = shift;
+	my $name = shift;
 	my $sth;
     $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-    foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
-        if ($slot >= 0) {
-	    $stripped = $guid_by_slot{$slot};
-	    $sth->execute($stripped);
+	    $sth->execute($guid);
 	    while (@row = $sth->fetchrow_array) {
-		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+		sleep 1;
+		&rcon_command("say ^1" . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
 		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 		sleep 1;
-		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . "^7: " . '"^7У вас перманентный бан."'); }
-		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
+		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
+		else { &rcon_command("say ^1" . &strip_color($name) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
 		sleep 1;
 		&rcon_command("clientkick $slot");
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
-	    $banned_guid = 1;
 	    }
-    }
-	}
-	if ($banned_guid ne 1) {
+}
+# END: Banned GUID
+
+# BEGIN: Check for Banned IP
+sub check_banned_ip {
+    my $stripped;
+	my $sth;
 	$sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
         if ($slot >= 0) {
 	    $stripped = $ip_by_slot{$slot};
 	    $sth->execute($stripped);
 	    while (@row = $sth->fetchrow_array) {
+		sleep 1;
 		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
 		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
@@ -2779,10 +2779,8 @@ sub check_banned_guid_ip {
 	    }
 	}
 	}
-	}
-	$banned_guid = 0;
 }
-# END: Banned GUID/IP check
+# END: Banned IP check
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
