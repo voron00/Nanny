@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.1 RUS Build 583';
+my $version = '3.1 RUS Build 584';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1995,9 +1995,9 @@ sub chat{
 		    sleep 1;
 			&rcon_command("say " . '"^3Downloadable at:^2 http://smaert.com/nannybot.zip"');
 			sleep 1;
-			&rcon_command("say " . '"Кастомная русская версия от ^5V^0oro^5N"');
+			&rcon_command("say " . '"Доработка и перевод - ^5V^0oro^5N"');
 		    sleep 1;
-		    &rcon_command("say " . '"^3Исходный код данной русской версии можно найти тут:^2 https://github.com/voron00/Nanny"');
+		    &rcon_command("say " . '"^3Исходный код данной версии можно найти тут:^2 https://github.com/voron00/Nanny"');
 		}	    
 	    }
 	}
@@ -3470,7 +3470,7 @@ sub clear_names {
 
 # BEGIN: !report command($search_string)
 sub report_player {
-    if (&flood_protection('report_player', 60, $slot)) { return 1; }
+    if (&flood_protection('report_player', 60)) { return 1; }
     my $search_string = shift;
     my $target_player;
 	my $target_player_guid;
