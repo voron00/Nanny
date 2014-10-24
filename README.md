@@ -27,6 +27,6 @@ Nanny
 Превью:
 
 Ubuntu
-![ScreenShot](http://s018.radikal.ru/i510/1405/6c/fa5144280d7b.png)
+![ScreenShot](http://prntscr.com/4zby4h)
 Windows
-![ScreenShot](http://s020.radikal.ru/i720/1405/1f/8c05980fe23e.png)
+![ScreenShot](http://prntscr.com/4zbyyn)
