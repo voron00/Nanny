@@ -50,14 +50,17 @@ sub load_config_file {
             ($config_name,$config_val) = ($1,$2);
             if ($config_name eq 'ip_address') {
                 $address = $config_val;
-                print "Server IP address: $address\n"; }
+                print "Server IP address: $address\n";
+			}
             elsif ($config_name eq 'port') {
                 $port = $config_val;
-		        print "Server port number: $port\n"; }
+		        print "Server port number: $port\n";
+			}
             elsif ($config_name eq 'rcon_pass') {
                 $password = $config_val;
-                print "RCON password: " . '*'x length($password) . "\n"; }
- 	}
+                print "RCON password: " . '*'x length($password) . "\n";
+			}
+ 	    }
     }
     print "\n";
 }
@@ -69,16 +72,17 @@ sub execute {
     if (my $error = $rcon->error) {
 	if ($error eq 'Rcon timeout') {
 	print "rebuilding rcon object\n";
-	$rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old'); }
+	$rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old');
+	}
 	else { print "WARNING: rcon error: $error\n"; }
-	return 1; }
+	return 1;
+	}
 	else { return 0; }
 }
 
 sub die_nice {
     my $message = shift;
-    if ((!defined($message)) or ($message !~ /./)) {
-	$message = 'default die_nice message.\n\n'; }
+    if ((!defined($message)) or ($message !~ /./)) { $message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
 	print "Press <ENTER> to close this program\n";
 	my $who_cares = <STDIN>;

@@ -27,6 +27,6 @@ Nanny
 Превью:
 
 Ubuntu
-![ScreenShot] (http://i.imgur.com/WjR2jse.png)
+![ScreenShot](http://i.imgur.com/WjR2jse.png)
 Windows
 ![ScreenShot](http://i.imgur.com/9xD8ME5.png)
