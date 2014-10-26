@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 14';
+my $version = '3.2 RUS Build 15';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4053,8 +4053,8 @@ sub flood_protection {
     # Make sure that flood protection is enabled. Otherwise, all is allowed.
     if ($config->{'flood_protection'}) { }
     else { return 0; }
-    # Exemption for global admins
-    if (&check_access('flood_exemption')) { return 0; }
+    # Exemption for global admins (3 seconds delay)
+    if (&check_access('flood_exemption')) { $min_interval = 3; }
     # Ensure that all values are defined.
     if ((!defined($min_interval)) or ($min_interval !~ /^\d+$/)) { $min_interval = 60; }
     if ((!defined($slot)) or ($slot !~ /^\d+$/)) { $slot = 'global'; }
