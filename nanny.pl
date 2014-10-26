@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 9';
+my $version = '3.2 RUS Build 14';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1752,10 +1752,6 @@ sub chat{
         elsif ($message =~ /^!say\s+(.+)/i) {
             if (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
         }
-	# !rcon
-        elsif ($message =~ /^!rcon\s+(.+)/i) {
-            if (&check_access('rcon')) { &rcon_command("$1"); }
-        }
 	# !saybold (Admin mod)
         elsif (($message =~ /^!saybold\s+(.+)/i) && ($config->{'use_admin_mod'})) {
             if (&check_access('saybold')) { &rcon_command("set saybold" . '"' . "$1"); }
@@ -2449,15 +2445,14 @@ sub locate {
 # BEGIN: rcon_status
 sub rcon_status {
     my $status = &rcon_query('status');
-
     print "$status\n";
     my @lines = split(/\n/,$status);
+	my @row;
     my $line;
     my $slot;
     my $score;
     my $ping;
     my $guid;
-    my $remainder;
     my $rate;
     my $qport;
     my $ip;
@@ -2467,82 +2462,22 @@ sub rcon_status {
     my $colorless;
     foreach $line (@lines) {
 	if ($line =~ /^map: (.*)/) { $map_name = $1; }
-	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)/) {
-	    ($slot,$score,$ping,$guid,$remainder) = ($1,$2,$3,$4,$5);
-	    # rate
-	    if ($remainder =~ /\s+(\d+)\s*$/) {
-		$rate = $1;
-		$remainder =~ s/\s+(\d+)\s*$//;
-	    }
-		else {
-		print "Skipping malformed line: $line\n";
-		next;
-	    }
-	    # qport
-	    if ($remainder =~ /\s+(\d+)$/) {
-		$qport = $1;
-		$remainder =~ s/\s+(\d+)\s*$//;
-	    }
-		else {
-		print "Skipping malformed line: $line\n";
-		next;
-	    }
-	    # ip and port
-	    if ($remainder =~ /\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)$/) {
-		($ip,$port) = ($1,$2);
-		$remainder =~ s/\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)$//;
-	    }
-		elsif ($remainder =~ /\s+loopback$/) {
-		($ip,$port) = ($config->{'ip'},'31337');
-		$remainder =~ s/\s+loopback$//;
-	    }
-		else {
-		print "Skipping malformed line: $line\n";
-		next;
-	    }
-	    # lastmsg
-	    if ($remainder =~ /\s+(\d+)$/) {
-		$lastmsg = $1;
-		$remainder =~ s/\s+(\d+)\s*$//;
-	    }
-		else {
-		print "Skipping malformed line: $line\n";
-		next;
-	    }
-	    # lastmsg
-	    if ($remainder =~ /(.*)\^7$/) {
-		$name = $1;
-		# strip trailing spaces.
-		$name =~ s/\s+$//;
-	    }
-		else {
-		print "Skipping malformed line: $line\n";
-		next;
-	    }
-	    # Name sanity check.  New rcon library gets crazy sometimes.
-	    if (length($name) > 31) { next; }
-
-	    # we know at this point that the line is complete.
-	    # the record is intact
-
+	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+(\d+)\s+(\d+)/) {
+	    ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
+		# strip trailing spaces and some colors.
+		$name =~ s/\^\d\s+$//;
 	    # cache the name
 	    &update_name_by_slot($name, $slot);
-
 	    # cache the guid
 	    $guid_by_slot{$slot} = $guid;
-
         # cache slot to IP mappings
         $ip_by_slot{$slot} = $ip;
-
 	    # cache the ip to guid mapping
 	    if ($guid) { &cache_ip_to_guid($ip,$guid); }
-
 	    # cache the guid_to_name mapping
 	    if ($guid) { &cache_guid_to_name($guid,$name); }
-
 	    # cache the ip to name mapping
 	    &cache_ip_to_name($ip,$name);
-
 	    # cache names without color codes, too.
 	    $colorless = &strip_color($name);
 	    if ($colorless ne $name) { 
@@ -2588,7 +2523,6 @@ sub rcon_status {
 	    # End of Ping Checks.
 	}
     }
-    my @row;
     my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
     # BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
     foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
@@ -4148,9 +4082,7 @@ sub tell {
     my $key;
     if ((!defined($search_string)) or ($search_string !~ /./)) { return 1; }
     if ((!defined($message)) or ($message !~ /./)) { return 1; }
-
     my @matches = &matching_users($search_string);
-
     if ($#matches == -1) {
         if (&flood_protection('tell-nomatch', 15, $slot)) { return 1; }
         &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
