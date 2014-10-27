@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 16';
+my $version = '3.2 RUS Build 17';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1644,6 +1644,13 @@ sub chat{
         }
         elsif ($message =~ /^!guid\s*$/i) {
             if (&check_access('guid')) { &rcon_command("say " . '"!guid для кого?"'); }
+        }
+		# !age (search_string)
+        elsif ($message =~ /^!age\s+(.+)/i) {
+            if (&check_access('age')) { &age_player($1); }
+        }
+        elsif ($message =~ /^!age\s*$/i) {
+            if (&check_access('age')) { &rcon_command("say " . '"!age для кого?"'); }
         }
 		# !report (search_string)
         elsif ($message =~ /^!report\s+(.+)/i) {
@@ -3350,6 +3357,25 @@ sub guid_player {
     elsif ($#matches == 0) {
 	$slot = $matches[0];
 	&rcon_command("say " . '"GUID:^7"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}");
+	}
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+}
+
+# BEGIN: !age command($search_string)
+sub age_player {
+    if (&flood_protection('age_command', 60, $slot)) { return 1; }
+    my $search_string = shift;
+	my $age = 5 + int(rand(30 - 5));
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	&rcon_command("say " . '"Провожу расчет возраста для игрока"' . "^2$name_by_slot{$slot}");
+	sleep 3;
+	if ($age >= 5 && $age <= 20 or $age >= 25 && $age <= 30) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7лет"'); }
+	elsif ($age == 21) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7год"'); }
+	else { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7года"'); }
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
