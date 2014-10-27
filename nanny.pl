@@ -2462,7 +2462,7 @@ sub rcon_status {
     my $colorless;
     foreach $line (@lines) {
 	if ($line =~ /^map: (.*)/) { $map_name = $1; }
-	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+(\d+)\s+(\d+)/) {
+	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+((-?\d+))\s+(\d+)/) {
 	    ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
 		# strip trailing spaces and some colors.
 		$name =~ s/\^\d\s+$//;
