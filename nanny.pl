@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 17';
+my $version = '3.2 RUS Build 18';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -457,10 +457,7 @@ while (1) {
 		    }
 		}
 		# First Blood
-		if (
-		    ($config->{'first_blood'}) &&
-		    ($first_blood == 0) &&
-		    ($attacker_slot ne $victim_slot) && ($attacker_slot >= 0)) {   
+		if (($config->{'first_blood'}) && ($first_blood == 0) && ($attacker_slot ne $victim_slot) && ($attacker_slot >= 0)) {
 		    $first_blood = 1;
 		    &rcon_command("say " . '"^1ÏÅÐÂÀß ÊÐÎÂÜ:"' . "^1$attacker_name^7" . '"óáèë"' . "^2$victim_name^7");
 		    print "FIRST BLOOD: $attacker_name killed $victim_name\n";
@@ -711,20 +708,16 @@ while (1) {
     }
 	else {
 	# We have reached the end of the logfile.
-
 	# Delay some time so we aren't constantly hammering this loop
 	usleep(10000);
-
 	# cache the time to limit the number of syscalls
 	$time = time;
 	$timestring = scalar(localtime($time));
-
 	# Freshen the rcon status if it's time
 	if ( ($time - $last_rconstatus) >= $rconstatus_interval ) {
 	    $last_rconstatus = $time;
 	    &rcon_status;
 	}
-
 	# Anti-Idle check
 	if ($config->{'antiidle'}) {
 	    if ( ($time - $last_idlecheck) >= $idlecheck_interval ) {
@@ -732,19 +725,16 @@ while (1) {
 		&idle_check;
 	    }
 	}
-
         # Check for bad names if its time
         if ( ($time - $last_namecheck) >= $namecheck_interval ) {
             $last_namecheck = $time;
             &check_player_names;
         }
-
         # Check if it is time to make our next announement yet.
         if (( $time >= $next_announcement) && ($config->{'use_announcements'})) {
             $next_announcement = $time + ( 60 * ( $config->{'interval_min'} + int( rand( $config->{'interval_max'} - $config->{'interval_min'} + 1 ) ) ) );
             &make_announcement;
         }
-
 	# Check if it is time to make our next affiliate server announement yet.
 	if ($config->{'affiliate_server_announcements'}) {
 	    if ( $time >= $next_affiliate_announcement ) {
@@ -752,7 +742,6 @@ while (1) {
 		&make_affiliate_server_announcement;
 	    }
 	}
-
 	# Check to see if its time to reactivate voting
 	if (($reactivate_voting) && ($time >= $reactivate_voting)) {
 	    $reactivate_voting = 0;
@@ -761,13 +750,11 @@ while (1) {
 		print "ANTI-VOTE-RUSH: Reactivated Voting...\n";
 	    }
 	}
-
 	# Check to see if it's time to audit a GUID 0 person
 	if (($config->{'audit_guid0_players'}) && ( ($time - $last_guid0_audit) >= $guid0_audit_interval )) {
             $last_guid0_audit = $time;
             &check_guid_zero_players;
         }
-
 	# Check to see if we need to predict the next level
 	if ($freshen_next_map_prediction) {
 	    # check if gametype has been defined properly
@@ -2604,8 +2591,11 @@ sub rcon_command {
     my ($command) = @_;
     # odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
-    if ($config->{'show_rcon'}) { print "RCON: $command\n"; }
-    $rcon->execute($command);
+	$rcon->execute($command);
+    if ($config->{'show_rcon'}) {
+	$command =~ s/\^\d//g;
+	print "RCON: $command\n";
+	}
     sleep 1;
     if (my $error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
@@ -2627,8 +2617,11 @@ sub rcon_query {
 	my $result;
 	# odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
-    if ($config->{'show_rcon'}) { print "RCON: $command\n"; }
-    $result = $rcon->execute($command);
+	$result = $rcon->execute($command);
+    if ($config->{'show_rcon'}) {
+	$command =~ s/\^\d//g;
+	print "RCON: $command\n"; 
+	}
     sleep 1; 
     if (my $error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
