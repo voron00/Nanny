@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 20';
+my $version = '3.2 RUS Build 22';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1451,7 +1451,7 @@ sub chat{
 	}
 	elsif ($message =~ /^!(locate|geolocate)\s*$/i) {
 	    if (&check_access('locate')) {
-		if (&flood_protection('locate-miss', 60, $slot)) { }
+		if (&flood_protection('locate-miss', 15, $slot)) { }
         else { &rcon_command("say " . '"!locate кого?"'); }
 	    }
 	}
@@ -1481,7 +1481,7 @@ sub chat{
 	}
 	elsif ($message =~ /^!seen\s*$/i) {
 	    if (&check_access('seen')) {
-		if (&flood_protection('seen-miss', 60, $slot)) { }
+		if (&flood_protection('seen-miss', 15, $slot)) { }
 		else { &rcon_command("say " . '"!seen кого?"'); }
 	    }
 	}
@@ -1571,7 +1571,7 @@ sub chat{
         }
 		elsif ($message =~ /^!(define|dictionary|dict)\s*$/i) {
             if (&check_access('define')) {
-		if (&flood_protection('dictionary-miss', 60, $slot)) { }
+		if (&flood_protection('dictionary-miss', 15, $slot)) { }
 		else { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7Что нужно добавить в словарь?"'); }
 		    }
 		}
@@ -2285,8 +2285,8 @@ sub locate {
     my $ip;
     my $guessed;
     my $spoof_match;
-    if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 60))) { return 1; }
-    if (&flood_protection('locate', 60, $slot)) { return 1; }
+    if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 120))) { return 1; }
+    if (&flood_protection('locate', 30, $slot)) { return 1; }
     foreach $slot (@matches) {
 	if ((&strip_color($name_by_slot{$slot}))) {
 	    print "MATCH: " . &strip_color($name_by_slot{$slot}) . ", IP = $ip_by_slot{$slot}\n";
@@ -2349,7 +2349,7 @@ sub rcon_status {
     my $name;
     my $colorless;
     foreach $line (@lines) {
-	if ($line =~ /^map: (.*)/) { $map_name = $1; }
+	if ($line =~ /^map:\s+(\w+)/) { $map_name = $1; }
 	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+(-?\d+)\s+(\d+)/) {
 	    ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
 		# strip trailing spaces and some colors.
@@ -2368,7 +2368,7 @@ sub rcon_status {
 	    &cache_ip_to_name($ip,$name);
 	    # cache names without color codes, too.
 	    $colorless = &strip_color($name);
-	    if ($colorless ne $name) { 
+	    if ($colorless ne $name) {
 		&cache_ip_to_name($ip,$colorless);
 		if ($guid) { &cache_guid_to_name($guid,$colorless); }
 	    }
@@ -3159,7 +3159,7 @@ sub ip_player {
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
-	&rcon_command("say " . '"IP-Адрес:^7"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}");
+	&rcon_command("say " . '"IP-Адрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}");
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
@@ -3173,7 +3173,7 @@ sub id_player {
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
-	&rcon_command("say " . '"ClientID:^7"' . "^2$name_by_slot{$slot}^7 - ^3$slot");
+	&rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot");
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
@@ -3187,7 +3187,7 @@ sub guid_player {
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
-	&rcon_command("say " . '"GUID:^7"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}");
+	&rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}");
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
@@ -3219,9 +3219,15 @@ sub tempban_command {
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
 	my @matches = &matching_users($search_string);
-	if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); return 0; }
+	if ($#matches == -1) {
+	&rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+	return 0;
+	}
 	elsif ($#matches == 0) { $slot = $matches[0]; }
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); return 0; }
+	elsif ($#matches > 0) {
+	&rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
+	return 0;
+	}
 	}
     my $ban_ip = 'undefined';
     my $tempbantime = $config->{'tempbantime'};
@@ -3242,9 +3248,15 @@ sub ban_command {
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); return 0; }
+    if ($#matches == -1) {
+	&rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+	return 0;
+	}
     elsif ($#matches == 0) { $slot = $matches[0]; }
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); return 0; }
+    elsif ($#matches > 0) {
+	&rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
+	return 0;
+	}
 	}
     my $ban_ip = 'undefined';
     my $unban_time = 2125091758;
@@ -3679,18 +3691,14 @@ sub worst {
 sub guid_sanity_check {
     my $should_be_guid = shift;
     my $ip = shift;
-
     $last_guid_sanity_check = $time;
-
     # make sure that the GUID sanity check is enabled before proceeding.
     if ($config->{'guid_sanity_check'}) {}
     else { return 0; }
-
     print "Running GUID sanity check\n";
     # check to make sure that IP -> GUID = last guid
     print "Look Up GUID for $ip and make sure it is $should_be_guid\n";
     # if guid is nonzero and is not last_guid, then we know sanity fails.
-
     my $total_tries = 3; # The total number of attempts to get an answer out of activision.
     my $read_timeout = 1; # Number of seconds to wait for activison to respond to a packet.
     my $activision_master = 'cod2master.activision.com';
@@ -3704,26 +3712,18 @@ sub guid_sanity_check {
     my $maximum_lenth = 200;
     my $portaddr;
     my ($session_id, $result, $reason, $guid);
-
     print "\nAsking $activision_master if $ip_address has provided a valid key recently.\n\n";
-
     socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
-
     my $random = int(rand(7654321));
     my $send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_address  0";
-
-    # $d_ip   = inet_aton($ip_address);
     $d_ip = gethostbyname($activision_master);
-
     my $selecta = IO::Select->new;
     $selecta->add(\*SOCKET);
     my @ready;
-
     while (($current_try++ < $total_tries) && ($still_waiting)) {
     # Send the packet
 	$portaddr = sockaddr_in($port, $d_ip);
 	send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("Cannot send to $ip_address($port): $!\n\n");
-	
 	# Check to see if there is a response yet.
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
@@ -3734,7 +3734,6 @@ sub guid_sanity_check {
 	    $got_response = 1;
 	    $still_waiting = 0;
 	}
-	# else { print "No response from $activision_master   Trying again...\n\n"; }
     }
     if ($got_response) {
 	if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
@@ -3745,7 +3744,6 @@ sub guid_sanity_check {
 	    print "\tReason: $reason\n";
 	    print "\tGUID: $guid\n";
 	    print "\n";
-
 	    if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
 		print "Explaination of: $reason\n";
 		print "\tThis IP Address has not provided any CD Keys to the activision server\n";
@@ -3962,7 +3960,6 @@ sub check_guid_zero_players {
 	return 1;
     }
     &fisher_yates_shuffle(\@possible);
-
     my $total_tries = 3; # The total number of attempts to get an answer out of activision.
     my $read_timeout = 1; # Number of seconds to wait for activison to respond to a packet.
     my $activision_master = 'cod2master.activision.com';
@@ -3982,7 +3979,6 @@ sub check_guid_zero_players {
     my @ready;
     my $kick_reason;
     my $dirtbag;
-
     # Try as many as we can within our time limit
     foreach $slot (@possible) {
 	$current_try = 0;
@@ -3991,19 +3987,14 @@ sub check_guid_zero_players {
 	$random = int(rand(7654321));
 	$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot}  0";
 	print "AUDITING: slot: $slot  ip: " . $ip_by_slot{$slot} . "  guid: " . $guid_by_slot{$slot} . "  name: " . $name_by_slot{$slot} . "\n";
-
 	print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid key recently.\n\n";
-
 	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
-
 	$selecta = IO::Select->new;
 	$selecta->add(\*SOCKET);
-	
 	while (($current_try++ < $total_tries) && ($still_waiting)) {
 	    # Send the packet
 	    $portaddr = sockaddr_in($port, $d_ip);
 	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $ip_address($port): $!\n\n");
-	    
 	    # Check to see if there is a response yet.
 	    @ready = $selecta->can_read($read_timeout);
 	    if (defined($ready[0])) {
@@ -4014,9 +4005,7 @@ sub check_guid_zero_players {
 		$got_response = 1;
 		$still_waiting = 0;
 	    }
-		# else { print "No response from $activision_master   Trying again...\n\n"; }
 	}
-
 	if ($got_response) {
 	    if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
 		($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
@@ -4026,7 +4015,6 @@ sub check_guid_zero_players {
 		print "\tReason: $reason\n";
 		print "\tGUID: $guid\n";
 		print "\n";
-
 		$dirtbag = 0;
 		if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
 		    print "Explaination of: $reason\n";
@@ -4321,7 +4309,6 @@ sub make_affiliate_server_announcement {
     my $mapname = 'undefined';
     my @results;
     my @info_lines;
-
     foreach $server (@affiliate_servers) {
 	$hostname = 'undefined';
 	$clients = 0;
@@ -4381,23 +4368,18 @@ sub get_server_info {
     my $pause_when_done;
     my %infohash;
     my $return_text = '';
-
     if ($ip_address =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\:(\d{1,5})$/) { ($ip_address,$port) = ($1,$2); }
     if ((!defined($ip_address)) or ($ip_address !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) { return "IP Address format error"; }
-
     socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or return "Socket error: $!";
-
     my $send_message = "\xFF\xFF\xFF\xFFgetinfo xxx";
-    $d_ip   = inet_aton($ip_address);
+    $d_ip = inet_aton($ip_address);
     my $selecta = IO::Select->new;
     $selecta->add(\*SOCKET);
     my @ready;
-
     while (($current_try++ < $total_tries) && ($still_waiting)) {
 	# Send the packet
 	$portaddr = sockaddr_in($port, $d_ip);
 	send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $ip_address($port): $!\n\n");
-
 	# Check to see if there is a response yet.
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
@@ -4408,11 +4390,9 @@ sub get_server_info {
 	    $got_response = 1;
 	    $still_waiting = 0;
 	}
-	# else { print "No response from $ip_address:$port ...  Trying again...\n\n"; }
     }
     if ($got_response) {
 	if ($message =~ /infoResponse/) {
-	    # print "Response from $ip_address:$port\n";
 	    $message = substr($message,14,length($message));
 	    my @parts = split(/\\/, $message);
 	    my $value;
