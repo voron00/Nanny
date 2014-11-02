@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 30';
+my $version = '3.2 RUS Build 31';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2379,15 +2379,16 @@ sub rcon_status {
 	    $guid_by_slot{$slot} = $guid;
         # cache slot to IP mappings
         $ip_by_slot{$slot} = $ip;
-	    # cache the ip to guid mapping
+	    # cache the ip_to_guid mapping
 	    if (($ip) && ($guid)) { &cache_ip_to_guid($ip,$guid); }
 	    # cache the guid_to_name mapping
 	    if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
-	    # cache the ip to name mapping
+	    # cache the ip_to_name mapping
 	    if (($ip) && ($name)) { &cache_ip_to_name($ip,$name); }
 	    # cache names without color codes, too.
 	    $colorless = &strip_color($name);
 	    if ($colorless ne $name) {
+		&update_name_by_slot($colorless, $slot);
 		if (($ip) && ($colorless)) { &cache_ip_to_name($ip,$colorless); }
 		if (($guid) && ($colorless)) { &cache_guid_to_name($guid,$colorless); }
 	    }
