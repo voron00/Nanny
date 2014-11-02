@@ -3200,7 +3200,7 @@ sub guid_player {
 sub age_player {
     if (&flood_protection('age_command', 60, $slot)) { return 1; }
     my $search_string = shift;
-	my $age = 10 + int(rand(35 - 5));
+	my $age = 10 + int(rand(25 - 5));
 	my $slot;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
