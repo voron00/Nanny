@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 22';
+my $version = '3.2 RUS Build 30';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -95,7 +95,7 @@ my %name_warn_level;
 my $last_namecheck;
 my $rconstatus_interval = 30;
 my $guid_sanity_check_interval = 597;
-my $problematic_characters = "\x86|\x99|\xAE|\xBB|\xAB";
+my $problematic_characters = "\[^\x00-\x7F]+";
 my $config;
 my $line;
 my $first_char;
@@ -221,6 +221,35 @@ elsif ($logfile_mode eq 'ftp') { &ftp_connect }
 # Initialize the database tables if they do not exist
 &initialize_databases;
 
+# The big welcome message
+print
+"
+================================================================================
+                     Сиделка для сервера Call of Duty 2
+                         Версия $version
+                            Автор - smugllama
+                        Доработка и перевод - VoroN
+
+                       RCON-модуль основан на KKrcon
+                       http://kkrcon.sourceforge.net
+
+                     IP-Геолокация предоставлена MaxMind
+                          http://www.maxmind.com
+
+                      Поддержка удаленных FTP лог-файлов
+                      основана на ftptail от Will Moffat
+                    http://hamstersoup.wordpress.com/ftptail
+
+                    Оригинанльная версия NannyBot доступна на:
+                        http://smaert.com/nannybot.zip
+		
+                    Последняя Русская версия доступна на:
+                      https://github.com/voron00/Nanny
+
+================================================================================
+"
+;
+
 # initialize the timers
 $time = time;
 $last_idlecheck = $time;
@@ -334,8 +363,8 @@ while (1) {
 		$attacker_name =~ s/\s+$//;
 		$victim_name =~ s/\s+$//;
 
-		if ($attacker_guid) { &cache_guid_to_name($attacker_guid, $attacker_name); }
-		if ($victim_guid) { &cache_guid_to_name($victim_guid, $victim_name); }
+		if (($attacker_guid) && ($attacker_name)) { &cache_guid_to_name($attacker_guid, $attacker_name); }
+		if (($victim_guid) && ($victim_name)) { &cache_guid_to_name($victim_guid, $victim_name); }
 		$last_activity_by_slot{$attacker_slot} = $time;
 
 		&update_name_by_slot($attacker_name, $attacker_slot);
@@ -492,14 +521,14 @@ while (1) {
 	    # A "DAMAGE" event has happened.
 	    if ($line =~ /^D;(\d+);(\d+);(allies|axis|);([^;]+);(\d*);([\d\-]+);(allies|axis|world|spectator|);([^;]*);(\w+);(\d+);(\w+);(\w+)/) {
 		($victim_guid, $victim_slot, $victim_team, $victim_name, $attacker_guid, $attacker_slot, $attacker_team,
-		 $attacker_name, $attacker_weapon, $damage, $damage_type, $damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+		$attacker_name, $attacker_weapon, $damage, $damage_type, $damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
 		$attacker_name =~ s/$problematic_characters//g;
-                $victim_name =~ s/$problematic_characters//g;
-		if ($attacker_guid) { &cache_guid_to_name($attacker_guid, $attacker_name); }
-		if ($victim_guid) { &cache_guid_to_name($victim_guid, $victim_name); }
+        $victim_name =~ s/$problematic_characters//g;
+        if (($attacker_guid) && ($attacker_name)) { &cache_guid_to_name($attacker_guid, $attacker_name); }
+		if (($victim_guid) && ($victim_name)) { &cache_guid_to_name($victim_guid, $victim_name); }
 		$last_activity_by_slot{$attacker_slot} = $time;
-                &update_name_by_slot($attacker_name, $attacker_slot);
-                &update_name_by_slot($victim_name, $victim_slot);
+        &update_name_by_slot($attacker_name, $attacker_slot);
+        &update_name_by_slot($victim_name, $victim_slot);
 		$guid_by_slot{$attacker_slot} = $attacker_guid;
 		$guid_by_slot{$victim_slot} = $victim_guid;
 		}
@@ -511,8 +540,9 @@ while (1) {
 	    #     it can also mean that the level has changed.
 	    if ($line =~ /^J;(\d+);(\d+);(.*)/) {
 		($guid,$slot,$name) = ($1,$2,$3);
+		$name =~ s/$problematic_characters//g;
 		# cache the guid and name
-		if ($guid) {
+		if (($guid) && ($name)) {
 		    &cache_guid_to_name($guid,$name);
 		    $most_recent_guid = $guid;
 		    $most_recent_slot = $slot;
@@ -545,8 +575,9 @@ while (1) {
 	    # A "QUIT" Event has happened
 	    if ($line =~ /^Q;(\d+);(\d+);(.*)/) {
 		($guid,$slot,$name) = ($1,$2,$3);
+		$name =~ s/$problematic_characters//g;
 		# cache the guid and name
-		if ($guid) { &cache_guid_to_name($guid,$name); }
+		if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
 		$last_activity_by_slot{$slot} = 'gone';
 		$idle_warn_level{$slot} = 0;
 		&update_name_by_slot('SLOT_EMPTY', $slot);
@@ -576,22 +607,24 @@ while (1) {
 	    if ($line =~ /^say;(\d+);(\d+);([^;]+);(.*)/) {
 		# a "SAY" event has happened
 		($guid,$slot,$name,$message) = ($1,$2,$3,$4);
-		if ($guid) { &cache_guid_to_name($guid,$name); }
+		if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
 		$last_activity_by_slot{$slot} = $time;
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
-		&chat;
+		my $chatmode = 1;
+		&chat($chatmode);
 	    }
 		elsif ($line =~ /^sayteam;(\d+);(\d+);([^;]+);(.*)/) {
 		# a "SAYTEAM" event has happened
 		($guid,$slot,$name,$message) = ($1,$2,$3,$4);
-		if ($guid) { &cache_guid_to_name($guid,$name); }
+		if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
 		$last_activity_by_slot{$slot} = $time;
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
-		&chat;
+		my $chatmode = 2;
+		&chat($chatmode);
         }
 	    # else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
 	}
@@ -600,12 +633,13 @@ while (1) {
             if ($line =~ /^tell;(\d+);(\d+);([^;]+);\d+;\d+;[^;]+;(.*)/) {
                 # a "tell" (private message) event has happened
                 ($guid,$slot,$name,$message) = ($1,$2,$3,$4);
-                if ($guid) { &cache_guid_to_name($guid,$name); }
+                if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
                 $last_activity_by_slot{$slot} = $time;
                 &update_name_by_slot($name, $slot);
                 $guid_by_slot{$slot} = $guid;
                 $message =~ s/^\x15//;
-                &chat;
+				my $chatmode = 3;
+                &chat($chatmode);
             }
             # else { print "WARNING: unrecognized syntax for tell line:\n\t$line\n"; }
         }
@@ -613,8 +647,9 @@ while (1) {
 	    if ($line =~ /^Weapon;(\d+);(\d+);([^;]*);(\w+)$/) {
 		# a "WEAPON" Event has happened
 		($guid,$slot,$name,$weapon) = ($1,$2,$3,$4);
+		$name =~ s/$problematic_characters//g;
 		# cache the guid and name
-		if ($guid) { &cache_guid_to_name($guid,$name); }
+		if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
 		$last_activity_by_slot{$slot} = $time;
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
@@ -622,14 +657,11 @@ while (1) {
 		elsif ($line =~ /^W;([^;]*);(\d+);([^;]*)/) {
 		# a "Round Win" Event has happened
 		($attacker_team,$guid,$name) = ($1,$2,$3);
+		$name =~ s/$problematic_characters//g;
 		if ((defined($attacker_team)) && ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have WON this game of $game_type on $map_name\n"; }
 		else { print "GAME OVER: $name has WON this game of $game_type on $map_name\n"; }
-
-		# Buy some time so we don't do an rcon status during a level change
-		if ($game_type ne 'sd') { $last_rconstatus = $time; }
-
 		# cache the guid and name
-		if ($guid) { &cache_guid_to_name($guid,$name); }
+		if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
 		# prepare for First Blood
 		$first_blood = 0;
 	    }
@@ -639,7 +671,7 @@ while (1) {
 	    # Round Losers
 	    if ($line =~ /^L;([^;]*);(\d+);([^;]*)/) {
 		($attacker_team,$guid,$name) = ($1,$2,$3);
-		if ((defined($attacker_team)) && ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on map $map_name\n"; }
+		if ((defined($attacker_team)) && ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on $map_name\n"; }
 		else { print "... apparently there are no losers\n"; }
 		}
 	    # else { print "WARNING: unrecognized syntax for Round Loss line:\n\t$line\n"; }
@@ -659,6 +691,10 @@ while (1) {
             if ($line =~ /\\sv_pure\\([^\\]+)/) { $pure = $1; }
             if ($line =~ /\\sv_voice\\([^\\]+)/) { $voice = $1; }
 	    print "MAP STARTING: $map_name $game_type\n";
+		# Buy some time so we don't do an rcon status during a level change
+		if ($game_type ne 'sd') { $last_rconstatus = $time; }
+		# Do rcon status if sd gametype
+		if ($game_type eq 'sd') { $last_rconstatus = 0; }
         # anti-vote-rush
 		# first, look up the game-type so we can exempt S&D
 		if (($voting) && ($config->{'anti_vote_rush'}) && ($game_type ne 'sd')) {
@@ -684,6 +720,7 @@ while (1) {
 	elsif ($first_char eq 'A') {
 	    if ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_plant/) {
 		($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
+		$name =~ s/$problematic_characters//g;
 		print "BOMB: $name \[$attacker_team\] planted the bomb.\n";
 		# Update stats2 bomb_plants database
 		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_plants = bomb_plants + 1 WHERE name=?");
@@ -691,6 +728,7 @@ while (1) {
 	    }
 		elsif ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_defuse/) {
         ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
+		$name =~ s/$problematic_characters//g;
         print "BOMB: $name \[$attacker_team\] defused the bomb.\n";
 		# Update stats2 bomb_defuses database
 		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_defuses = bomb_defuses + 1 WHERE name=?");
@@ -1194,34 +1232,7 @@ sub initialize_databases {
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
 	}
     }
-    # The big welcome message
-    print
-"
-================================================================================
-                     Сиделка для сервера Call of Duty 2
-                         Версия $version
-                            Автор - smugllama
-                        Доработка и перевод - VoroN
-
-                       RCON-модуль основан на KKrcon
-                       http://kkrcon.sourceforge.net
-
-                     IP-Геолокация предоставлена MaxMind
-                          http://www.maxmind.com
-
-                      Поддержка удаленных FTP лог-файлов
-                      основана на ftptail от Will Moffat
-                    http://hamstersoup.wordpress.com/ftptail
-
-                    Оригинанльная версия NannyBot доступна на:
-                        http://smaert.com/nannybot.zip
-		
-                    Последняя Русская версия доступна на:
-                      https://github.com/voron00/Nanny
-
-================================================================================
-"
-; }
+}
 # END: initialize_databases
 
 # BEGIN: idle_check
@@ -1267,10 +1278,17 @@ sub chat{
     #   $slot 
     #   $message
     #   $guid
+    my $chatmode = shift;
     if (!defined($ignore{$slot})) { $ignore{$slot} = 0; }
     # print the message to the console
-    if ($config->{'show_talk'}) { print &strip_color("CHAT: $name: $message\n"); }
-    &log_to_file('logs/chat.log', &strip_color("CHAT: $name: $message"));
+    if ($config->{'show_talk'}) {
+	if ($chatmode == 1) { print &strip_color("GLOBAL CHAT: $name: $message\n"); }
+	if ($chatmode == 2) { print &strip_color("TEAM CHAT: $name: $message\n"); }
+	if ($chatmode == 3) { print &strip_color("PRIVATE CHAT: $name: $message\n"); }
+	}
+	if ($chatmode == 1) { &log_to_file('logs/chat.log', &strip_color("GLOBAL CHAT: $name: $message")); }
+	if ($chatmode == 2) { &log_to_file('logs/chat.log', &strip_color("TEAM CHAT: $name: $message")); }
+	if ($chatmode == 3) { &log_to_file('logs/chat.log', &strip_color("PRIVATE CHAT: $name: $message")); }
     # MySQL Chat Logging
     my $sth;
     if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
@@ -2352,8 +2370,9 @@ sub rcon_status {
 	if ($line =~ /^map:\s+(\w+)/) { $map_name = $1; }
 	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+(-?\d+)\s+(\d+)/) {
 	    ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
-		# strip trailing spaces and some colors.
+		# strip trailing spaces and a white color after a name.
 		$name =~ s/\^\d\s+$//;
+		$name =~ s/$problematic_characters//g;
 	    # cache the name
 	    &update_name_by_slot($name, $slot);
 	    # cache the guid
@@ -2361,16 +2380,16 @@ sub rcon_status {
         # cache slot to IP mappings
         $ip_by_slot{$slot} = $ip;
 	    # cache the ip to guid mapping
-	    if ($guid) { &cache_ip_to_guid($ip,$guid); }
+	    if (($ip) && ($guid)) { &cache_ip_to_guid($ip,$guid); }
 	    # cache the guid_to_name mapping
-	    if ($guid) { &cache_guid_to_name($guid,$name); }
+	    if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
 	    # cache the ip to name mapping
-	    &cache_ip_to_name($ip,$name);
+	    if (($ip) && ($name)) { &cache_ip_to_name($ip,$name); }
 	    # cache names without color codes, too.
 	    $colorless = &strip_color($name);
 	    if ($colorless ne $name) {
-		&cache_ip_to_name($ip,$colorless);
-		if ($guid) { &cache_guid_to_name($guid,$colorless); }
+		if (($ip) && ($colorless)) { &cache_ip_to_name($ip,$colorless); }
+		if (($guid) && ($colorless)) { &cache_guid_to_name($guid,$colorless); }
 	    }
 	    # GUID Sanity Checking - detects when the server is not tracking GUIDs correctly.
 	    if ($guid) {
@@ -2411,16 +2430,15 @@ sub rcon_status {
 	    # End of Ping Checks.
 	}
     }
-    my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
-    # BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
-    foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
+	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
+    my $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
+    foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
 	if ($slot >= 0) {
 	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
-		$ip_by_slot{$slot} = 'unknown';
-		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+		$sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
 		    $ip_by_slot{$slot} = $row[0];
-		    print "Guessed an IP for: $name_by_slot{$slot} =  $ip_by_slot{$slot} \n";
+		    print "Guessed an IP for: $name_by_slot{$slot}, GUID - $guid_by_slot{$slot} =  $ip_by_slot{$slot}\n";
 		}
 	    }
 	}
@@ -2428,7 +2446,7 @@ sub rcon_status {
     # END:  IP Guessing from cache
 	# Check for banned ip
 	if (!defined($ping)) { $ping = 0; }
-	if ($ping ne '999') { &check_banned_ip; }
+	if (($ping ne '999') && ($ping ne 'CNCT')) { &check_banned_ip; }
 }
 # END: rcon_status
 
@@ -2441,12 +2459,12 @@ sub check_banned_guid {
 	    $sth->execute($guid);
 	    while (@row = $sth->fetchrow_array) {
 		sleep 1;
-		&rcon_command("say ^1" . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+		&rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
-		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+		&rcon_command("say $row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 		sleep 1;
 		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
-		else { &rcon_command("say ^1" . &strip_color($name) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
+		else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
 		sleep 1;
 		&rcon_command("clientkick $slot");
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
@@ -2546,36 +2564,29 @@ sub geolocate_ip {
 	if (!defined($record)) { return '"ниоткуда..."'; }
 
     # debugging
-    print "
-        Country Code: " . $record->country_code . "
-        Country Code 3: " . $record->country_code3 . "
-        Country Name: " . $record->country_name . "
-        Region: " . $record->region . "
-		Region Name: " . $record->region_name . "
-        City: " . $record->city . "
-        Postal Code: " . $record->postal_code . "
-        Lattitude: " . $record->latitude . "
-        Longitude: " . $record->longitude . "
-		Time Zone: " . $record->time_zone . "
-        Area Code: " . $record->area_code . "
-		Continent Code: " . $record->continent_code . "
-		Metro Code " . $record->metro_code . "\n";
-
-    # region code is built as COUNTRY.REGION
-    my $region_code = $record->country_code . '.' . $record->region;
-
-    # check the database for this region code
-    my $region_name = $record->region_name;
+    if (defined($record->country_code)) { print "\n       Country Code: " . $record->country_code . "\n"; }
+    if (defined($record->country_code3)) { print "       Country Code 3: " . $record->country_code3 . "\n"; }
+    if (defined($record->country_name)) { print "       Country Name: " . $record->country_name . "\n"; }
+    if (defined($record->region)) { print "       Region: " . $record->region . "\n"; }
+	if (defined($record->region_name)) { print "       Region Name: " . $record->region_name . "\n"; }
+    if (defined($record->city)) { print "       City: " . $record->city . "\n"; }
+    if (defined($record->postal_code)) { print "       Postal Code: " . $record->postal_code . "\n"; }
+    if (defined($record->latitude)) { print "       Lattitude: " . $record->latitude . "\n"; }
+    if (defined($record->longitude)) { print "       Longitude: " . $record->longitude . "\n"; }
+	if (defined($record->time_zone)) { print "       Time Zone: " . $record->time_zone . "\n"; }
+    if (defined($record->area_code)) { print "       Area Code: " . $record->area_code . "\n"; }
+	if (defined($record->continent_code)) { print "       Continent Code: " . $record->continent_code . "\n"; }
+	if (defined($record->metro_code)) { print "       Metro Code " . $record->metro_code . "\n\n"; }
 
     my $geo_ip_info;
 
-    if (defined($record->city) ) {
+    if (defined($record->city)) {
         # we know the city
-        if (defined($region_name)) {
+        if (defined($record->region_name)) {
             # and we know the region name
-            if ($record->city ne $region_name) {
+            if ($record->city ne $record->region_name) {
                 # the city and region name are different, all three are relevant.
-                $geo_ip_info = $record->city . '^7,^2 ' . $region_name . ' - ' . $record->country_name;
+                $geo_ip_info = $record->city . '^7,^2 ' . $record->region_name . ' - ' . $record->country_name;
             }
 			else {
                 # the city and region name are the same.  Use city and country.
@@ -2587,9 +2598,9 @@ sub geolocate_ip {
             $geo_ip_info = $record->city . '^7,^2 ' . $record->country_name;
         }
     }
-	elsif (defined($region_name)) {
+	elsif (defined($record->region_name)) {
         # don't know the city, but we know the region name and country.  close enough.
-        $geo_ip_info = "$region_name, " . $record->country_name;
+        $geo_ip_info = $record->region_name . '^7,^2 ' . $record->country_name;
     }
 	elsif (defined($record->country_name)) {
         # We may not know much, but we know the country.
@@ -2760,7 +2771,6 @@ sub stats {
 	$stats_msg = '"Не найдено статистики для:"' . "$name";
     }
     &rcon_command("say $stats_msg");
-    print "$stats_msg\n"; 
     sleep 1; 
     # 2nd generation stats;
     # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses
@@ -2781,7 +2791,6 @@ sub stats {
 	$stats_msg .= " ^9$pistol_ratio" . '"^7пистолетов,"' . "^9$grenade_ratio" . '"^7гранат,"' . "^9$bash_ratio" . '"^7ближнего боя"';
 	if (($row[2]) or ($row[3]) or ($row[4])) {
 	    &rcon_command("say $stats_msg");
-	    print "$stats_msg\n";
 	    sleep 1;
 	}
 	# shotgun_ratio,sniper_ratio,rifle_ratio,machinegun_ratio
@@ -2793,7 +2802,6 @@ sub stats {
     $stats_msg .= " ^7^9$shotgun_ratio" . '"^7дробовиков,"' . "^9$sniper_ratio" . '"^7снайп.винтовок,"' . "^9$rifle_ratio" . '"^7винтовок,"' . "^9$machinegun_ratio" . '"^7автоматов"';
 	if (($row[5]) or ($row[6]) or ($row[7]) or ($row[8])) {
 	    &rcon_command("say $stats_msg");
-	    print "$stats_msg\n";
 	    sleep 1;
 	}
     # best_killspree
@@ -2801,7 +2809,6 @@ sub stats {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Лучшая серия убийств -^6"' . "$row[9]";
 	    &rcon_command("say $stats_msg");
-	    print "$stats_msg\n";
 	    sleep 1;
 	}
     # bad_shots
@@ -2810,7 +2817,6 @@ sub stats {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Не понравившихся убийств:"' . "^1$row[11] ^7(^1$badshot_ratio" . '"^7процентов)"';
 	    &rcon_command("say $stats_msg");
-	    print "$stats_msg\n";
 	    sleep 1;
 	}
     # nice_shots
@@ -2819,7 +2825,6 @@ sub stats {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Понравившихся убийств:"' . "^2$row[10] ^7(^2$niceshot_ratio" . '"^7процентов)"';
 	    &rcon_command("say $stats_msg");
-	    print "$stats_msg\n";
 	    sleep 1;
 	}
 	if ($game_type eq 'sd') {
@@ -2828,7 +2833,6 @@ sub stats {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Взрывчатки заложено:"' . "^4$row[12]";
 	    &rcon_command("say $stats_msg");
-	    print "$stats_msg\n";
 	    sleep 1;
 	}
 	# bomb_defuses
@@ -2836,7 +2840,6 @@ sub stats {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Взрывчатки обезврежено:"' . "^5$row[13]";
 	    &rcon_command("say $stats_msg");
-	    print "$stats_msg\n";
 	    sleep 1;
 	}
 	}
@@ -3196,7 +3199,7 @@ sub guid_player {
 sub age_player {
     if (&flood_protection('age_command', 60, $slot)) { return 1; }
     my $search_string = shift;
-	my $age = 5 + int(rand(30 - 5));
+	my $age = 10 + int(rand(35 - 5));
 	my $slot;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
@@ -3204,8 +3207,8 @@ sub age_player {
 	$slot = $matches[0];
 	&rcon_command("say " . '"Провожу расчет возраста для игрока"' . "^2$name_by_slot{$slot}");
 	sleep 3;
-	if ($age >= 5 && $age <= 20 or $age >= 25 && $age <= 30) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7лет"'); }
-	elsif ($age == 21) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7год"'); }
+	if ($age >= 10 && $age <= 20 or $age >= 25 && $age <= 30) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7лет"'); }
+	elsif ($age == 21 or $age == 31) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7год"'); }
 	else { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7года"'); }
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
@@ -4082,7 +4085,7 @@ sub tan {
     $ftp_verbose && warn "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
     $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!", $ftpfail = 1);
     $ftp_verbose && warn "CWD: $ftp_dirname\n";
-    $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
+    $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!", $ftpfail = 1);
     if ($config->{'use_passive_ftp'}) {
 	print "Using Passive ftp mode...\n\n";
 	$ftp->pasv or &die_nice($ftp->message);
