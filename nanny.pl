@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 31';
+my $version = '3.2 RUS Build 32';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -968,7 +968,7 @@ sub load_config_file {
                 else { $config->{$config_name} = 0; }
                 print "$config_name: " . $config->{$config_name} . "\n";
             }
-	    elsif ($config_name =~ 'interval_m[ia][nx]|banned_name_warn_message_[12]|banned_name_kick_message|max_ping_average|glitch_kill_kick_message|anti(spam|idle)_warn_(level|message)_[12]|anti(spam|idle)_kick_(level|message)|ftp_(username|password|refresh_time)|mysql_(username|password|hostname|database)|affiliate_server_announcement_interval|tempbantime') {
+	    elsif ($config_name =~ 'interval_m[ia][nx]|banned_name_warn_message_[12]|banned_name_kick_message|max_ping_average|glitch_kill_kick_message|anti(spam|idle)_warn_(level|message)_[12]|anti(spam|idle)_kick_(level|message)|ftp_(username|password|refresh_time)|mysql_(username|password|hostname|database)|affiliate_server_announcement_interval') {
                 $config->{$config_name} = $config_val;
                 print "$config_name: " . $config->{$config_name} . "\n";
             }
@@ -1511,8 +1511,14 @@ sub chat{
 	    if (&check_access('kick')) { &rcon_command("say " . '"!kick кого?"'); }
 	}
 	# !tempban (search_string)
+	elsif ($message =~ /^!tempban\s+(.+)\s+(\d+)/i) {
+	    if (&check_access('tempban')) { &tempban_command($1,$2); }
+	}
 	elsif ($message =~ /^!tempban\s+(.+)/i) {
-	    if (&check_access('tempban')) { &tempban_command($1); }
+	    if (&check_access('tempban')) {
+		my $tempbantime = 30;
+		&tempban_command($1,$tempbantime);
+		}
 	}
 	elsif ($message =~ /^!tempban\s*$/i) {
 	    if (&check_access('tempban')) { &rcon_command("say " . '"!tempban кого?"'); }
@@ -2059,10 +2065,6 @@ sub chat{
     # !speed (number)
         if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
             if (&check_access('speed')) { &speed_command($2); }
-        }
-    # !tempbantime (value)
-        if ($message =~ /^!(tempbantime|kickbantime)\s*(.*)/i) {
-            if (&check_access('tempbantime')) { &tempbantime_command($2); }
         }
 	# !big red button
 	if ($message =~ /^!(big red button|nuke)/i) {
@@ -3218,6 +3220,7 @@ sub age_player {
 # BEGIN: tempban_command($search_string)
 sub tempban_command {
     my $search_string = shift;
+	my $tempbantime = shift;
     my $key;
     my $slot = 'undefined';
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
@@ -3234,7 +3237,6 @@ sub tempban_command {
 	}
 	}
     my $ban_ip = 'undefined';
-    my $tempbantime = $config->{'tempbantime'};
     my $unban_time = $time + $tempbantime*60;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом на"' . "^1$tempbantime" . '"^7минут"');
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
@@ -3380,18 +3382,6 @@ sub speed_command {
 	}
 }
 # END: &speed_command
-
-# BEGIN: tempbantime_command($tempbantime)
-sub tempbantime_command {
-    my $tempbantime = shift;
-    if ($tempbantime =~ /^\d+$/) {
-    $config->{'tempbantime'} = $tempbantime;
-    &rcon_command("say " . '"¬ременный бан установлен на значение:"' . "^2$tempbantime" . '"^7минут"');
-    &log_to_file('logs/admin.log', "!tempbantime: tempbantime was set to $tempbantime by:  $name - GUID $guid");
-	}
-	else { &rcon_command("say " . '"«начение временного бана сейчас установлено на:"' . "^2$config->{'tempbantime'}" . '"^7минут"'); }
-}
-# END: &tempbantime_command
 
 # BEGIN: gravity_command($gravity)
 sub gravity_command {
