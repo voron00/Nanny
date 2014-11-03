@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 32';
+my $version = '3.2 RUS Build 33';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -721,7 +721,7 @@ while (1) {
 	    if ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_plant/) {
 		($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
 		$name =~ s/$problematic_characters//g;
-		print "BOMB: $name \[$attacker_team\] planted the bomb.\n";
+		 print "BOMB: " . &strip_color($name) . " planted the bomb\n";
 		# Update stats2 bomb_plants database
 		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_plants = bomb_plants + 1 WHERE name=?");
 		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats2\n");
@@ -729,7 +729,7 @@ while (1) {
 		elsif ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_defuse/) {
         ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
 		$name =~ s/$problematic_characters//g;
-        print "BOMB: $name \[$attacker_team\] defused the bomb.\n";
+        print "BOMB: " . &strip_color($name) . " defused the bomb\n";
 		# Update stats2 bomb_defuses database
 		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_defuses = bomb_defuses + 1 WHERE name=?");
 		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats2\n");
@@ -1631,16 +1631,7 @@ sub chat{
 	# !worst
         elsif ($message =~ /^!worst\b/i) {
             if (&check_access('worst')) { &worst; }
-        }	
-	# !rnk
-	elsif ($message =~ /^!rnk\s*(.*)/i) {
-	    my $rank_search = $1;
-	    if (!defined($rank_search)) { $rank_search = ''; }
-	    if (&check_access('rank')) {
-		if (&check_access('peek')) { &rank($name,$rank_search); }
-		else { &rank($name,''); }
-		}
-	}
+        }
 	# !tdm
 	elsif ($message =~ /^!tdm\b/i) {
 	    if (&check_access('map_control')) { &change_gametype('tdm'); }
@@ -4436,38 +4427,4 @@ sub big_red_button_command {
     sleep 1;
     &rcon_command("kick all");
     &log_to_file('logs/kick.log', "!KICK: All Players were kicked by $name - GUID $guid - via !nuke command");
-}
-
-# BEGIN !rnk
-sub rank {
-    my $name = shift;
-    my $search_string = shift;
-    if (&flood_protection('rank', 60, $slot)) { return 1; }
-    if ($search_string ne '') {
-	my @matches = &matching_users($search_string);
-	if ($#matches == 0) { $name = $name_by_slot{$matches[0]}; }
-	elsif ($#matches > 0) {
-	    &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
-	    return 1;
-	}
-    }
-	if (($name eq 'Unknown Soldier') or ($name eq 'UnnamedPlayer')) { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
-	else {
-    my $rank_msg = "^2$name^7:";
-    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
-    $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    @row = $stats_sth->fetchrow_array;
-    if ((!$row[0]) && ($name ne &strip_color($name))) {
-	$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-	@row = $stats_sth->fetchrow_array;
-	}
-	if ($row[2] > 99 && $row[2] < 500) { $rank_msg .= '"^7Твой ранг - ^1Опытный"' . "^7(^2$row[2]^7" . '"убийств)"'; }
-	if ($row[2] > 9 && $row[2] < 50) { $rank_msg .= '"^7Твой ранг - ^1Новичок"' . "^7(^2$row[2]^7" . '"убийств)"'; }
-	if ($row[2] > 499 && $row[2] < 1000) { $rank_msg .= '"^7Твой ранг - ^1Ветеран"' . "^7(^2$row[2]^7" . '"убийств)"'; }
-	if ($row[2] > 999) { $rank_msg .= '"^7Твой ранг - ^1Мастер"' . "^7(^2$row[2]^7" . '"убийств)"'; }
-	if ($row[2] < 9) { $rank_msg .=  '"^7Твой ранг - ^1Гость"' . "^7(^2$row[2]^7" . '"убийств)"'; }
-	if ($row[2] > 49 && $row[2] < 100) { $rank_msg .= '"^7Твой ранг - ^1Бывалый"' . "^7(^2$row[2]^7" . '"убийств)"'; }
-	if ((!$row[2]) or ($row[2] eq 0)) { $rank_msg = "$name^7:" . '"Ранг пока не определен"'; }
-    &rcon_command("say $rank_msg");
-	}
 }
