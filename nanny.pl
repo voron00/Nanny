@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 33';
+my $version = '3.2 RUS Build 35';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -154,13 +154,13 @@ my $next_announcement;
 my $voting = 1;
 my $reactivate_voting = 0;
 my %location_spoof;
-my $game_type = '';
-my $game_name = '';
-my $map_name = '';
+my $game_type;
+my $game_name;
+my $map_name;
 my $friendly_fire = 0;
 my $kill_cam = 1;
-my $cod_version = '';
-my $server_name = '';
+my $cod_version;
+my $server_name;
 my $max_clients = 999;
 my $max_ping = 999;
 my $private_clients = 0;
@@ -184,8 +184,8 @@ my @ftp_buffer;
 my $ftp; # the ftp control object
 my $mysql_chat_insert_sth;
 my $mysql_nextmap_sth;
-my $next_map = '';
-my $next_gametype = '';
+my $next_map;
+my $next_gametype;
 my $freshen_next_map_prediction = 1;
 my $temporary;
 my %description;
@@ -376,7 +376,7 @@ while (1) {
 
 		# Glitch Server Mode
 		if ($config->{'glitch_server_mode'}) {
-			print "Murderer:  " . &strip_color($attacker_name) . " killed someone.  Kicking!\n";
+			print "GLITCH SERVER MODE:  " . &strip_color($attacker_name) . " killed someone.  Kicking!\n";
 			&rcon_command("say ^1" . $attacker_name . ":^1 " . $config->{'glitch_kill_kick_message'});
 			print &strip_color($attacker_name) . ": " . $config->{'glitch_kill_kick_message'} . "\n"; 
 			sleep 1;
@@ -393,7 +393,7 @@ while (1) {
 		    if ($row[0]) {
 			if ($damage_location eq 'head') {
 			    $stats_sth = $stats_dbh->prepare("UPDATE stats SET kills=?,headshots=? WHERE name=?");
-			    $stats_sth->execute(($row[2] + 1), ($row[4] + 1 ), &strip_color($attacker_name)) or &die_nice("Unable to do update\n");
+			    $stats_sth->execute(($row[2] + 1), ($row[4] + 1), &strip_color($attacker_name)) or &die_nice("Unable to do update\n");
 			}
 			else {
 			    $stats_sth = $stats_dbh->prepare("UPDATE stats SET kills=? WHERE name=?");
@@ -408,7 +408,7 @@ while (1) {
 			else {
 			    $stats_sth->execute(&strip_color($attacker_name), 1, 0, 0) or &die_nice("Unable to do insert\n");
 			}
-		    }	
+		    }
 		            # 2nd generation stats
 		            $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
                     $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -453,7 +453,7 @@ while (1) {
                     if ($attacker_weapon =~ /^(sten|thompson|bren|greasegun|bar|PPS42|ppsh|mp40|mp44|30cal_stand|mg42_bipod_stand)_mp$/) {
                         $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET machinegun_kills = machinegun_kills + 1 WHERE name=?");
                         $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-                    }		    
+                    }    
 		    # End 2nd generation stats
 		}
         }
@@ -506,7 +506,8 @@ while (1) {
 			    if ((defined($row[0])) && ($row[0] < $best_spree{$victim_slot})) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) or &die_nice("Unable to update stats2\n");
-				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"');
+				}
                 else { &rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
 			}
 		    }
@@ -537,7 +538,7 @@ while (1) {
 	elsif ($first_char eq 'J') {
 	    # A "JOIN" Event has happened
 	    # WARNING:  This join does not only mean they just connected to the server
-	    #     it can also mean that the level has changed.
+	    # it can also mean that the level has changed.
 	    if ($line =~ /^J;(\d+);(\d+);(.*)/) {
 		($guid,$slot,$name) = ($1,$2,$3);
 		$name =~ s/$problematic_characters//g;
@@ -662,8 +663,6 @@ while (1) {
 		else { print "GAME OVER: $name has WON this game of $game_type on $map_name\n"; }
 		# cache the guid and name
 		if (($guid) && ($name)) { &cache_guid_to_name($guid,$name); }
-		# prepare for First Blood
-		$first_blood = 0;
 	    }
 		# else { print "WARNING: unrecognized syntax for Weapon/Round Win line:\n\t$line\n"; }
 	}
@@ -691,22 +690,24 @@ while (1) {
             if ($line =~ /\\sv_pure\\([^\\]+)/) { $pure = $1; }
             if ($line =~ /\\sv_voice\\([^\\]+)/) { $voice = $1; }
 	    print "MAP STARTING: $map_name $game_type\n";
-		# Buy some time so we don't do an rcon status during a level change
-		if ($game_type ne 'sd') { $last_rconstatus = $time; }
-		# Do rcon status if sd gametype
-		if ($game_type eq 'sd') { $last_rconstatus = 0; }
-        # anti-vote-rush
+		# prepare for First Blood
+		$first_blood = 0;
+		# anti-vote-rush
 		# first, look up the game-type so we can exempt S&D
 		if (($voting) && ($config->{'anti_vote_rush'}) && ($game_type ne 'sd')) {
 		    print "ANTI-VOTE-RUSH:  Turned off voting for 25 seconds...\n";
 		    &rcon_command("g_allowVote 0");
 		    $reactivate_voting = $time + 25;
 		}
-	        $freshen_next_map_prediction = 1;
+		# Buy some time so we don't do an rcon status during a level change
+		if ($game_type ne 'sd') { $last_rconstatus = $time; }
+		# Do rcon status if sd gametype
+		if ($game_type eq 'sd') { $last_rconstatus = 0; }
+		# Update next map prediction
+	    $freshen_next_map_prediction = 1;
 	}
 	elsif ($first_char eq 'S') {
 	    # Server Shutdown - Triggers when the server shuts down?
-	    # print "$line\n";
 	}
 	elsif ($first_char eq '-') {
 	    # Line Break
@@ -715,7 +716,6 @@ while (1) {
 	    # Exit level - what is the difference between this and a shutdown? 
 	    # This happens much less frequently than a Shutdown Game event.
 	    # This may be a game server shutdown, not just a level ending.
-	    # print "$line\n";
 	}
 	elsif ($first_char eq 'A') {
 	    if ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_plant/) {
@@ -763,16 +763,16 @@ while (1) {
 		&idle_check;
 	    }
 	}
-        # Check for bad names if its time
-        if ( ($time - $last_namecheck) >= $namecheck_interval ) {
-            $last_namecheck = $time;
-            &check_player_names;
-        }
-        # Check if it is time to make our next announement yet.
-        if (( $time >= $next_announcement) && ($config->{'use_announcements'})) {
-            $next_announcement = $time + ( 60 * ( $config->{'interval_min'} + int( rand( $config->{'interval_max'} - $config->{'interval_min'} + 1 ) ) ) );
-            &make_announcement;
-        }
+    # Check for bad names if its time
+    if ( ($time - $last_namecheck) >= $namecheck_interval ) {
+        $last_namecheck = $time;
+        &check_player_names;
+    }
+    # Check if it is time to make our next announement yet.
+    if (( $time >= $next_announcement) && ($config->{'use_announcements'})) {
+        $next_announcement = $time + ( 60 * ( $config->{'interval_min'} + int( rand( $config->{'interval_max'} - $config->{'interval_min'} + 1 ) ) ) );
+        &make_announcement;
+    }
 	# Check if it is time to make our next affiliate server announement yet.
 	if ($config->{'affiliate_server_announcements'}) {
 	    if ( $time >= $next_affiliate_announcement ) {
@@ -795,11 +795,15 @@ while (1) {
         }
 	# Check to see if we need to predict the next level
 	if ($freshen_next_map_prediction) {
-	    # check if gametype has been defined properly
-	    if (!$game_type) {
-		$game_type = &rcon_query('g_gametype');
-		if ($game_type =~ /\"g_gametype\" is: \"(\w+)\^7\"/m) { $game_type = $1; }
-	    else { print "WARNING: unable to parse game_type:  $game_type\n"; }
+	    if (!defined($cod_version)) {
+		$temporary = &rcon_query('shortversion');
+		if ($temporary =~ /\"shortversion\" is: \"(\d+\.\d+)\^7\"/m) { $cod_version = $1; }
+	    else { print "WARNING: unable to parse cod_version:  $temporary\n"; }
+		}
+	    if (!defined($game_type)) {
+		$temporary = &rcon_query('g_gametype');
+		if ($temporary =~ /\"g_gametype\" is: \"(\w+)\^7\"/m) { $game_type = $1; }
+	    else { print "WARNING: unable to parse game_type:  $temporary\n"; }
 		}
 	    $temporary = &rcon_query('sv_mapRotationCurrent');
 	    if ($temporary =~ /\"sv_mapRotationCurrent\" is: \"\s*gametype\s+(\w+)\s+map\s+(\w+)/m) {
