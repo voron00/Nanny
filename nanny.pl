@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 35';
+my $version = '3.2 RUS Build 36';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -265,26 +265,49 @@ $next_affiliate_announcement = $time;
 my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
 
 # tell the server that we want the game logfiles flushed to disk after every line.
-&rcon_query("g_logSync 1");
+&rcon_command("g_logSync 1");
 
-# Ask the server if voting is currently turned on or off
-my $voting_result = &rcon_query("g_allowVote");
-if ($voting_result =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
-    $voting = $1;
-    if ($voting) { print "Voting is currently turned ON\n"; }
-    else { print "Voting is currently turned OFF\n"; }
-	sleep 1;
-}
-else { print "Sorry, cant parse the g_allowVote results.\n"; }
+# Ask which version of CoD2 server is currently running
+$temporary = &rcon_query('shortversion');
+if ($temporary =~ /\"shortversion\" is: \"(\d+\.\d+)\^7\"/m) {
+   $cod_version = $1;
+   if ($cod_version =~ /./) { print "CoD2 version is: $cod_version\n"; }
+ }
+else { print "WARNING: unable to parse cod_version:  $temporary\n"; }
 
 # Ask the server what it's official name is
-my $server_result = &rcon_query("sv_hostname");
-if ($server_result =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
+$temporary = &rcon_query("sv_hostname");
+if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
     $server_name = $1;
     $server_name =~ s/\^7$//;
     if ($server_name =~ /./) { print "Server Name is: $server_name\n"; }
 }
 else { print "WARNING: cant parse the sv_hostname results.\n"; }
+
+# Ask the server if voting is currently turned on or off
+$temporary = &rcon_query("g_allowVote");
+if ($temporary =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
+    $voting = $1;
+    if ($voting) { print "Voting is currently turned ON\n"; }
+    else { print "Voting is currently turned OFF\n"; }
+}
+else { print "Sorry, cant parse the g_allowVote results.\n"; }
+
+# Ask which map is now present
+$temporary = &rcon_query('mapname');
+if ($temporary =~ /\"mapname\" is: \"(\w+)\^7\"/m) {
+   $map_name = $1;
+   if ($map_name =~ /./) { print "Current map is: $map_name\n"; }
+   }
+else { print "WARNING: unable to parse game_type:  $temporary\n"; }
+
+# Ask which gametype is now present
+$temporary = &rcon_query('g_gametype');
+if ($temporary =~ /\"g_gametype\" is: \"(\w+)\^7\"/m) {
+   $game_type = $1;
+   if ($game_type =~ /./) { print "Gametype is: $game_type\n"; }
+   }
+else { print "WARNING: unable to parse game_type:  $temporary\n"; }
 
 # Main Loop
 while (1) {
@@ -795,16 +818,6 @@ while (1) {
         }
 	# Check to see if we need to predict the next level
 	if ($freshen_next_map_prediction) {
-	    if (!defined($cod_version)) {
-		$temporary = &rcon_query('shortversion');
-		if ($temporary =~ /\"shortversion\" is: \"(\d+\.\d+)\^7\"/m) { $cod_version = $1; }
-	    else { print "WARNING: unable to parse cod_version:  $temporary\n"; }
-		}
-	    if (!defined($game_type)) {
-		$temporary = &rcon_query('g_gametype');
-		if ($temporary =~ /\"g_gametype\" is: \"(\w+)\^7\"/m) { $game_type = $1; }
-	    else { print "WARNING: unable to parse game_type:  $temporary\n"; }
-		}
 	    $temporary = &rcon_query('sv_mapRotationCurrent');
 	    if ($temporary =~ /\"sv_mapRotationCurrent\" is: \"\s*gametype\s+(\w+)\s+map\s+(\w+)/m) {
 		($next_gametype,$next_map) = ($1,$2);
@@ -1701,8 +1714,8 @@ sub chat{
         }
 		elsif ($message =~ /^!(host ?name|server ?name)\s*$/i) {
             if (&check_access('hostname')) {
-			$server_result = &rcon_query("sv_hostname");
-            if ($server_result =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
+			$temporary = &rcon_query("sv_hostname");
+            if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
             $server_name = $1;
             $server_name =~ s/\^7$//;
             if ($server_name =~ /./) { &rcon_command("say " . '"—ейчас сервер называетс€"' . "$server_name^7," .  '"используйте !hostname чтобы изменить название сервера"'); }
