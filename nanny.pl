@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 36';
+my $version = '3.2 RUS Build 37';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2034,7 +2034,7 @@ sub chat{
 		elsif (&flood_protection('fly', 60)) { }
 		else {
 		    &rcon_command("say " . '"Летите как птицы!!!"');
-		    &rcon_command("g_gravity 15");
+		    &rcon_command("g_gravity 10");
 		    sleep 20;
 		    &rcon_command("g_gravity 800");
 		    &rcon_command("say " . '"Думаю стоит продолжить нормальную игру"'); }
@@ -2051,15 +2051,15 @@ sub chat{
 	    else { &rcon_command("say ^2$expression ^7=^1 " . eval($expression) ); }
         }
 		# !sin (value)
-        if ($message =~ /^!sin\s+(.+)/i) {
+        if ($message =~ /^!sin\s+(\d+)/i) {
 	    &rcon_command("say ^2sin $1 ^7=^1 " . sin($1));
 		}
 		# !cos (value)
-        if ($message =~ /^!cos\s+(.+)/i) {
+        if ($message =~ /^!cos\s+(\d+)/i) {
 	    &rcon_command("say ^2cos $1 ^7=^1 " . cos($1));
 		}
 	    # !tan (value)
-        if ($message =~ /^!tan\s+(.+)/i) {
+        if ($message =~ /^!tan\s+(\d+)/i) {
 	    &rcon_command("say ^2tan $1 ^7=^1 " . &tan($1));
 		}
 	    # !perl -v
