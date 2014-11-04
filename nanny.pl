@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 37';
+my $version = '3.2 RUS Build 38';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2442,14 +2442,15 @@ sub rcon_status {
 	}
     }
 	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
-    my $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
-    foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
+	my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
+    foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
 	if ($slot >= 0) {
 	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
-		$sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+		$ip_by_slot{$slot} = 'unknown';
+		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
-		    $ip_by_slot{$slot} = $row[0];
-		    print "Guessed an IP for: $name_by_slot{$slot}, GUID - $guid_by_slot{$slot} =  $ip_by_slot{$slot}\n";
+		    $ip_by_slot{$slot} = $row[0] . '?';
+		    print "Guessed an IP for: $name_by_slot{$slot} =  $ip_by_slot{$slot} \n";
 		}
 	    }
 	}
@@ -3584,7 +3585,7 @@ sub names {
     elsif ($#matches == 0) {
         &log_to_file('logs/commands.log', "$name executed an !names search for $name_by_slot{$matches[0]}");
         if ($guid_by_slot{$matches[0]} > 0) {
-            my $sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 100;");
+            my $sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 10;");
             $sth->execute($guid_by_slot{$matches[0]}) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
             while (@row = $sth->fetchrow_array) { push @names, $row[0]; }
         }
@@ -3594,7 +3595,7 @@ sub names {
 	    $guessed = 1;
 	}
         if ($ip =~ /\d+\.\d+\.\d+\.\d+/) {
-            my $sth = $ip_to_name_dbh->prepare("SELECT name FROM ip_to_name WHERE ip=? ORDER BY id DESC LIMIT 100;");
+            my $sth = $ip_to_name_dbh->prepare("SELECT name FROM ip_to_name WHERE ip=? ORDER BY id DESC LIMIT 10;");
             $sth->execute($ip) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
             while (@row = $sth->fetchrow_array) { push @names, $row[0]; }
         }
