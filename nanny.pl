@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 38';
+my $version = '3.2 RUS Build 40';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -839,10 +839,23 @@ while (1) {
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
 		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
 		    $freshen_next_map_prediction = 0;
-                # MySQL Next Map Logging
+            # MySQL Next Map Logging
 		    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
 			$mysql_nextmap_sth = $mysql_logging_dbh->prepare("UPDATE next_map SET map = ?, gametype = ?");
 			$mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or print "WARNING: Unable to do MySQL nextmap update\n";
+		    }
+		}
+		# If maprotation contatins only space(empty) character, next map and gametype will be current map and gametype
+		elsif ($temporary =~ /\"sv_mapRotation\" is: \"\s+/m) {
+		    ($next_gametype,$next_map) = ($game_type,$map_name);
+	        if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype }
+		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
+		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
+		    $freshen_next_map_prediction = 0;
+		    # MySQL Next Map Logging
+		    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
+		    $mysql_nextmap_sth = $mysql_logging_dbh->prepare("UPDATE next_map SET map = ?, gametype = ?");
+		    $mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or print "WARNING: Unable to do MySQL nextmap update\n";
 		    }
 		}
 		else {
@@ -3895,7 +3908,7 @@ sub dictionary {
     while (@row = $sth->fetchrow_array) {
         print "DATABASE DEFINITION: $row[0]\n";
         $counter++;
-	if ($#definitions < 10) { push (@definitions, "^$counter$counter^3) ^2 $row[0]"); }
+	if ($#definitions < 8) { push (@definitions, "^$counter$counter^3) ^2 $row[0]"); }
     }
     # Now we sanatize what we're looking for - online databases don't have multiword definitions.
     if ($word =~ /[^A-Za-z\-\_\s\d]/) {
@@ -3914,7 +3927,7 @@ sub dictionary {
 	while (@row = $sth->fetchrow_array) {
 	    print "CACHED ONLINE DEFINITION: $row[0]\n";
 	    $counter++;
-	    if ($#definitions < 10) { push (@definitions, "^$counter$counter^3) ^2 $row[0]"); }
+	    if ($#definitions < 8) { push (@definitions, "^$counter$counter^3) ^2 $row[0]"); }
 	}
     }
 	else {
@@ -3930,8 +3943,8 @@ sub dictionary {
 		$counter++;
 		$sth = $definitions_dbh->prepare("INSERT INTO cached_definitions VALUES (NULL, ?, ?)");
 		$sth->execute($word,$definition) or &die_nice("Unable to do insert\n");
-		# 10 definitions max by default
-		if ($#definitions < 10) { push (@definitions, "^$counter$counter^3) ^2 $definition"); }
+		# 8 definitions max by default
+		if ($#definitions < 8) { push (@definitions, "^$counter$counter^3) ^2 $definition"); }
 	    }
 	}
 	$sth = $definitions_dbh->prepare("INSERT INTO cached VALUES (NULL, ?)");
