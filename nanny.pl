@@ -87,7 +87,7 @@ my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db",
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 40';
+my $version = '3.2 RUS Build 42';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1585,23 +1585,17 @@ sub chat{
         elsif ($message =~ /^!ip\s+(.+)/i) {
             if (&check_access('ip')) { &ip_player($1); }
         }
-        elsif ($message =~ /^!ip\s*$/i) {
-            if (&check_access('ip')) { &rcon_command("say " . '"!ip дл€ кого?"'); }
-        }
+        elsif ($message =~ /^!ip\s*$/i) { &rcon_command("say " . '"IP-јдрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}"); }
 		# !id (search_string)
         elsif ($message =~ /^!id\s+(.+)/i) {
             if (&check_access('id')) { &id_player($1); }
         }
-        elsif ($message =~ /^!id\s*$/i) {
-            if (&check_access('id')) { &rcon_command("say " . '"!id дл€ кого?"'); }
-        }
+        elsif ($message =~ /^!id\s*$/i) { &rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot"); }
 		# !guid (search_string)
         elsif ($message =~ /^!guid\s+(.+)/i) {
             if (&check_access('guid')) { &guid_player($1); }
         }
-        elsif ($message =~ /^!guid\s*$/i) {
-            if (&check_access('guid')) { &rcon_command("say " . '"!guid дл€ кого?"'); }
-        }
+        elsif ($message =~ /^!guid\s*$/i) { &rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}"); }
 		# !age (search_string)
         elsif ($message =~ /^!age\s+(.+)/i) {
             if (&check_access('age')) { &age_player($1); }
@@ -2455,6 +2449,22 @@ sub rcon_status {
 	}
     }
 	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
+	if ($guid) {
+	my $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
+    foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
+	if ($slot >= 0) {
+	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
+		$ip_by_slot{$slot} = 'unknown';
+		$sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+		while (@row = $sth->fetchrow_array) {
+		    $ip_by_slot{$slot} = $row[0] . '?';
+		    print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
+		}
+	    }
+	}
+    }
+	}
+	if (!$guid) {
 	my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
 	if ($slot >= 0) {
@@ -2463,13 +2473,14 @@ sub rcon_status {
 		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
 		    $ip_by_slot{$slot} = $row[0] . '?';
-		    print "Guessed an IP for: $name_by_slot{$slot} =  $ip_by_slot{$slot} \n";
+		    print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
 		}
 	    }
 	}
     }
+	}
     # END:  IP Guessing from cache
-	# Check for banned ip
+	# Check for banned IP's
 	if (!defined($ping)) { $ping = 0; }
 	if (($ping ne '999') && ($ping ne 'CNCT')) { &check_banned_ip; }
 }
@@ -2589,19 +2600,19 @@ sub geolocate_ip {
 	if (!defined($record)) { return '"ниоткуда..."'; }
 
     # debugging
-    if (defined($record->country_code)) { print "\n       Country Code: " . $record->country_code . "\n"; }
-    if (defined($record->country_code3)) { print "       Country Code 3: " . $record->country_code3 . "\n"; }
-    if (defined($record->country_name)) { print "       Country Name: " . $record->country_name . "\n"; }
-    if (defined($record->region)) { print "       Region: " . $record->region . "\n"; }
-	if (defined($record->region_name)) { print "       Region Name: " . $record->region_name . "\n"; }
-    if (defined($record->city)) { print "       City: " . $record->city . "\n"; }
-    if (defined($record->postal_code)) { print "       Postal Code: " . $record->postal_code . "\n"; }
-    if (defined($record->latitude)) { print "       Lattitude: " . $record->latitude . "\n"; }
-    if (defined($record->longitude)) { print "       Longitude: " . $record->longitude . "\n"; }
-	if (defined($record->time_zone)) { print "       Time Zone: " . $record->time_zone . "\n"; }
-    if (defined($record->area_code)) { print "       Area Code: " . $record->area_code . "\n"; }
-	if (defined($record->continent_code)) { print "       Continent Code: " . $record->continent_code . "\n"; }
-	if (defined($record->metro_code)) { print "       Metro Code " . $record->metro_code . "\n\n"; }
+    if (defined($record->country_code)) { print "\n\tCountry Code: " . $record->country_code . "\n"; }
+    if (defined($record->country_code3)) { print "\tCountry Code 3: " . $record->country_code3 . "\n"; }
+    if (defined($record->country_name)) { print "\tCountry Name: " . $record->country_name . "\n"; }
+    if (defined($record->region)) { print "\tRegion: " . $record->region . "\n"; }
+	if (defined($record->region_name)) { print "\tRegion Name: " . $record->region_name . "\n"; }
+    if (defined($record->city)) { print "\tCity: " . $record->city . "\n"; }
+    if (defined($record->postal_code)) { print "\tPostal Code: " . $record->postal_code . "\n"; }
+    if (defined($record->latitude)) { print "\tLattitude: " . $record->latitude . "\n"; }
+    if (defined($record->longitude)) { print "\tLongitude: " . $record->longitude . "\n"; }
+	if (defined($record->time_zone)) { print "\tTime Zone: " . $record->time_zone . "\n"; }
+    if (defined($record->area_code)) { print "\tArea Code: " . $record->area_code . "\n"; }
+	if (defined($record->continent_code)) { print "\tContinent Code: " . $record->continent_code . "\n"; }
+	if (defined($record->metro_code)) { print "\tMetro Code " . $record->metro_code . "\n\n"; }
 
     my $geo_ip_info;
 
@@ -3152,6 +3163,8 @@ sub clear_names {
 	$victim_guid = $guid_by_slot{$matches[0]};
 	$victim_name = $name_by_slot{$matches[0]};
 	$victim_ip = $ip_by_slot{$matches[0]};
+	# Strip '?' if guessed ip
+	if ($victim_ip =~ /\?$/) { $victim_ip =~ s/\?$//; }
 	$sth = $guid_to_name_dbh->prepare('DELETE FROM guid_to_name where guid=?;');
     $sth->execute($victim_guid) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	$sth = $ip_to_name_dbh->prepare('DELETE FROM ip_to_name where ip=?;');
@@ -3245,6 +3258,10 @@ sub tempban_command {
 	my $tempbantime = shift;
     my $key;
     my $slot = 'undefined';
+	my $minutes;
+	if ($tempbantime == 1) { $minutes = '"минуту"'; }
+	elsif ($tempbantime == 2 or $tempbantime == 3 or $tempbantime == 4) { $minutes = '"минуты"'; }
+	else { $minutes = '"минут"'; }
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
 	my @matches = &matching_users($search_string);
@@ -3260,7 +3277,7 @@ sub tempban_command {
 	}
     my $ban_ip = 'undefined';
     my $unban_time = $time + $tempbantime*60;
-    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом на"' . "^1$tempbantime" . '"^7минут"');
+    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом на"' . "^1$tempbantime^7" . $minutes);
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
     &log_to_file('logs/kick.log', "!TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
     my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
@@ -3315,7 +3332,7 @@ sub unban_command {
 	}
     $bans_sth->execute($unban) or &die_nice("Unable to do unban SELECT: $unban\n");
     while (@row = $bans_sth->fetchrow_array) {
-	&rcon_command("say $row[5]" . '" ^7был разбанен админом"' . "   (BAN ID#: ^1$row[0]^7" . '" удален)"');
+	&rcon_command("say $row[5]" . '"^7был разбанен админом"' . "   (BAN ID#: ^1$row[0]^7" . '"удален)"');
 	push (@unban_these, $row[0]);
 	&log_to_file('logs/commands.log', "UNBAN: $row[5] was unbanned by an admin.   (ban id#: $row[0] deleted)");
 	}
@@ -3618,29 +3635,29 @@ sub names {
 	    }
         else {
 	    # Remove the duplicates from the @names hash, and strip the less colorful versions of names.
-            my $alias;
+            my $name;
             my $key;
-            my %alias_hash;
-            foreach $alias (@names) {
-                if (!defined($alias_hash{$alias})) {
+            my %name_hash;
+            foreach $name (@names) {
+                if (!defined($name_hash{$name})) {
                     # The name is not defined, consider adding it.
                     # possibilities:
                     #  1) it is a name that has more colors than what is already in the list
-                    if (defined($alias_hash{&strip_color($alias)})) {
+                    if (defined($name_hash{&strip_color($name)})) {
                         # This is a more colorful version of something already in the list.
                         # Toast the old name.
-                        delete $alias_hash{&strip_color($alias)};
+                        delete $name_hash{&strip_color($name)};
                         # Add the new one
-                        $alias_hash{$alias} = 1;
+                        $name_hash{$name} = 1;
                     }
                     #  2) It is not present in any form in the list.
                     # (or may be a less colorful version of what is already in the list.
-                    else { $alias_hash{$alias} = 1; }
+                    else { $name_hash{$name} = 1; }
                     # 3) it is a name that has less colors than what is already in the list
-                    foreach $key (keys %alias_hash) {
-                        if (($alias ne $key) && ($alias eq &strip_color($key))) {
-                            # Then we know that the alias is a less colorful version of what is already in the list.
-                            delete $alias_hash{$alias};
+                    foreach $key (keys %name_hash) {
+                        if (($name ne $key) && ($name eq &strip_color($key))) {
+                            # Then we know that the name is a less colorful version of what is already in the list.
+                            delete $name_hash{$name};
                             last;
                         }
                     }
@@ -3648,7 +3665,7 @@ sub names {
             }
             # finally, announce the list.
 	    my $found_none = 1;
-	    my @announce_list = keys %alias_hash;
+	    my @announce_list = keys %name_hash;
 	    if (&flood_protection('names', (15 + (5 * $#announce_list)), $slot)) { return 1; }
             foreach $key (@announce_list) {
                 if ($name_by_slot{$matches[0]} ne $key) {
@@ -3764,7 +3781,7 @@ sub guid_sanity_check {
 		print "Explaination of: $reason\n";
 		print "\tThis IP Address has not provided any CD Keys to the activision server\n";
 		print "\tThis IP Address may not playing COD2 currently, or\n";
-		print "\t  Activision has not heard a key from this IP recently.\n";
+		print "\tActivision has not heard a key from this IP recently.\n";
 	    }
 	    if ($reason eq 'BANNED_CDKEY') {
 		print "Explaination of: $reason\n";
@@ -3868,7 +3885,7 @@ sub last_bans {
     while (@row = $bans_sth->fetchrow_array) {
 	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
 	my $txt_time = &duration($time - $ban_time);
-    &rcon_command("say ^2$ban_name^7" . '" был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$ban_id^7)");
+    &rcon_command("say ^2$ban_name" . '"^7был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$ban_id^7)");
     sleep 1;
 	}
 	if (!$ban_id) { &rcon_command("say " . '"¬ последнее врем€ не было забаненных игроков."'); }
