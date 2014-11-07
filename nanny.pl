@@ -84,10 +84,12 @@ my $seen_dbh = DBI->connect("dbi:SQLite:dbname=databases/seen.db","","");
 my $stats_dbh = DBI->connect("dbi:SQLite:dbname=databases/stats.db","","");
 my $bans_dbh = DBI->connect("dbi:SQLite:dbname=databases/bans.db","","");
 my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db","","");
+my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
+my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 42';
+my $version = '3.2 RUS Build 50';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -124,6 +126,7 @@ my $last_rconstatus;
 my %name_by_slot;
 my %ip_by_slot;
 my %guid_by_slot;
+my %ping_by_slot;
 my %spam_last_said;
 my %spam_count;
 my $seen_sth;
@@ -1145,7 +1148,37 @@ sub initialize_databases {
 	$cmd = "CREATE INDEX seen_time_saying ON seen (name,time,saying)";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-    }	
+    }
+	# The !name database
+    $sth = $names_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $sth->execute or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    if ($tables{'names'}) { print "!name database brought online\n\n"; }
+    else {
+	print "Creating names database...\n\n";
+	sleep 1;
+	$cmd = "CREATE TABLE names (id INTEGER PRIMARY KEY, name VARCHAR(64) );";
+	$result_code = $names_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $names_dbh->errstr\n");
+	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
+	$cmd = "CREATE INDEX names_index ON names (name)";
+	$result_code = $names_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $names_dbh->errstr\n");
+	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
+    }
+	# The !rank database
+    $sth = $ranks_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $sth->execute or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    if ($tables{'ranks'}) { print "!ranks database brought online\n\n"; }
+    else {
+	print "Creating ranks database...\n\n";
+	sleep 1;
+	$cmd = "CREATE TABLE ranks (id INTEGER PRIMARY KEY, rank VARCHAR(64) );";
+	$result_code = $ranks_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ranks_dbh->errstr\n");
+	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
+	$cmd = "CREATE INDEX ranks_index ON ranks (rank)";
+	$result_code = $ranks_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ranks_dbh->errstr\n");
+	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
+    }
     # The !bans database
     $sth = $bans_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
@@ -1338,7 +1371,7 @@ sub chat{
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_1'}) { &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_1'}); }
 		if ($spam_count{$slot} == $config->{'antispam_warn_level_2'}) { &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_2'}); }
 		if (($spam_count{$slot} >= $config->{'antispam_kick_level'}) && ($spam_count{$slot} <= ( $config->{'antispam_kick_level'} + 1))) {  
-		    if (&flood_protection('anti-spam-kick', 60, $slot)) { }
+		    if (&flood_protection('anti-spam-kick', 30, $slot)) { }
 			else {
 			&rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_kick_message'});
 			sleep 1;
@@ -1389,7 +1422,7 @@ sub chat{
     foreach $rule_name (keys %rule_regex) {
         if ($message =~ /$rule_regex{$rule_name}/i) {
             # We have a match, initiate response.
-	    if (&flood_protection("chat-response-$rule_name", 60, $slot)) { $flooded = 1; }
+	    if (&flood_protection("chat-response-$rule_name", 30, $slot)) { $flooded = 1; }
 	    else { $flooded = 0; }
             $index = $number_of_responses{$rule_name};
             if ($index) {
@@ -1420,9 +1453,9 @@ sub chat{
     if (($config->{'bad_shots'}) && (!$ignore{$slot})) {
 	if ($message =~ /^!?bs\W*$|^!?bad\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that was (bs|badshot)\W*$/i) {
 	    if ((defined($last_killed_by{$slot})) && ($last_killed_by{$slot} ne 'none') && (&strip_color($last_killed_by{$slot}) ne $name)) {
-		if (&flood_protection('badshot', 60, $slot)) {
+		if (&flood_protection('badshot', 30, $slot)) {
 		    # bad shot abuse
-		    if (&flood_protection('badshot-two', 60, $slot)) { }
+		    if (&flood_protection('badshot-two', 30, $slot)) { }
 		    else {
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
 			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
@@ -1443,9 +1476,9 @@ sub chat{
     if (($config->{'nice_shots'}) && (!$ignore{$slot})) {
 	if ($message =~ /\bnice\W? (one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
 	    if ((defined($last_killed_by{$slot})) && ($last_killed_by{$slot} ne 'none') && (&strip_color($last_killed_by{$slot}) ne $name)) {
-		if (&flood_protection('niceshot', 60, $slot)) {
+		if (&flood_protection('niceshot', 30, $slot)) {
 		    # nice shot abuse
-			if (&flood_protection('niceshot-two', 60, $slot)) { }
+			if (&flood_protection('niceshot-two', 30, $slot)) { }
 			else {
 			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
 			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
@@ -1477,7 +1510,7 @@ sub chat{
 	    push @results, "$name^7:" . '"' . "^1$question ^3is:^2" . " $row[0]";
 	}
 	if ($#results ne -1) {
-	    if (&flood_protection('auto-define', 60, $slot)) { }
+	    if (&flood_protection('auto-define', 30, $slot)) { }
 	    else {
 		foreach $result (@results) {
 		    &rcon_command("say $result");
@@ -1509,7 +1542,7 @@ sub chat{
         }
         elsif ($message =~ /^!ignore\s*$/i) {
             if (&check_access('ignore')) {
-                if (&flood_protection('ignore', 60, $slot)) { }
+                if (&flood_protection('ignore', 30, $slot)) { }
                 else { &rcon_command("say " . '"!ignore кого?"'); }
             }
         }
@@ -1519,7 +1552,7 @@ sub chat{
         }
         elsif ($message =~ /^!forgive\s*$/i) {
             if (&check_access('forgive')) {
-                if (&flood_protection('forgive', 60, $slot)) { }
+                if (&flood_protection('forgive', 30, $slot)) { }
                 else { &rcon_command("say " . '"!forgive кого?"'); }
             }
         }
@@ -1585,23 +1618,71 @@ sub chat{
         elsif ($message =~ /^!ip\s+(.+)/i) {
             if (&check_access('ip')) { &ip_player($1); }
         }
-        elsif ($message =~ /^!ip\s*$/i) { &rcon_command("say " . '"IP-Адрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}"); }
+        elsif ($message =~ /^!ip\s*$/i) {
+		if (&flood_protection('ip-self', 30, $slot)) { }
+		&rcon_command("say " . '"IP-Адрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}");
+		}
 		# !id (search_string)
         elsif ($message =~ /^!id\s+(.+)/i) {
             if (&check_access('id')) { &id_player($1); }
         }
-        elsif ($message =~ /^!id\s*$/i) { &rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot"); }
+        elsif ($message =~ /^!id\s*$/i) {
+		if (&flood_protection('id-self', 30, $slot)) { }
+		&rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot");
+		}
 		# !guid (search_string)
         elsif ($message =~ /^!guid\s+(.+)/i) {
             if (&check_access('guid')) { &guid_player($1); }
         }
-        elsif ($message =~ /^!guid\s*$/i) { &rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}"); }
+        elsif ($message =~ /^!guid\s*$/i) {
+		if (&flood_protection('guid-self', 30, $slot)) { }
+		&rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}");
+		}
 		# !age (search_string)
         elsif ($message =~ /^!age\s+(.+)/i) {
             if (&check_access('age')) { &age_player($1); }
         }
         elsif ($message =~ /^!age\s*$/i) {
             if (&check_access('age')) { &rcon_command("say " . '"!age для кого?"'); }
+        }
+		# !name (search_string)
+        elsif ($message =~ /^!name\s+(.+)/i) {
+            if (&check_access('name')) { &name_player($1); }
+        }
+        elsif ($message =~ /^!name\s*$/i) {
+            if (&check_access('name')) { &rcon_command("say " . '"!name для кого?"'); }
+        }
+		# !rank
+        elsif ($message =~ /^!rank\s*$/i) {
+            if (&check_access('rank')) { &rank; }
+        }
+		# !addname (name)
+        elsif ($message =~ /^!addname\s+(.+)/i) {
+            if (&check_access('addname')) { &add_name($1); }
+        }
+        elsif ($message =~ /^!addname\s*$/i) {
+            if (&check_access('addname')) { &rcon_command("say " . '"!addname *Имя*"'); }
+        }
+		# !addrank (rank)
+        elsif ($message =~ /^!addrank\s+(.+)/i) {
+            if (&check_access('addrank')) { &add_rank($1); }
+        }
+        elsif ($message =~ /^!addrank\s*$/i) {
+            if (&check_access('addrank')) { &rcon_command("say " . '"!addrank *Ранг*"'); }
+        }
+		# !clearname (name))
+        elsif ($message =~ /^!clearname\s+(.+)/i) {
+            if (&check_access('clearname')) { &clear_name($1); }
+        }
+        elsif ($message =~ /^!clearname\s*$/i) {
+            if (&check_access('clearname')) { &rcon_command("say " . '"!clearname *Имя*"'); }
+        }
+		# !clearrank (rank)
+        elsif ($message =~ /^!clearrank\s+(.+)/i) {
+            if (&check_access('clearrank')) { &clear_rank($1); }
+        }
+        elsif ($message =~ /^!clearrank\s*$/i) {
+            if (&check_access('clearrank')) { &rcon_command("say " . '"!clearrank *Ранг*"'); }
         }
 		# !report (search_string)
         elsif ($message =~ /^!report\s+(.+)/i) {
@@ -1613,7 +1694,7 @@ sub chat{
        # !define (word)
         elsif ($message =~ /^!(define|dictionary|dict)\s+(.+)/i) {
             if (&check_access('define')) {
-		if (&flood_protection('dictionary', 60, $slot)) { }
+		if (&flood_protection('dictionary', 30, $slot)) { }
 		else { &dictionary($2); }
             }
         }
@@ -1783,7 +1864,7 @@ sub chat{
 	# !version
 	elsif ($message =~ /^!(version|ver)\b/i) {
 	    if (&check_access('version')) {
-		if (&flood_protection('version', 60)) { }
+		if (&flood_protection('version', 30)) { }
 		else {
 		    &rcon_command("say Nanny^7 for CoD2 version^2 $version");
 		    sleep 1;
@@ -1802,7 +1883,7 @@ sub chat{
     # !nextmap  (not to be confused with !rotate)
         elsif ($message =~ /^!(nextmap|next|nextlevel|next_map|next_level)\b/i) {
             if (&check_access('nextmap')) {
-		if (&flood_protection('nextmap', 60, $slot)) { }
+		if (&flood_protection('nextmap', 30, $slot)) { }
 		elsif ($next_map && $next_gametype) { &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" . $description{$next_gametype} . "^7)"); }
             }
         }
@@ -1904,7 +1985,7 @@ sub chat{
         # !uptime
         elsif ($message =~ /^!uptime\b/i) {
             if (&check_access('uptime')) {
-		if (&flood_protection('uptime', 60, $slot)) { }
+		if (&flood_protection('uptime', 30, $slot)) { }
 		else {
 		    if ($uptime =~ /(\d+):(\d+)/) {
 			my $duration = &duration( ( $1 * 60 ) + $2 );
@@ -1914,7 +1995,7 @@ sub chat{
     }
 	# !help
 	elsif ($message =~ /^!help\b/i) {
-	    if (&flood_protection('help', 60)) {}
+	    if (&flood_protection('help', 30)) {}
 	    else {
 		if (&check_access('stats')) {
 		    &rcon_command("say " . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробную статистику"');
@@ -2037,8 +2118,7 @@ sub chat{
 	# !fly
 	elsif ($message =~ /^!(fly|ufo)\b/i) {
 	    if (&check_access('fly')) {
-		if (&flood_protection('fly', 60, $slot)) { }
-		elsif (&flood_protection('fly', 60)) { }
+		if (&flood_protection('fly', 30, $slot)) { }
 		else {
 		    &rcon_command("say " . '"Летите как птицы!!!"');
 		    &rcon_command("g_gravity 10");
@@ -2278,7 +2358,7 @@ sub chat{
 	    my $lastkill_search = $2;
 	    if ((!defined($lastkill_search)) or ($lastkill_search eq '')) { $lastkill_search = ''; }
             if (&check_access('lastkill')) {
-		if (&flood_protection('lastkill', 60, $slot)) { }
+		if (&flood_protection('lastkill', 30, $slot)) { }
 		else {
 		    if (($lastkill_search ne '') && (&check_access('peek'))) {
 			my @matches = &matching_users($lastkill_search);
@@ -2390,6 +2470,8 @@ sub rcon_status {
 		# strip trailing spaces and a white color after a name.
 		$name =~ s/\^\d\s+$//;
 		$name =~ s/$problematic_characters//g;
+		# cache ping
+	    $ping_by_slot{$slot} = $ping;
 	    # cache the name
 	    &update_name_by_slot($name, $slot);
 	    # cache the guid
@@ -2480,9 +2562,27 @@ sub rcon_status {
     }
 	}
     # END:  IP Guessing from cache
-	# Check for banned IP's
-	if (!defined($ping)) { $ping = 0; }
-	if (($ping ne '999') && ($ping ne 'CNCT')) { &check_banned_ip; }
+	# BEGIN: Check for Banned IP's
+	my $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+    foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
+    if ($slot >= 0) {
+		if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
+	    $sth->execute($ip_by_slot{$slot});
+	    while (@row = $sth->fetchrow_array) {
+		sleep 1;
+		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+		sleep 1;
+		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+		sleep 1;
+		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . '"^7У вас перманентный бан."'); }
+		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
+		sleep 1;
+		&rcon_command("clientkick $slot");
+		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	    }
+		}
+	}
+	}
 }
 # END: rcon_status
 
@@ -2506,33 +2606,7 @@ sub check_banned_guid {
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
 	    }
 }
-# END: Banned GUID
-
-# BEGIN: Check for Banned IP
-sub check_banned_ip {
-    my $stripped;
-	my $sth;
-	$sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-    foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
-        if ($slot >= 0) {
-	    $stripped = $ip_by_slot{$slot};
-	    $sth->execute($stripped);
-	    while (@row = $sth->fetchrow_array) {
-		sleep 1;
-		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
-		sleep 1;
-		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
-		sleep 1;
-		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . '"^7У вас перманентный бан."'); }
-		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
-		sleep 1;
-		&rcon_command("clientkick $slot");
-		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
-	    }
-	}
-	}
-}
-# END: Banned IP check
+# END: Check for Banned GUID
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
@@ -2763,7 +2837,7 @@ sub stats {
     my $name = shift;
     my $search_string = shift;
 	my $kills;
-    if (&flood_protection('stats', 60, $slot)) { return 1; }
+    if (&flood_protection('stats', 30, $slot)) { return 1; }
     if ($search_string ne '') {
 	my @matches = &matching_users($search_string);
 	if ($#matches == 0) { $name = $name_by_slot{$matches[0]}; }
@@ -3107,31 +3181,9 @@ sub forgive {
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: kick_command($search_string)
-sub kick_command {
-    my $search_string = shift;
-    my $key;
-    if ($search_string =~ /^\#(\d+)$/) {
-	my $slot = $1;
-	&rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был выкинут админом"');
-    sleep 1;
-    &rcon_command("clientkick $slot");
-    &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
-	return 0;
-	}
-    my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
-	&rcon_command("say ^1$name_by_slot{$matches[0]}" . '" ^7был выкинут админом"');
-	sleep 1;
-	&rcon_command("clientkick $matches[0]");
-	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
-	}
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
-}
-
 # BEGIN: !clearstats command($search_string)
 sub clear_stats {
+if (&flood_protection('clearstats', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $victim;
 	my $sth;
@@ -3152,6 +3204,7 @@ sub clear_stats {
 
 # BEGIN: !clearnames command($search_string)
 sub clear_names {
+if (&flood_protection('clearnames', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $victim_guid;
 	my $victim_name;
@@ -3176,7 +3229,7 @@ sub clear_names {
 
 # BEGIN: !report command($search_string)
 sub report_player {
-    if (&flood_protection('report_player', 60)) { return 1; }
+    if (&flood_protection('report_player', 30)) { return 1; }
     my $search_string = shift;
     my $target_player;
 	my $target_player_guid;
@@ -3193,7 +3246,7 @@ sub report_player {
 
 # BEGIN: !ip command($search_string)
 sub ip_player {
-    if (&flood_protection('ip_command', 60, $slot)) { return 1; }
+    if (&flood_protection('ip_command', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $slot;
     my @matches = &matching_users($search_string);
@@ -3207,7 +3260,7 @@ sub ip_player {
 
 # BEGIN: !id command($search_string)
 sub id_player {
-    if (&flood_protection('id_command', 60, $slot)) { return 1; }
+    if (&flood_protection('id_command', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $slot;
     my @matches = &matching_users($search_string);
@@ -3221,7 +3274,7 @@ sub id_player {
 
 # BEGIN: !guid command($search_string)
 sub guid_player {
-    if (&flood_protection('guid_command', 60, $slot)) { return 1; }
+    if (&flood_protection('guid_command', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $slot;
     my @matches = &matching_users($search_string);
@@ -3235,7 +3288,7 @@ sub guid_player {
 
 # BEGIN: !age command($search_string)
 sub age_player {
-    if (&flood_protection('age_command', 60, $slot)) { return 1; }
+    if (&flood_protection('age_command', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $age = 10 + int(rand(25 - 5));
 	my $slot;
@@ -3243,8 +3296,6 @@ sub age_player {
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
-	&rcon_command("say " . '"Провожу расчет возраста для игрока"' . "^2$name_by_slot{$slot}");
-	sleep 3;
 	if ($age >= 10 && $age <= 20 or $age >= 25 && $age <= 30) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7лет"'); }
 	elsif ($age == 21 or $age == 31) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7год"'); }
 	else { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7года"'); }
@@ -3252,8 +3303,125 @@ sub age_player {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
+# BEGIN: add_name($name)
+sub add_name {
+    if (&flood_protection('addname', 30, $slot)) { return 1; }
+	my $name = shift;
+	if (!defined($name)) { &die_nice("!addname was called without a name\n"); }
+	my $sth = $names_dbh->prepare("SELECT count(*) FROM names WHERE name=?");
+	$sth->execute($name) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+	my @row = $sth->fetchrow_array;
+	if ($row[0]) { &rcon_command("say " . '"Имя"' . '"' . "^2$name" . '"' . '"^7уже есть в базе данных"'); }
+	else {
+	    $sth = $names_dbh->prepare("INSERT INTO names VALUES (NULL, ?)");
+	    $sth->execute($name) or &die_nice("Unable to do insert\n");
+		&rcon_command("say " . '"Имя"' . '"' . "^2$name" . '"' . '"^7добавлено в базу данных"');
+	}
+}
+
+# BEGIN: add_rank($rank)
+sub add_rank {
+    if (&flood_protection('addrank', 30, $slot)) { return 1; }
+	my $rank = shift;
+	if (!defined($rank)) { &die_nice("!addrank was called without a rank\n"); }
+	my $sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks WHERE rank=?");
+	$sth->execute($rank) or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+	my @row = $sth->fetchrow_array;
+	if ($row[0]) { &rcon_command("say " . '"Ранг"' . '"' . "^2$rank" . '"' . '"^7уже есть в базе данных"'); }
+	else {
+	    $sth = $ranks_dbh->prepare("INSERT INTO ranks VALUES (NULL, ?)");
+	    $sth->execute($rank) or &die_nice("Unable to do insert\n");
+		&rcon_command("say " . '"Ранг"' . '"' . "^2$rank" . '"' . '"^7добавлен в базу данных"');
+	}
+}
+
+# BEGIN: clear_name($name)
+sub clear_name {
+    if (&flood_protection('clearname', 30, $slot)) { return 1; }
+	my $name = shift;
+	if (!defined($name)) { &die_nice("!clearname was called without a name\n"); }
+	my $sth = $names_dbh->prepare("SELECT count(*) FROM names WHERE name=?");
+	$sth->execute($name) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+	my @row = $sth->fetchrow_array;
+	if ($row[0]) {
+	my $sth = $names_dbh->prepare("DELETE FROM names WHERE name=?");
+	$sth->execute($name) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+	&rcon_command("say " . '"Имя"' . '"' . "^2$name" . '"' . '"^7удалено из базы данных"');
+	}
+	else { &rcon_command("say " . '"Имя"' . '"' . "^2$name" . '"' . '"^7не найдено в базе данных"'); }
+}
+
+# BEGIN: clear_rank($rank)
+sub clear_rank {
+    if (&flood_protection('clearrank', 30, $slot)) { return 1; }
+	my $rank = shift;
+	if (!defined($rank)) { &die_nice("!clearrank was called without a rank\n"); }
+	my $sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks WHERE rank=?");
+	$sth->execute($rank) or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+	my @row = $sth->fetchrow_array;
+	if ($row[0]) {
+	my $sth = $ranks_dbh->prepare("DELETE FROM ranks WHERE rank=?");
+	$sth->execute($rank) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+	&rcon_command("say " . '"Ранг"' . '"' . "^2$rank" . '"' . '"^7удален из базы данных"');
+	}
+	else { &rcon_command("say " . '"Ранг"' . '"' . "^2$rank" . '"' . '"^7не найден в базе данных"'); }
+}
+
+# BEGIN: name_command($search_string)
+sub name_player {
+    if (&flood_protection('name', 30, $slot)) { return 1; }
+    my $search_string = shift;
+	my $slot;
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	$slot = $matches[0];
+	my $names_sth = $names_dbh->prepare("SELECT * FROM names ORDER BY RANDOM() LIMIT 1;");
+    $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+    @row = $names_sth->fetchrow_array;
+	if (!$row[0]) { &rcon_command("say " . '"К сожалению не найдено имен в базе данных"'); }
+	else { &rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$row[1]"); }
+	}
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+}
+
+# BEGIN: rank
+sub rank {
+    if (&flood_protection('name', 30, $slot)) { return 1; }
+	my $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
+    $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+    @row = $ranks_sth->fetchrow_array;
+	if (!$row[0]) { &rcon_command("say " . '"К сожалению не найдено рангов в базе данных"'); }
+	else { &rcon_command("say ^2$name_by_slot{$slot}^7" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
+}
+
+# BEGIN: kick_command($search_string)
+sub kick_command {
+if (&flood_protection('kick', 30, $slot)) { return 1; }
+    my $search_string = shift;
+    my $key;
+    if ($search_string =~ /^\#(\d+)$/) {
+	my $slot = $1;
+	&rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был выкинут админом"');
+    sleep 1;
+    &rcon_command("clientkick $slot");
+    &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
+	return 0;
+	}
+    my @matches = &matching_users($search_string);
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    elsif ($#matches == 0) {
+	&rcon_command("say ^1$name_by_slot{$matches[0]}" . '" ^7был выкинут админом"');
+	sleep 1;
+	&rcon_command("clientkick $matches[0]");
+	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
+	}
+    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+}
+
 # BEGIN: tempban_command($search_string)
 sub tempban_command {
+    if (&flood_protection('tempban', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $tempbantime = shift;
     my $key;
@@ -3287,6 +3455,7 @@ sub tempban_command {
 
 # BEGIN: ban_command($search_string)
 sub ban_command {
+    if (&flood_protection('ban', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $key;
     my $slot = 'undefined';
@@ -3316,6 +3485,7 @@ sub ban_command {
 # BEGIN: &unban_command($target);
 #  where $target = a ban ID # or a partial string match for names. 
 sub unban_command {
+if (&flood_protection('unban', 30, $slot)) { return 1; }
     my $unban = shift;
     my $bans_sth;
     my $delete_sth; 
@@ -3347,7 +3517,7 @@ sub unban_command {
 # BEGIN: &voting_command($state)
 sub voting_command {
     my $state = shift;
-    if (&flood_protection('voting', 60, $slot)) { return 1; }
+    if (&flood_protection('voting', 30, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	&rcon_command("g_allowVote 1");
 	&rcon_command("say " . '"Голосование включено."');
@@ -3368,7 +3538,7 @@ sub voting_command {
 sub voice_command {
     my $voice;
     my $state = shift;
-    if (&flood_protection('voice', 60, $slot)) { return 1; }
+    if (&flood_protection('voice', 30, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	&rcon_command("sv_voice 1");
 	&rcon_command("say " . '"Голосовой чат включен."');
@@ -3388,7 +3558,7 @@ sub voice_command {
 # BEGIN: &killcam_command($state)
 sub killcam_command {
     my $state = shift;
-    if (&flood_protection('killcam', 60, $slot)) { return 1; } 
+    if (&flood_protection('killcam', 30, $slot)) { return 1; } 
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
     &rcon_command("scr_killcam 1");
     &rcon_command("say " . '"Показ гибели был ВКЛЮЧЕН админом"');
@@ -3444,7 +3614,7 @@ sub gravity_command {
 # BEGIN: glitch_command($state)
 sub glitch_command {
     my $state = shift;
-    if (&flood_protection('glitch', 60, $slot)) { return 1; }
+    if (&flood_protection('glitch', 30, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	$config->{'glitch_server_mode'} = 1;
     &rcon_command("say " . '"Дружелюбный режим включен. ^1УБИВАТЬ ТЕПЕРЬ ЗАПРЕЩЕНО!"');
@@ -3545,7 +3715,7 @@ sub change_gametype {
 	print "WARNING: change_gametype was called with an invalid game_type: $gametype\n";
     return;
 	}
-    if (&flood_protection('gametype', 60, $slot)) { return 1; }
+    if (&flood_protection('gametype', 30, $slot)) { return 1; }
     &rcon_command("say " . '"^2Смена режима игры на^7:^3"' . ($description{$gametype}));
     &rcon_command("g_gametype $gametype");
     sleep 1;
@@ -3567,17 +3737,17 @@ sub check_player_names {
 		    if (!defined($name_warn_level{$slot})) { $name_warn_level{$slot} = 0; }
 		    if ($name_warn_level{$slot} == 0) {
 			print "NAME_WARN1: $name_by_slot{$slot} is using a banned name.  Match: $match_string\n";
-			&rcon_command("say " . '"' . "^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_warn_message_1'} );
+			&rcon_command("tell $slot ^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_warn_message_1'} );
 			$name_warn_level{$slot} = 1;
 		    }
 			elsif ($name_warn_level{$slot} == 1) {
 			print "NAME_WARN2: $name_by_slot{$slot} is using a banned name.  (2nd warning) Match: $match_string\n";
-            &rcon_command("say " . '"' . "^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_warn_message_2'} );
+            &rcon_command("tell $slot ^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_warn_message_2'} );
             $name_warn_level{$slot} = 2;
             }
 			elsif ($name_warn_level{$slot} == 2) {
             print "NAME_KICK: $name_by_slot{$slot} is using a banned name.  (3rd strike) Match: $match_string\n";
-            &rcon_command("say " . '"' . "^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_kick_message'} );
+            &rcon_command("tell $slot ^1$name_by_slot{$slot}^7:" . '"' . $config->{'banned_name_kick_message'} );
             sleep 1;
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
@@ -3832,7 +4002,7 @@ sub flood_protection {
     # Exemption for global admins (3 seconds delay)
     if (&check_access('flood_exemption')) { $min_interval = 3; }
     # Ensure that all values are defined.
-    if ((!defined($min_interval)) or ($min_interval !~ /^\d+$/)) { $min_interval = 60; }
+    if ((!defined($min_interval)) or ($min_interval !~ /^\d+$/)) { $min_interval = 30; }
     if ((!defined($slot)) or ($slot !~ /^\d+$/)) { $slot = 'global'; }
     my $key = $attribute . '.' . $slot;
     if (!defined($flood_protect{$key})) { $flood_protect{$key} = 0; }
@@ -3864,7 +4034,7 @@ sub tell {
         &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
     }
     else {
-	if (&flood_protection('tell', 60, $slot)) { return 1; }
+	if (&flood_protection('tell', 30, $slot)) { return 1; }
 	foreach $key (@matches) { &rcon_command("say ^2" . "$name_by_slot{$key}" . "^7: " . '"' . "$message"); }
     }
 }
@@ -3879,7 +4049,7 @@ sub last_bans {
     if ($number > 10) { $number = 10; }
     if ($number < 0) { $number = 1; }
     $number = int($number);
-    if (&flood_protection('lastbans', 60, $slot)) { return 1; }
+    if (&flood_protection('lastbans', 30, $slot)) { return 1; }
     my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
     while (@row = $bans_sth->fetchrow_array) {
@@ -4302,7 +4472,7 @@ sub update_name_by_slot {
 # BEGIN: !friendlyfire_command($state)
 sub friendlyfire_command {
     my $state = shift;
-    if (&flood_protection('friendlyfire', 60, $slot)) { return 1; }
+    if (&flood_protection('friendlyfire', 30, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
         &rcon_command("scr_friendlyfire 1");
 	    $friendly_fire = 1;
