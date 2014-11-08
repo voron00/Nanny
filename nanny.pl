@@ -89,7 +89,7 @@ my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 51';
+my $version = '3.2 RUS Build 52';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2823,7 +2823,7 @@ sub seen {
     my $sth = $seen_dbh->prepare("SELECT name,time,saying FROM seen WHERE name LIKE ? ORDER BY time DESC LIMIT 5");
     $sth->execute("\%$search_string\%") or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     my @row;
-    if (&flood_protection('seen', (10 + ( $sth->rows * 5 ) ), $slot)) { return 1; }
+    if (&flood_protection('seen', (10 + ($sth->rows * 5 )), $slot)) { return 1; }
     while (@row = $sth->fetchrow_array) {
 	&rcon_command("say " . " $row[0] " . '" ^7был замечен на сервере "' . "" . duration($time - $row[1]) . "" . '" назад, и сказал:"' . '"' . " $row[2]");
 	print "SEEN: $row[0] was last seen " . duration($time - $row[1]) . " ago, saying: $row[2]\n";
@@ -2843,10 +2843,10 @@ sub log_to_file {
 
 # BEGIN: stats($search_string)
 sub stats {
+    if (&flood_protection('stats', 30)) { return 1; }
     my $name = shift;
     my $search_string = shift;
 	my $kills;
-    if (&flood_protection('stats', 30, $slot)) { return 1; }
     if ($search_string ne '') {
 	my @matches = &matching_users($search_string);
 	if ($#matches == 0) { $name = $name_by_slot{$matches[0]}; }
@@ -3142,7 +3142,7 @@ sub matching_users {
     return @matches;
 }
 
-# BEGIN: ignore($search_string)
+# BEGIN: !ignore($search_string)
 sub ignore {
     my $search_string = shift;
     my $key;
@@ -3163,7 +3163,7 @@ sub ignore {
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: forgive($search_string)
+# BEGIN: !forgive($search_string)
 sub forgive {
     my $search_string = shift;
     my $key;
@@ -3312,7 +3312,7 @@ sub age_player {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: add_name($name)
+# BEGIN: !addname($name)
 sub add_name {
     if (&flood_protection('addname', 30, $slot)) { return 1; }
 	my $name = shift;
@@ -3328,7 +3328,7 @@ sub add_name {
 	}
 }
 
-# BEGIN: add_rank($rank)
+# BEGIN: !addrank($rank)
 sub add_rank {
     if (&flood_protection('addrank', 30, $slot)) { return 1; }
 	my $rank = shift;
@@ -3344,7 +3344,7 @@ sub add_rank {
 	}
 }
 
-# BEGIN: clear_name($name)
+# BEGIN: !clearname($name)
 sub clear_name {
     if (&flood_protection('clearname', 30, $slot)) { return 1; }
 	my $name = shift;
@@ -3360,7 +3360,7 @@ sub clear_name {
 	else { &rcon_command("say " . '"Имя"' . '"' . "^2$name" . '"' . '"^7не найдено в базе данных"'); }
 }
 
-# BEGIN: clear_rank($rank)
+# BEGIN: !clearrank($rank)
 sub clear_rank {
     if (&flood_protection('clearrank', 30, $slot)) { return 1; }
 	my $rank = shift;
@@ -3376,7 +3376,7 @@ sub clear_rank {
 	else { &rcon_command("say " . '"Ранг"' . '"' . "^2$rank" . '"' . '"^7не найден в базе данных"'); }
 }
 
-# BEGIN: name_command($search_string)
+# BEGIN: !name($search_string)
 sub name_player {
     if (&flood_protection('name', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3394,7 +3394,7 @@ sub name_player {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: rank
+# BEGIN: !rank
 sub rank {
     if (&flood_protection('name', 30, $slot)) { return 1; }
 	my $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
@@ -3404,7 +3404,7 @@ sub rank {
 	else { &rcon_command("say ^2$name_by_slot{$slot}^7" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
 }
 
-# BEGIN: kick_command($search_string)
+# BEGIN: !kick($search_string)
 sub kick_command {
 if (&flood_protection('kick', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3428,7 +3428,7 @@ if (&flood_protection('kick', 30, $slot)) { return 1; }
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: tempban_command($search_string)
+# BEGIN: !tempban($search_string)
 sub tempban_command {
     if (&flood_protection('tempban', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3462,7 +3462,7 @@ sub tempban_command {
 	&rcon_command("clientkick $slot");
 }
 
-# BEGIN: ban_command($search_string)
+# BEGIN: !ban($search_string)
 sub ban_command {
     if (&flood_protection('ban', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3491,7 +3491,7 @@ sub ban_command {
 	&rcon_command("clientkick $slot");
 }
 
-# BEGIN: &unban_command($target);
+# BEGIN: !unban($target);
 #  where $target = a ban ID # or a partial string match for names. 
 sub unban_command {
 if (&flood_protection('unban', 30, $slot)) { return 1; }
@@ -3521,12 +3521,11 @@ if (&flood_protection('unban', 30, $slot)) { return 1; }
     $delete_sth->execute($key) or &die_nice("Unable to delete ban ID $key: unban = $unban\n");
 	}
 }
-# END: &unban_command($target);
 
-# BEGIN: &voting_command($state)
+# BEGIN: !voting($state)
 sub voting_command {
-    my $state = shift;
     if (&flood_protection('voting', 30, $slot)) { return 1; }
+    my $state = shift;
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	&rcon_command("g_allowVote 1");
 	&rcon_command("say " . '"Голосование включено."');
@@ -3541,13 +3540,12 @@ sub voting_command {
 	}
 	else { &rcon_command("say " . '"Неверное значение:"' . "$state" . '"... Используйте: on или off"'); }
 }
-# END: &voting_command
 
-# BEGIN: &voice_command($state)
+# BEGIN: !voice($state)
 sub voice_command {
+    if (&flood_protection('voice', 30, $slot)) { return 1; }
     my $voice;
     my $state = shift;
-    if (&flood_protection('voice', 30, $slot)) { return 1; }
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	&rcon_command("sv_voice 1");
 	&rcon_command("say " . '"Голосовой чат включен."');
@@ -3562,12 +3560,11 @@ sub voice_command {
 	}
 	else { &rcon_command("say " . '"Неверное значение:"' . "$state" . '"... Используйте: on или off"'); }
 }
-# END: &voice_command
 
-# BEGIN: &killcam_command($state)
+# BEGIN: !killcam($state)
 sub killcam_command {
+    if (&flood_protection('killcam', 30, $slot)) { return 1; }
     my $state = shift;
-    if (&flood_protection('killcam', 30, $slot)) { return 1; } 
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
     &rcon_command("scr_killcam 1");
     &rcon_command("say " . '"Показ гибели был ВКЛЮЧЕН админом"');
@@ -3580,9 +3577,8 @@ sub killcam_command {
 	}
 	else { &rcon_command("say " . '"Неизвстное значение команды !killcam:"' . "  $state  " . '" Используйте: on или off"'); }
 }
-# END: &killcam_command
 
-# BEGIN: speed_command($speed)
+# BEGIN: !speed($speed)
 sub speed_command {
     my $speed = shift;
     if ($speed =~ /^\d+$/) {
@@ -3599,9 +3595,8 @@ sub speed_command {
     else { &rcon_command("say " . '"К сожалению, не удалось установить значение скорости"'); }
 	}
 }
-# END: &speed_command
 
-# BEGIN: gravity_command($gravity)
+# BEGIN: !gravity($gravity)
 sub gravity_command {
     my $gravity = shift;
     if ($gravity =~ /^\d+$/) {
@@ -3618,12 +3613,11 @@ sub gravity_command {
     else { &rcon_command("say " . '"К сожалению, не удалось установить значение гравитации"'); }
 	}
 }
-# END: &gravity_command
 
-# BEGIN: glitch_command($state)
+# BEGIN: !glitch($state)
 sub glitch_command {
-    my $state = shift;
     if (&flood_protection('glitch', 30, $slot)) { return 1; }
+    my $state = shift;
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
 	$config->{'glitch_server_mode'} = 1;
     &rcon_command("say " . '"Дружелюбный режим включен. ^1УБИВАТЬ ТЕПЕРЬ ЗАПРЕЩЕНО!"');
@@ -3636,14 +3630,13 @@ sub glitch_command {
 	}
 	else { &rcon_command("say " . '"Неизвестное значение команды glitch:"' . "$state" . '" Используйте: on или off"'); }
 }
-# END: &glitch_command
 
-# BEGIN: &best
+# BEGIN: !best
 sub best {
+    if (&flood_protection('best', 300)) { return 1; }
     my @row;
     my $sth;
     my $counter = 1;
-    if (&flood_protection('best', 300)) { return 1; }
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
     # Most Kills
@@ -3778,7 +3771,7 @@ sub make_announcement {
 }
 # END: make_announcement
 
-# BEGIN: names(search_string);
+# BEGIN: !names(search_string);
 sub names {
     my $search_string = shift;
     my $key;
@@ -3859,6 +3852,7 @@ sub names {
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
+# BEGIN: !worst
 sub worst {
     if (&flood_protection('worst', 300)) { return 1; }
     &rcon_command("say " . '"^1Худшие ^7игроки сервера:"');
