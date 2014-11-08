@@ -89,7 +89,7 @@ my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 53';
+my $version = '3.2 RUS Build 55';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -184,7 +184,7 @@ my $ftp_lastEnd;
 my $ftp_type; 
 my $logfile_mode = 'local'; # local cod server logfile is the default vs. remote ftp logfile
 my @ftp_buffer;
-my $ftp; # the ftp control object
+my $ftp;
 my $mysql_chat_insert_sth;
 my $mysql_nextmap_sth;
 my $next_map;
@@ -1680,6 +1680,13 @@ sub chat{
         elsif ($message =~ /^!clearrank\s*$/i) {
             if (&check_access('clearrank')) { &rcon_command("say " . '"!clearrank *Ранг*"'); }
         }
+		# !dbinfo (database)
+        elsif ($message =~ /^!dbinfo\s+(.+)/i) {
+            if (&check_access('dbinfo')) { &database_info($1); }
+        }
+        elsif ($message =~ /^!dbinfo\s*$/i) {
+            if (&check_access('dbinfo')) { &rcon_command("say " . '"!dbinfo *База данных*"'); }
+        }
 		# !report (search_string)
         elsif ($message =~ /^!report\s+(.+)/i) {
             if (&check_access('report')) { &report_player($1); }
@@ -1864,6 +1871,7 @@ sub chat{
         elsif ($message =~ /^!rank\s*$/i) {
             if (&check_access('rank')) {
 			if (&flood_protection('rank', 30, $slot)) { return 1; }
+			my @row;
 	        my $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
             $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
             @row = $ranks_sth->fetchrow_array;
@@ -3197,7 +3205,7 @@ sub forgive {
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: !clearstats command($search_string)
+# BEGIN: !clearstats($search_string)
 sub clear_stats {
 if (&flood_protection('clearstats', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3218,7 +3226,7 @@ if (&flood_protection('clearstats', 30, $slot)) { return 1; }
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: !clearnames command($search_string)
+# BEGIN: !clearnames($search_string)
 sub clear_names {
 if (&flood_protection('clearnames', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3243,7 +3251,7 @@ if (&flood_protection('clearnames', 30, $slot)) { return 1; }
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: !report command($search_string)
+# BEGIN: !report($search_string)
 sub report_player {
     if (&flood_protection('report_player', 30)) { return 1; }
     my $search_string = shift;
@@ -3260,7 +3268,7 @@ sub report_player {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: !ip command($search_string)
+# BEGIN: !ip($search_string)
 sub ip_player {
     if (&flood_protection('ip_command', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3274,7 +3282,7 @@ sub ip_player {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: !id command($search_string)
+# BEGIN: !id($search_string)
 sub id_player {
     if (&flood_protection('id_command', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3288,7 +3296,7 @@ sub id_player {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: !guid command($search_string)
+# BEGIN: !guid($search_string)
 sub guid_player {
     if (&flood_protection('guid_command', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3302,7 +3310,7 @@ sub guid_player {
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
 
-# BEGIN: !age command($search_string)
+# BEGIN: !age($search_string)
 sub age_player {
     if (&flood_protection('age_command', 30, $slot)) { return 1; }
     my $search_string = shift;
@@ -3399,6 +3407,85 @@ sub name_player {
 	else { &rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$row[1]"); }
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+}
+
+sub database_info {
+if (&flood_protection('dbinfo', 30, $slot)) { return 1; }
+my $message = shift;
+my @row;
+my $sth;
+if ($message =~ /^(bans|bans.db)$/i) {
+$sth = $bans_dbh->prepare("SELECT count(*) FROM bans");
+$sth->execute() or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2bans.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2bans.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(definitions|definitions.db)$/i) {
+$sth = $definitions_dbh->prepare("SELECT count(*) FROM definitions");
+$sth->execute() or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2definitions.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2definitions.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(guid_to_name|guid_to_name.db)$/i) {
+$sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name");
+$sth->execute() or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2guid_to_name.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2guid_to_name.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(ip_to_guid|ip_to_guid.db)$/i) {
+$sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid");
+$sth->execute() or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_guid.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2ip_to_guid.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(ip_to_name|ip_to_name.db)$/i) {
+$sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name");
+$sth->execute() or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_name.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2ip_to_name.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(names|names.db)$/i) {
+$sth = $names_dbh->prepare("SELECT count(*) FROM names");
+$sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2names.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2names.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(ranks|ranks.db)$/i) {
+$sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks");
+$sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ranks.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2ranks.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(seen|seen.db)$/i) {
+$sth = $seen_dbh->prepare("SELECT count(*) FROM seen");
+$sth->execute() or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2seen.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2seen.db ^7нет записей"'); }
+}
+elsif ($message =~ /^(stats|stats.db)$/i) {
+$sth = $stats_dbh->prepare("SELECT count(*) FROM stats");
+$sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+@row = $sth->fetchrow_array;
+if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2stats.db"'); }
+else { &rcon_command("say " . '"В базе данных ^2stats.db ^7нет записей"'); }
+}
+else {
+&rcon_command("say " . '"Неверная база данных:"' . "$message");
+sleep 1;
+&rcon_command("say " . '"Используемые базы данных: ^2bans.db^7, ^2definitions.db^7, ^2guid_to_name.db"');
+sleep 1;
+&rcon_command("say " . '"Используемые базы данных: ^2ip_to_guid.db^7, ^2ip_to_name.db^7, ^2names.db^7, ^2ranks.db"');
+sleep 1;
+&rcon_command("say " . '"Используемые базы данных: ^2seen.db^7, ^2stats.db"');
+}
 }
 
 # BEGIN: !kick($search_string)
