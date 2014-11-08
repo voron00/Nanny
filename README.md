@@ -33,7 +33,9 @@ Nanny
 
 Превью:
 
-Ubuntu
+Ubuntu 14.10
 ![ScreenShot](http://i.imgur.com/WjR2jse.png)
-Windows
+Windows 8.1
 ![ScreenShot](http://i.imgur.com/9xD8ME5.png)
+OSX Yosemite 
+![ScreenShot](http://i.imgur.com/L5isoHd.jpg)
