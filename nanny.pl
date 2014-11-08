@@ -89,7 +89,7 @@ my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 50';
+my $version = '3.2 RUS Build 51';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -532,9 +532,9 @@ while (1) {
 			    if ((defined($row[0])) && ($row[0] < $best_spree{$victim_slot})) {
 				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
 				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) or &die_nice("Unable to update stats2\n");
-				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"');
+				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^6$kill_spree{$victim_slot}^7" . '"человек"');
 				}
-                else { &rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^1$kill_spree{$victim_slot}^7" . '"человек"'); }
+                else { &rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^6$kill_spree{$victim_slot}^7" . '"человек"'); }
 			}
 		    }
 		    $kill_spree{$victim_slot} = 0;
@@ -1694,7 +1694,7 @@ sub chat{
        # !define (word)
         elsif ($message =~ /^!(define|dictionary|dict)\s+(.+)/i) {
             if (&check_access('define')) {
-		if (&flood_protection('dictionary', 30, $slot)) { }
+		if (&flood_protection('define', 30, $slot)) { }
 		else { &dictionary($2); }
             }
         }
@@ -1706,19 +1706,19 @@ sub chat{
 		}
 	# !undefine (word)
         elsif ($message =~ /^!undefine\s+(.+)/i) {
+		if (&check_access('undefine')) {
+		if (&flood_protection('undefine', 30, $slot)) { }
 	    my $undefine = $1;
 	    my @row;
-            if (&check_access('define')) {
 		$sth = $definitions_dbh->prepare('SELECT count(*) FROM definitions WHERE term=?;');
 		$sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 		@row = $sth->fetchrow_array;
-
 		$sth = $definitions_dbh->prepare('DELETE FROM definitions WHERE term=?;');
 		$sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 		if ($row[0] == 1) { &rcon_command("say " . '"^2Удалено определение для: "' . '"' . "^1$undefine"); }
 		elsif ($row[0] > 1) { &rcon_command("say " . '"^2Удалено "' . "$row[0]" . '" определений для: "' . '"' . "^1$undefine"); }
 		else { &rcon_command("say " . '"^2Больше нет определений для: "' . '"' . "^1$undefine");}
-		    }
+		}
 		}
 	# !stats
 	elsif ($message =~ /^!stats\s*(.*)/i) {
@@ -1793,15 +1793,17 @@ sub chat{
 	# !hostname
         elsif ($message =~ /^!(host ?name|server ?name)\s+(.+)/i) {
             if (&check_access('hostname')) {
-		$server_name = $2;
-                &rcon_command("sv_hostname $server_name");
-				&rcon_command("say " . '"Изменяю название сервера..."' . "");
-		sleep 1;
-		&rcon_command("say ^2OK^7. " . '"Название сервера изменено на: "' . "$server_name");
+			if (&flood_protection('hostname', 30, $slot)) { }
+		    $server_name = $2;
+            &rcon_command("sv_hostname $server_name");
+			&rcon_command("say " . '"Изменяю название сервера..."' . "");
+		    sleep 1;
+		    &rcon_command("say ^2OK^7. " . '"Название сервера изменено на: "' . "$server_name");
             }
         }
 		elsif ($message =~ /^!(host ?name|server ?name)\s*$/i) {
             if (&check_access('hostname')) {
+			if (&flood_protection('hostname', 30, $slot)) { }
 			$temporary = &rcon_query("sv_hostname");
             if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
             $server_name = $1;
@@ -1843,6 +1845,7 @@ sub chat{
 	# !fixnames
         elsif ($message =~ /^!fixnames/i) {
             if (&check_access('fixnames')) {
+			if (&flood_protection('fixnames', 30)) { }
 			    my @row;
                 $sth = $guid_to_name_dbh->prepare('SELECT count(*) FROM guid_to_name;');
                 $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
@@ -2293,16 +2296,21 @@ sub chat{
 	# End of map !commands
 	# !time
 	elsif ($message =~ /^!time\b/i) {
-    if (&check_access('time')) { &rcon_command("say " . '"^2Московское время^7:^3"' . "$time{'h:mm'} ^7|^3 $time{'dd.mm.yyyy'}"); }
+    if (&check_access('time')) {
+	if (&flood_protection('time', 30, $slot)) { }
+	&rcon_command("say " . '"^2Московское время^7:^3"' . "$time{'h:mm'} ^7|^3 $time{'dd.mm.yyyy'}");
+	}
     }
 	# !ragequit
 	elsif ($message =~ /^!rage|rq|ragequit\b/i) {
+	if (&flood_protection('rage', 30, $slot)) { }
         &rcon_command("say " . "^1$name_by_slot{$slot}" . '"^7 покрыл всех матом, обиделся и вышел из игры."');
 		sleep 1;
 		&rcon_command("clientkick $slot");
     }
 	 # !forcerespawn
 			elsif ($message =~ /^!forcerespawn on\b/i) {
+			if (&flood_protection('forcerespawn', 30, $slot)) { }
 			if (&check_access('forcerespawn'))
             {
                 &rcon_command("scr_forcerespawn 1");
@@ -2310,6 +2318,7 @@ sub chat{
             }
         }
 			elsif ($message =~ /^!forcerespawn off\b/i) {
+			if (&flood_protection('forcerespawn', 30, $slot)) { }
 			if (&check_access('forcerespawn'))
             {
                 &rcon_command("scr_forcerespawn 0");
@@ -2318,6 +2327,7 @@ sub chat{
         }
 	 # !teambalance command
 			elsif ($message =~ /^!teambalance on\b/i) {
+			if (&flood_protection('teambalance', 30, $slot)) { }
 			if (&check_access('teambalance'))
             {
                 &rcon_command("scr_teambalance 1");
@@ -2325,6 +2335,7 @@ sub chat{
             }
         }
 			elsif ($message =~ /^!teambalance off\b/i) {
+			if (&flood_protection('teambalance', 30, $slot)) { }
 			if (&check_access('teambalance'))
             {
                 &rcon_command("scr_teambalance 0");
@@ -2333,6 +2344,7 @@ sub chat{
         }
 	 # !spectatefree command
 			elsif ($message =~ /^!spectatefree on\b/i) {
+			if (&flood_protection('spectatefree', 30, $slot)) { }
 			if (&check_access('spectatefree'))
             {
                 &rcon_command("scr_spectatefree 1");
@@ -2340,13 +2352,14 @@ sub chat{
             }
         }
 			elsif ($message =~ /^!spectatefree off\b/i) {
+			if (&flood_protection('spectatefree', 30, $slot)) { }
 			if (&check_access('spectatefree'))
             {
                 &rcon_command("scr_spectatefree 0");
 				&rcon_command("say " . '"Свободный режим наблюдения ^1Выключен"');
             }
         }
-	# !lastbans N
+	# !lastbans
 	elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)\s+(\d+)/i) {
             if (&check_access('lastbans')) { &last_bans($2); }
         }
@@ -2531,36 +2544,32 @@ sub rcon_status {
 	}
     }
 	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
-	if ($guid) {
-	my $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
 	if ($slot >= 0) {
+	    if ($guid_by_slot{$slot}) {
+		my $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
 	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
 		$ip_by_slot{$slot} = 'unknown';
 		$sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
-		    $ip_by_slot{$slot} = $row[0] . '?';
-		    print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
+		$ip_by_slot{$slot} = $row[0] . '?';
+		print "Guessed an IP by GUID for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
 		}
 	    }
-	}
-    }
-	}
-	if (!$guid) {
-	my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
-    foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
-	if ($slot >= 0) {
+		}
+		elsif (!$guid_by_slot{$slot}) {
+		my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
 	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
 		$ip_by_slot{$slot} = 'unknown';
 		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		while (@row = $sth->fetchrow_array) {
-		    $ip_by_slot{$slot} = $row[0] . '?';
-		    print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
+		$ip_by_slot{$slot} = $row[0] . '?';
+		print "Guessed an IP by NAME for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
 		}
 	    }
+		}
 	}
     }
-	}
     # END:  IP Guessing from cache
 	# BEGIN: Check for Banned IP's
 	my $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
@@ -3379,7 +3388,7 @@ sub name_player {
 	my $names_sth = $names_dbh->prepare("SELECT * FROM names ORDER BY RANDOM() LIMIT 1;");
     $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
     @row = $names_sth->fetchrow_array;
-	if (!$row[0]) { &rcon_command("say " . '"К сожалению не найдено имен в базе данных"'); }
+	if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено имен в базе данных"'); }
 	else { &rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$row[1]"); }
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
@@ -3391,7 +3400,7 @@ sub rank {
 	my $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
     $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
     @row = $ranks_sth->fetchrow_array;
-	if (!$row[0]) { &rcon_command("say " . '"К сожалению не найдено рангов в базе данных"'); }
+	if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено рангов в базе данных"'); }
 	else { &rcon_command("say ^2$name_by_slot{$slot}^7" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
 }
 
