@@ -61,7 +61,6 @@ use warnings; # helps catch failure strings
 use strict;   # strict keeps us from making stupid typos
 use diagnostics; # good for detailed explanations about any problems in code
 use Rcon::KKrcon;   # The KKrcon module used to issue commands to the server
-use DBD::mysql; # Support for MySQL based logging
 use DBI; # databases
 use Geo::IP; # GeoIP is used for locating IP addresses
 use Geo::Inverse; # Used for calculating the distance from the server
@@ -86,7 +85,6 @@ my $bans_dbh = DBI->connect("dbi:SQLite:dbname=databases/bans.db","","");
 my $definitions_dbh = DBI->connect("dbi:SQLite:dbname=databases/definitions.db","","");
 my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
-my $mysql_logging_dbh;
 
 # Global variable declarations
 my $version = '3.2 RUS Build 55';
@@ -119,6 +117,7 @@ my $damage_type;
 my $damage_location;
 my $message;
 my $time;
+my $sth;
 my $timestring;
 my %last_activity_by_slot;
 my $last_idlecheck;
@@ -185,16 +184,11 @@ my $ftp_type;
 my $logfile_mode = 'local'; # local cod server logfile is the default vs. remote ftp logfile
 my @ftp_buffer;
 my $ftp;
-my $mysql_chat_insert_sth;
-my $mysql_nextmap_sth;
 my $next_map;
 my $next_gametype;
 my $freshen_next_map_prediction = 1;
 my $temporary;
 my %description;
-my $next_mysql_repair;
-my $mysql_repair_interval = 137;
-my $mysql_is_broken = 1;
 my $now_upmins = 0;
 my $last_upmins = 0;
 my @affiliate_servers;
@@ -261,7 +255,6 @@ $last_namecheck = $time;
 $last_guid_sanity_check = $time;
 $timestring = scalar(localtime($time));
 $next_announcement = $time + 120;
-$next_mysql_repair = $time + $mysql_repair_interval;
 $next_affiliate_announcement = $time;
 
 # create the rcon control object - this is how we send commands to the console
@@ -828,11 +821,6 @@ while (1) {
 		if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
 		print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n"; 
 		$freshen_next_map_prediction = 0;
-		# MySQL Next Map Logging
-		if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
-		    $mysql_nextmap_sth = $mysql_logging_dbh->prepare("UPDATE next_map SET map = ?, gametype = ?");
-		    $mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or &mysql_fail("WARNING: Unable to do MySQL nextmap update\n");
-		}
 	    }
 		else {
 		$temporary = &rcon_query('sv_mapRotation');
@@ -842,11 +830,6 @@ while (1) {
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
 		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
 		    $freshen_next_map_prediction = 0;
-            # MySQL Next Map Logging
-		    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
-			$mysql_nextmap_sth = $mysql_logging_dbh->prepare("UPDATE next_map SET map = ?, gametype = ?");
-			$mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or print "WARNING: Unable to do MySQL nextmap update\n";
-		    }
 		}
 		# If maprotation contatins only space(empty) character, next map and gametype will be current map and gametype
 		elsif ($temporary =~ /\"sv_mapRotation\" is: \"\s+/m) {
@@ -855,11 +838,6 @@ while (1) {
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
 		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
 		    $freshen_next_map_prediction = 0;
-		    # MySQL Next Map Logging
-		    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
-		    $mysql_nextmap_sth = $mysql_logging_dbh->prepare("UPDATE next_map SET map = ?, gametype = ?");
-		    $mysql_nextmap_sth->execute($description{$next_map}, $description{$next_gametype}) or print "WARNING: Unable to do MySQL nextmap update\n";
-		    }
 		}
 		else {
 		print "WARNING: unable to predict next map:  $temporary\n";
@@ -996,12 +974,12 @@ sub load_config_file {
                 push @remote_servers, $config_val;
                 print "Remote Server: $config_val\n";
             }
-	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|mysql_logging|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check|use_announcements|use_responses)$/) {
+	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check|use_announcements|use_responses)$/) {
 		if ($config_val =~ /yes|1|on|enable/i) { $config->{$config_name} = 1; }
                 else { $config->{$config_name} = 0; }
                 print "$config_name: " . $config->{$config_name} . "\n";
             }
-	    elsif ($config_name =~ 'interval_m[ia][nx]|banned_name_warn_message_[12]|banned_name_kick_message|max_ping_average|glitch_kill_kick_message|anti(spam|idle)_warn_(level|message)_[12]|anti(spam|idle)_kick_(level|message)|ftp_(username|password|refresh_time)|mysql_(username|password|hostname|database)|affiliate_server_announcement_interval') {
+	    elsif ($config_name =~ 'interval_m[ia][nx]|banned_name_warn_message_[12]|banned_name_kick_message|max_ping_average|glitch_kill_kick_message|anti(spam|idle)_warn_(level|message)_[12]|anti(spam|idle)_kick_(level|message)|ftp_(username|password|refresh_time)|affiliate_server_announcement_interval') {
                 $config->{$config_name} = $config_val;
                 print "$config_name: " . $config->{$config_name} . "\n";
             }
@@ -1258,43 +1236,6 @@ sub initialize_databases {
     $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-    # MySQL logging
-    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
-	$mysql_logging_dbh = DBI->connect('dbi:mysql:' . $config->{'mysql_database'} . ':' . $config->{'mysql_hostname'},
-	$config->{'mysql_username'}, $config->{'mysql_password'}) or &die_nice("MYSQL LOGGING: Couldn't connect to mysql database: $DBI::errstr\n");
-	print "MySQL Logging database brought online\n\n";
-	$mysql_is_broken = 0;
-	$sth = $mysql_logging_dbh->prepare("show tables");
-	$sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-	while (@tmp = $sth->fetchrow_array) { foreach (@tmp) { $tables{$_} = $_; } }
-	if ($tables{'chat_log'}) { print "MySQL chat_log table already exists\n\n"; }
-	else {
-	print "Creating chat_log table...\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE chat_log (id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64), timestamp INTEGER, message VARCHAR(250));";
-	$result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
-	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX chat_log_1 ON chat_log (id,name)";
-	$result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
-	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-    $cmd = "CREATE INDEX chat_log_2 ON chat_log (id,timestamp)";
-    $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-	$cmd = "CREATE INDEX chat_log_3 ON chat_log (id,message)";
-    $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-	}
-	if ($tables{'next_map'}) { print "MySQL next_map table already exists\n\n"; }
-    else {
-    print "Creating next_map table...\n\n";
-    $cmd = "CREATE TABLE next_map (map VARCHAR(250), gametype VARCHAR(250));";
-    $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "INSERT INTO next_map VALUES('Unknown', 'Unknown')";
-    $result_code = $mysql_logging_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $mysql_logging_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-	}
-    }
 }
 # END: initialize_databases
 
@@ -1352,15 +1293,6 @@ sub chat{
 	if ($chatmode == 1) { &log_to_file('logs/chat.log', &strip_color("GLOBAL CHAT: $name: $message")); }
 	if ($chatmode == 2) { &log_to_file('logs/chat.log', &strip_color("TEAM CHAT: $name: $message")); }
 	if ($chatmode == 3) { &log_to_file('logs/chat.log', &strip_color("PRIVATE CHAT: $name: $message")); }
-    # MySQL Chat Logging
-    my $sth;
-    if ((defined($config->{'mysql_logging'})) && ($config->{'mysql_logging'})) {
-	if (!$mysql_is_broken) {
-	    $sth = $mysql_logging_dbh->prepare("INSERT INTO chat_log VALUES ('', ?, ?, ?)");
-	    $sth->execute($name, $time, $message) or &mysql_fail("WARNING: Unable to do MySQL chat log insert\n");
-	}
-	else { &mysql_repair; }
-    }
     # Anti-Spam functions
     if (($config->{'antispam'}) && (!$ignore{$slot})) {
 	if (!defined($spam_last_said{$slot})) { $spam_last_said{$slot} = $message; }
@@ -4477,27 +4409,6 @@ sub toggle_weapon {
 	&log_to_file('logs/admin.log', "$description $is_was set to $requested_state:  $name - GUID $guid");
         &rcon_command("set $attribute \"$requested_state\"");
         &rcon_command("say " . "^2$description" . '"^7были установлены в режим"' . "^1$requested_state" . '"^7админом."');
-    }
-}
-
-sub mysql_fail {
-    my $message = $_[0];
-    print $message;
-    $mysql_is_broken = 1;
-    &mysql_repair;
-}
-
-sub mysql_repair {
-    print "Next Repair Time in " . &duration(($time - $next_mysql_repair)) . "\n";
-    print "REPAIR: $next_mysql_repair\n";
-    print "  TIME: $time\n";
-    if ($time > $next_mysql_repair) {
-        $next_mysql_repair = $time + $mysql_repair_interval;
-        print "Attempting to repair the mysql connection\n\n";
-        $mysql_logging_dbh->disconnect;
-        $mysql_logging_dbh = DBI->connect('dbi:mysql:' . $config->{'mysql_database'} . ':' . $config->{'mysql_hostname'},
-        $config->{'mysql_username'}, $config->{'mysql_password'}) or print "MYSQL LOGGING: Couldn't connect to mysql database: $DBI::errstr\n";
-	    $mysql_is_broken = 0;
     }
 }
 
