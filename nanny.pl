@@ -89,7 +89,7 @@ my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 my $mysql_logging_dbh;
 
 # Global variable declarations
-my $version = '3.2 RUS Build 52';
+my $version = '3.2 RUS Build 53';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1652,10 +1652,6 @@ sub chat{
         elsif ($message =~ /^!name\s*$/i) {
             if (&check_access('name')) { &rcon_command("say " . '"!name для кого?"'); }
         }
-		# !rank
-        elsif ($message =~ /^!rank\s*$/i) {
-            if (&check_access('rank')) { &rank; }
-        }
 		# !addname (name)
         elsif ($message =~ /^!addname\s+(.+)/i) {
             if (&check_access('addname')) { &add_name($1); }
@@ -1863,6 +1859,17 @@ sub chat{
                 if ($row[0] == 1) { &rcon_command("say " . '"^7Удалена одна запись из базы ^2IP <-> NAME"'); }
 				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2IP <-> NAME^7 которые имели слишком длинный формат"'); }
             }
+        }
+    	# !rank
+        elsif ($message =~ /^!rank\s*$/i) {
+            if (&check_access('rank')) {
+			if (&flood_protection('rank', 30, $slot)) { return 1; }
+	        my $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
+            $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+            @row = $ranks_sth->fetchrow_array;
+	        if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено рангов в базе данных"'); }
+	        else { &rcon_command("say ^2$name_by_slot{$slot}^7" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
+			}
         }
 	# !version
 	elsif ($message =~ /^!(version|ver)\b/i) {
@@ -2823,7 +2830,7 @@ sub seen {
     my $sth = $seen_dbh->prepare("SELECT name,time,saying FROM seen WHERE name LIKE ? ORDER BY time DESC LIMIT 5");
     $sth->execute("\%$search_string\%") or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     my @row;
-    if (&flood_protection('seen', (10 + ($sth->rows * 5 )), $slot)) { return 1; }
+    if (&flood_protection('seen', (10 + ($sth->rows * 5)), $slot)) { return 1; }
     while (@row = $sth->fetchrow_array) {
 	&rcon_command("say " . " $row[0] " . '" ^7был замечен на сервере "' . "" . duration($time - $row[1]) . "" . '" назад, и сказал:"' . '"' . " $row[2]");
 	print "SEEN: $row[0] was last seen " . duration($time - $row[1]) . " ago, saying: $row[2]\n";
@@ -3392,16 +3399,6 @@ sub name_player {
 	else { &rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$row[1]"); }
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
-}
-
-# BEGIN: !rank
-sub rank {
-    if (&flood_protection('name', 30, $slot)) { return 1; }
-	my $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
-    $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
-    @row = $ranks_sth->fetchrow_array;
-	if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено рангов в базе данных"'); }
-	else { &rcon_command("say ^2$name_by_slot{$slot}^7" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
 }
 
 # BEGIN: !kick($search_string)
