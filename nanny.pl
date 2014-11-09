@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.2 RUS Build 55';
+my $version = '3.2 RUS Build 56';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1716,6 +1716,14 @@ sub chat{
 	# !say
         elsif ($message =~ /^!say\s+(.+)/i) {
             if (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
+        }
+	# !rcon
+        elsif ($message =~ /^!rcon\s+(.+)/i) {
+		    if (&check_access('rcon')) {
+		    my $command = $1;
+			if (($command =~ /rcon_password/mi) or ($command =~ /killserver/mi) or ($command =~ /quit/mi)) { }
+            else { &rcon_command("$command"); }
+		    }
         }
 	# !broadcast
         elsif ($message =~ /^!broadcast\s+(.+)/i) {
