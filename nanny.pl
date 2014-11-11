@@ -848,7 +848,7 @@ while (1) {
 sub load_config_file {
     my $config_file = shift;
     if (!defined($config_file)) { &die_nice("load_config_file called without an argument\n"); }
-    if (!-e $config_file) { &die_nice("load_config_file config file does not exist: $config_file\n"); }
+    if (!-e $config_file) { &die_nice("config file does not exist: $config_file\n"); }
 
     open (CONFIG, $config_file) or &die_nice("$config_file file exists, but i couldnt open it.\n");
 
