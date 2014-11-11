@@ -71,7 +71,7 @@ sub execute {
 	$command =~ s/\/\/+/\//g;
     print $rcon->execute($command) . "\n";
     if ($error = $rcon->error) {
-	elsif ($error eq 'Rcon timeout') {
+	if ($error eq 'Rcon timeout') {
 	print "rebuilding rcon object\n";
 	$rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old');
 	}

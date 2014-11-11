@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 6';
+my $version = '3.3 RUS Build 7';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -136,7 +136,6 @@ my $stats_sth;
 my $names_sth;
 my $ranks_sth;
 my %last_ping;
-my %ping_average;
 my @row;
 my $rule_name;
 my %rule_regex;
@@ -350,8 +349,8 @@ while (1) {
 		    $guid_by_slot{$reset_slot} = 0;
 		    $spam_count{$reset_slot} = 0;
 			$spam_last_said{$slot} = &random_pwd(6);
+			$ping_by_slot{$slot} = 0;
 		    $last_ping{$reset_slot} = 0;
-		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
 		    $last_killed_by{$reset_slot} = 'none';
 		    $kill_spree{$reset_slot} = 0;
@@ -565,8 +564,8 @@ while (1) {
 		$ip_by_slot{$slot} = 'not_yet_known';
 		$spam_count{$slot} = 0;
 		$spam_last_said{$slot} = &random_pwd(6);
+		$ping_by_slot{$slot} = 0;
 		$last_ping{$slot} = 0;
-		$ping_average{$slot} = 0;
 		$kill_spree{$slot} = 0;
 		$best_spree{$slot} = 0;
 		$last_killed_by{$slot} = 'none';
@@ -597,8 +596,8 @@ while (1) {
 		$ip_by_slot{$slot} = 'SLOT_EMPTY';
 		$guid_by_slot{$slot} = 0;
 		$spam_count{$slot} = 0;
+		$ping_by_slot{$slot} = 0;
         $last_ping{$slot} = 0;
-        $ping_average{$slot} = 0;
 		$penalty_points{$slot} = 0;
 		$last_killed_by{$slot} = 'none';
 		$kill_spree{$slot} = 0;
@@ -971,7 +970,7 @@ sub load_config_file {
                 else { $config->{$config_name} = 0; }
                 print "$config_name: " . $config->{$config_name} . "\n";
             }
-	    elsif ($config_name =~ 'interval_m[ia][nx]|banned_name_warn_message_[12]|banned_name_kick_message|max_ping_average|glitch_kill_kick_message|anti(spam|idle)_warn_(level|message)_[12]|anti(spam|idle)_kick_(level|message)|ftp_(username|password|refresh_time)|affiliate_server_announcement_interval') {
+	    elsif ($config_name =~ 'interval_m[ia][nx]|banned_name_warn_message_[12]|banned_name_kick_message|max_ping|glitch_kill_kick_message|anti(spam|idle)_warn_(level|message)_[12]|anti(spam|idle)_kick_(level|message)|ftp_(username|password|refresh_time)|affiliate_server_announcement_interval') {
                 $config->{$config_name} = $config_val;
                 print "$config_name: " . $config->{$config_name} . "\n";
             }
@@ -1734,8 +1733,8 @@ sub chat{
 		    $guid_by_slot{$reset_slot} = 0;
 		    $spam_count{$reset_slot} = 0;
 			$spam_last_said{$slot} = &random_pwd(6);
+			$ping_by_slot{$slot} = 0;
 		    $last_ping{$reset_slot} = 0;
-		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
 		    $last_killed_by{$reset_slot} = 'none';
 		    $kill_spree{$reset_slot} = 0;
@@ -2449,13 +2448,13 @@ sub rcon_status {
 			}
 		}
 		else {
-		    if (!defined($ping_average{$slot})) { $ping_average{$slot} = 0; }
-		    $ping_average{$slot} = int(($ping_average{$slot} * 0.85) + ($ping * 0.15));
-		    if (($config->{'ping_enforcement'}) && ($ping_average{$slot} > ($config->{'max_ping_average'}))) {
-			&rcon_command("say $name " . '"^7 был выкинут за слишком высокий пинг"' . " ($ping_average{$slot} / 350)");
-			&log_to_file('logs/kick.log', "$name was kicked for having too high of an average ping. ($ping_average{$slot} / 350)");
+		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
+		    if ($last_ping{$slot} > ($config->{'max_ping'}) && ($config->{'ping_enforcement'})) {
+			print "PING ENFORCEMENT: too high ping for $name\n";
+			&rcon_command("say " . &strip_color($name) . '"^7 был выкинут за слишком высокий пинг"' . " ($ping_by_slot{$slot} / $config->{'max_ping'})");
 			sleep 1;
 			&rcon_command("clientkick $slot");
+			&log_to_file('logs/kick.log', "$name was kicked for having too high of an average ping. ($ping_by_slot{$slot} / $config->{'max_ping'})");
 			}
 		}
 		# we need to remember this for the next ping we check.
