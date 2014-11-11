@@ -45,7 +45,7 @@
 #  guess a favorite weapon? :)
 #  Rewrite config parser?
 #  ability to specify tempban time via config? ...done
-#
+
 #  Command wish list:
 #  !teambalance on/off ...done
 #  !forcerespawn on/off ...done
@@ -87,12 +87,13 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.2 RUS Build 56';
+my $version = '3.3 RUS Build 6';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
 my %name_warn_level;
 my $last_namecheck;
+my $tempbantime = 30;
 my $rconstatus_interval = 30;
 my $guid_sanity_check_interval = 597;
 my $problematic_characters = "\[^\x00-\x7F]+";
@@ -117,19 +118,23 @@ my $damage_type;
 my $damage_location;
 my $message;
 my $time;
-my $sth;
 my $timestring;
 my %last_activity_by_slot;
 my $last_idlecheck;
 my $last_rconstatus;
 my %name_by_slot;
+my %fake_name_by_slot;
 my %ip_by_slot;
 my %guid_by_slot;
 my %ping_by_slot;
 my %spam_last_said;
 my %spam_count;
+my $sth;
+my $bans_sth;
 my $seen_sth;
 my $stats_sth;
+my $names_sth;
+my $ranks_sth;
 my %last_ping;
 my %ping_average;
 my @row;
@@ -167,6 +172,7 @@ my $max_clients = 999;
 my $max_ping = 999;
 my $private_clients = 0;
 my $pure = 1;
+my $chatmode;
 my $voice = 0;
 my $last_guid0_audit = time;
 my $guid0_audit_interval = 295;
@@ -218,9 +224,8 @@ elsif ($logfile_mode eq 'ftp') { &ftp_connect }
 # Initialize the database tables if they do not exist
 &initialize_databases;
 
-# The big welcome message
-print
-"
+# Startup message
+print "
 ================================================================================
                      Сиделка для сервера Call of Duty 2
                          Версия $version
@@ -243,9 +248,7 @@ print
                     Последняя Русская версия доступна на:
                       https://github.com/voron00/Nanny
 
-================================================================================
-"
-;
+================================================================================\n\n";
 
 # initialize the timers
 $time = time;
@@ -343,9 +346,10 @@ while (1) {
 		    $last_activity_by_slot{$reset_slot} = 'gone';
 		    $idle_warn_level{$reset_slot} = 0;
 		    &update_name_by_slot('SLOT_EMPTY', $reset_slot);
-		    $ip_by_slot{$reset_slot} = 'SLOT_EMPTY';
+		    $ip_by_slot{$reset_slot} = 'not_yet_known';
 		    $guid_by_slot{$reset_slot} = 0;
 		    $spam_count{$reset_slot} = 0;
+			$spam_last_said{$slot} = &random_pwd(6);
 		    $last_ping{$reset_slot} = 0;
 		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
@@ -353,6 +357,7 @@ while (1) {
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0;
+			$fake_name_by_slot{$reset_slot} = undef;
 			}
 	        print "SERVER CRASH/RESTART DETECTED, RESETTING...\n";
 		    &rcon_command("say " , '"^1*** ^7Похоже что сервер упал, перезапускаю себя... ^1***"');
@@ -403,8 +408,6 @@ while (1) {
 			&log_to_file('logs/kick.log', "GLITCH_KILL: Murderer!  Kicking $attacker_name for killing other people");
 		}
 		# Track the kill stats for the killer
-		# checking the attacker teams ensures we dont try to count suicides, those that are auto-balanced, or deaths from falling
-		if (($attacker_team eq 'axis') or ($attacker_team eq 'allies') or (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
 		if ($attacker_slot ne $victim_slot) {
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
 		    $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -420,7 +423,7 @@ while (1) {
 			}
 		    }
 		    else {
-			$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?)");
+			$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
 			if ($damage_location eq 'head') {
 			    $stats_sth->execute(&strip_color($attacker_name), 1, 0, 1) or &die_nice("Unable to do insert\n");
 			}
@@ -428,57 +431,43 @@ while (1) {
 			    $stats_sth->execute(&strip_color($attacker_name), 1, 0, 0) or &die_nice("Unable to do insert\n");
 			}
 		    }
-		            # 2nd generation stats
-		            $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
-                    $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-                    @row = $stats_sth->fetchrow_array;
-                    if ($row[0]) { }
-                    else {
-                        $stats_sth = $stats_dbh->prepare("INSERT INTO stats2 VALUES (NULL, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
-			            $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to do insert\n");
-                    }
-                    # name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses
-		            # Grenade Kills
-		            if ($damage_type eq 'MOD_GRENADE_SPLASH') {
-			            $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET grenade_kills = grenade_kills + 1 WHERE name=?");
-                        $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-		            }
-		            # Pistol Kills
-		            if ($attacker_weapon =~ /^(webley|colt|luger|TT30)_mp$/) {
-			        $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET pistol_kills = pistol_kills + 1 WHERE name=?");
-                    $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-		            }
-		            # Bash / Melee Kills
-                    if ($damage_type eq 'MOD_MELEE') {
-                        $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bash_kills = bash_kills + 1 WHERE name=?");
-                        $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-                    }
-                    # Shotgun Kills
-                    if ($attacker_weapon eq 'shotgun_mp') {
-                        $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET shotgun_kills = shotgun_kills + 1 WHERE name=?");
-                        $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-                    }
-                    # Sniper Kills
-                    if ($attacker_weapon =~ /^(enfield_scope|springfield|mosin_nagant_sniper|kar98k_sniper)_mp$/) {
-                        $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET sniper_kills = sniper_kills + 1 WHERE name=?");
-                        $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-                    }
-                    # Rifle Kills
-                    if ($attacker_weapon =~ /^(enfield|m1garand|m1carbine|mosin_nagant|SVT40|kar98k|g43)_mp$/) {
-                        $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET rifle_kills = rifle_kills + 1 WHERE name=?");
-                        $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-                    }
-		            #  Machinegun Kills
-                    if ($attacker_weapon =~ /^(sten|thompson|bren|greasegun|bar|PPS42|ppsh|mp40|mp44|30cal_stand|mg42_bipod_stand)_mp$/) {
-                        $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET machinegun_kills = machinegun_kills + 1 WHERE name=?");
-                        $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats2\n");
-                    }    
-		    # End 2nd generation stats
+		    # Grenade Kills
+		    if ($damage_type eq 'MOD_GRENADE_SPLASH') {
+			    $stats_sth = $stats_dbh->prepare("UPDATE stats SET grenade_kills = grenade_kills + 1 WHERE name=?");
+                $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
+		    }
+		    # Pistol Kills
+		    if ($attacker_weapon =~ /^(webley|colt|luger|TT30)_mp$/) {
+			    $stats_sth = $stats_dbh->prepare("UPDATE stats SET pistol_kills = pistol_kills + 1 WHERE name=?");
+                $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
+		    }
+		    # Bash / Melee Kills
+            if ($damage_type eq 'MOD_MELEE') {
+                $stats_sth = $stats_dbh->prepare("UPDATE stats SET bash_kills = bash_kills + 1 WHERE name=?");
+                $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
+            }
+            # Shotgun Kills
+            if ($attacker_weapon eq 'shotgun_mp') {
+                $stats_sth = $stats_dbh->prepare("UPDATE stats SET shotgun_kills = shotgun_kills + 1 WHERE name=?");
+                $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
+            }
+            # Sniper Kills
+            if ($attacker_weapon =~ /^(enfield_scope|springfield|mosin_nagant_sniper|kar98k_sniper)_mp$/) {
+                $stats_sth = $stats_dbh->prepare("UPDATE stats SET sniper_kills = sniper_kills + 1 WHERE name=?");
+                $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
+            }
+            # Rifle Kills
+            if ($attacker_weapon =~ /^(enfield|m1garand|m1carbine|mosin_nagant|SVT40|kar98k|g43)_mp$/) {
+                $stats_sth = $stats_dbh->prepare("UPDATE stats SET rifle_kills = rifle_kills + 1 WHERE name=?");
+                $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
+            }
+		    # Machinegun Kills
+            if ($attacker_weapon =~ /^(sten|thompson|bren|greasegun|bar|PPS42|ppsh|mp40|mp44|30cal_stand|mg42_bipod_stand)_mp$/) {
+                $stats_sth = $stats_dbh->prepare("UPDATE stats SET machinegun_kills = machinegun_kills + 1 WHERE name=?");
+                $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
+            }
 		}
-        }
 		# Track the death stats for the victim
-		# checking the attacker team ensures we don't count deaths from switching teams or changing to spectator
-		if (($attacker_team eq 'axis') or ($attacker_team eq 'allies') or ($attacker_team eq 'world') or (($attacker_team eq '') && ($damage_type ne 'MOD_SUICIDE'))) {
 		if ($victim_slot ne $attacker_slot) {
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
 		    $stats_sth->execute(&strip_color($victim_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -488,10 +477,9 @@ while (1) {
 			$stats_sth->execute(($row[3] + 1), &strip_color($victim_name)) or &die_nice("Unable to do update\n");
 		    }
 		    else {
-			$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?)");
+			$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
 			$stats_sth->execute(&strip_color($victim_name), 0, 1, 0) or &die_nice("Unable to do insert\n");
 		    }
-		}
 		}
 		# End of kill-stats tracking
 
@@ -499,7 +487,7 @@ while (1) {
 		if (($damage_location eq 'head') && ($config->{'show_headshots'})) { print "HEADSHOT: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . " - HEADSHOT!\n"; }
 		else {
 		    if ($config->{'show_kills'}) {
-			if ($victim_slot == $attacker_slot) { print "SUICIDE: " . &strip_color($attacker_name) . " killed himself\n"; }
+			if ($victim_slot eq $attacker_slot) { print "SUICIDE: " . &strip_color($attacker_name) . " killed himself\n"; }
 			elsif ($damage_type eq 'MOD_FALLING') { print "FALL: " . &strip_color($victim_name) . " fell to their death\n"; }
 			else { print "KILL: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . "\n"; }
 		    }
@@ -507,8 +495,10 @@ while (1) {
 		# First Blood
 		if (($config->{'first_blood'}) && ($first_blood == 0) && ($attacker_slot ne $victim_slot) && ($attacker_slot >= 0)) {
 		    $first_blood = 1;
-		    &rcon_command("say " . '"^1ПЕРВАЯ КРОВЬ:"' . "^1$attacker_name^7" . '"убил"' . "^2$victim_name^7");
-		    print "FIRST BLOOD: $attacker_name killed $victim_name\n";
+		    &rcon_command("say " . '"ПЕРВАЯ КРОВЬ:^1"' . &strip_color($attacker_name) . '"^7убил^2"' . &strip_color($victim_name));
+		    print "FIRST BLOOD: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . "\n";
+			$stats_sth = $stats_dbh->prepare("UPDATE stats SET first_bloods = first_bloods + 1 WHERE name=?");
+		    $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
 		}
 		# Killing Spree
 		if (($config->{'killing_sprees'}) && ($damage_type ne 'MOD_SUICIDE') && ($damage_type ne 'MOD_FALLING') && ($attacker_team ne 'world') && ($attacker_slot ne $victim_slot)) {
@@ -519,12 +509,12 @@ while (1) {
 			if (!defined($best_spree{$victim_slot})) { $best_spree{$victim_slot} = 0; }
 			if (($kill_spree{$victim_slot} > 2) && ($kill_spree{$victim_slot} > $best_spree{$victim_slot})) {
 			    $best_spree{$victim_slot} = $kill_spree{$victim_slot};  
-			    $stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats2 WHERE name=?");
+			    $stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE name=?");
 			    $stats_sth->execute(&strip_color($victim_name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 			    @row = $stats_sth->fetchrow_array;
 			    if ((defined($row[0])) && ($row[0] < $best_spree{$victim_slot})) {
-				$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET best_killspree=? WHERE name=?");
-				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) or &die_nice("Unable to update stats2\n");
+				$stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE name=?");
+				$stats_sth->execute($best_spree{$victim_slot}, &strip_color($victim_name)) or &die_nice("Unable to update stats\n");
 				&rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^6$kill_spree{$victim_slot}^7" . '"человек"');
 				}
                 else { &rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^6$kill_spree{$victim_slot}^7" . '"человек"'); }
@@ -574,16 +564,19 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$ip_by_slot{$slot} = 'not_yet_known';
 		$spam_count{$slot} = 0;
-		$spam_last_said{$slot} = int(rand(7654321));
+		$spam_last_said{$slot} = &random_pwd(6);
 		$last_ping{$slot} = 0;
 		$ping_average{$slot} = 0;
 		$kill_spree{$slot} = 0;
 		$best_spree{$slot} = 0;
 		$last_killed_by{$slot} = 'none';
-		if ($game_type ne 'sd') {
 		$penalty_points{$slot} = 0;
 		$ignore{$slot} = 0;
-        }
+		$names_sth = $names_dbh->prepare("SELECT * FROM names ORDER BY RANDOM() LIMIT 1;");
+        $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+		@row = $names_sth->fetchrow_array;
+	    if (!$row[0]) { $fake_name_by_slot{$slot} = '^2В базе данных нет имен, используйте !addname чтобы добавить имена'; }
+		else { $fake_name_by_slot{$slot} = $row[1]; }
 		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"'. "$name" . '^7 присоединился к игре'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
 		# Check for banned GUID
@@ -611,11 +604,12 @@ while (1) {
 		$kill_spree{$slot} = 0;
 		$best_spree{$slot} = 0;
 		$ignore{$slot} = 0;
+		$fake_name_by_slot{$slot} = undef;
 
-		# populate the !seen data
+		# populate the seen data
 		$seen_sth = $seen_dbh->prepare("UPDATE seen SET time=? WHERE name=?");
 		$seen_sth->execute($time,$name) or &die_nice("Unable to do update\n");
-		# end of !seen data population
+		# end of seen data population
 
         if ($config->{'show_quits'}) { print "QUIT: " . &strip_color($name) . " has left the game\n"; }
 		if ($config->{'show_game_quits'}) { &rcon_command("say " . '"'. "$name" . '^7 покинул игру'); }
@@ -632,7 +626,7 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
-		my $chatmode = 1;
+	    $chatmode = 1;
 		&chat($chatmode);
 	    }
 		elsif ($line =~ /^sayteam;(\d+);(\d+);([^;]+);(.*)/) {
@@ -643,7 +637,7 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
-		my $chatmode = 2;
+		$chatmode = 2;
 		&chat($chatmode);
         }
 	    # else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
@@ -658,7 +652,7 @@ while (1) {
                 &update_name_by_slot($name, $slot);
                 $guid_by_slot{$slot} = $guid;
                 $message =~ s/^\x15//;
-				my $chatmode = 3;
+				$chatmode = 3;
                 &chat($chatmode);
             }
             # else { print "WARNING: unrecognized syntax for tell line:\n\t$line\n"; }
@@ -741,17 +735,15 @@ while (1) {
 		($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
 		$name =~ s/$problematic_characters//g;
 		 print "BOMB: " . &strip_color($name) . " planted the bomb\n";
-		# Update stats2 bomb_plants database
-		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_plants = bomb_plants + 1 WHERE name=?");
-		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats2\n");
+		$stats_sth = $stats_dbh->prepare("UPDATE stats SET bomb_plants = bomb_plants + 1 WHERE name=?");
+		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats\n");
 	    }
 		elsif ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_defuse/) {
         ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
 		$name =~ s/$problematic_characters//g;
         print "BOMB: " . &strip_color($name) . " defused the bomb\n";
-		# Update stats2 bomb_defuses database
-		$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bomb_defuses = bomb_defuses + 1 WHERE name=?");
-		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats2\n");
+		$stats_sth = $stats_dbh->prepare("UPDATE stats SET bomb_defuses = bomb_defuses + 1 WHERE name=?");
+		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats\n");
 		}
         else { print "WARNING: unrecognized A line format:\n\t$line\n"; }
 	}
@@ -771,30 +763,30 @@ while (1) {
 	$time = time;
 	$timestring = scalar(localtime($time));
 	# Freshen the rcon status if it's time
-	if ( ($time - $last_rconstatus) >= $rconstatus_interval ) {
+	if (($time - $last_rconstatus) >= ($rconstatus_interval)) {
 	    $last_rconstatus = $time;
 	    &rcon_status;
 	}
 	# Anti-Idle check
 	if ($config->{'antiidle'}) {
-	    if ( ($time - $last_idlecheck) >= $idlecheck_interval ) {
+	    if (($time - $last_idlecheck) >= ($idlecheck_interval)) {
 		$last_idlecheck = $time;
 		&idle_check;
 	    }
 	}
     # Check for bad names if its time
-    if ( ($time - $last_namecheck) >= $namecheck_interval ) {
+    if (($time - $last_namecheck) >= ($namecheck_interval)) {
         $last_namecheck = $time;
         &check_player_names;
     }
     # Check if it is time to make our next announement yet.
-    if (( $time >= $next_announcement) && ($config->{'use_announcements'})) {
-        $next_announcement = $time + ( 60 * ( $config->{'interval_min'} + int( rand( $config->{'interval_max'} - $config->{'interval_min'} + 1 ) ) ) );
+    if (($time >= $next_announcement) && ($config->{'use_announcements'})) {
+        $next_announcement = $time + (60*($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1))));
         &make_announcement;
     }
 	# Check if it is time to make our next affiliate server announement yet.
 	if ($config->{'affiliate_server_announcements'}) {
-	    if ( $time >= $next_affiliate_announcement ) {
+	    if ($time >= $next_affiliate_announcement) {
 		$next_affiliate_announcement = $time + $config->{'affiliate_server_announcement_interval'};
 		&make_affiliate_server_announcement;
 	    }
@@ -808,7 +800,7 @@ while (1) {
 	    }
 	}
 	# Check to see if it's time to audit a GUID 0 person
-	if (($config->{'audit_guid0_players'}) && ( ($time - $last_guid0_audit) >= $guid0_audit_interval )) {
+	if (($config->{'audit_guid0_players'}) && (($time - $last_guid0_audit) >= ($guid0_audit_interval))) {
             $last_guid0_audit = $time;
             &check_guid_zero_players;
         }
@@ -1047,9 +1039,9 @@ sub cache_guid_to_name {
 	elsif (!defined($name)) { &die_nice("cache_guid_to_name was called without a name\n"); }  
     if ($guid) {
 	# only log this if the guid isn't zero
-	my $sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE guid=? AND name=?");
+	$sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE guid=? AND name=?");
 	$sth->execute($guid,$name) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-	my @row = $sth->fetchrow_array;
+	@row = $sth->fetchrow_array;
 	if ($row[0]) { }
 	else {
 	    &log_to_file('logs/guid.log', "Caching GUID to NAME mapping: $guid - $name");
@@ -1067,15 +1059,14 @@ sub initialize_databases {
     my $cmd;
     my $result_code;
     # populate the list of tables already in the databases.
-    my $sth = $guid_to_name_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $sth = $guid_to_name_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
     # The GUID to NAME database
     if ($tables{'guid_to_name'}) { print "GUID <-> Name database brought online\n\n"; }
     else {
 	print "Creating guid_to_name database...\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE guid_to_name (id INTEGER PRIMARY KEY, guid INT(8), name VARCHAR(64) );";
+	$cmd = "CREATE TABLE guid_to_name (id INTEGER PRIMARY KEY, guid INT(8), name VARCHAR(64));";
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code rows were inserted\n"; }
 	$cmd = "CREATE INDEX guid_index ON guid_to_name (guid,name)";
@@ -1089,8 +1080,7 @@ sub initialize_databases {
     if ($tables{'ip_to_guid'}) { print "IP <-> GUID database brought online\n\n"; }
     else {
 	print "Creating ip_to_guid database...\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE ip_to_guid (id INTEGER PRIMARY KEY, ip VARCHAR(15), guid INT(8) );";
+	$cmd = "CREATE TABLE ip_to_guid (id INTEGER PRIMARY KEY, ip VARCHAR(15), guid INT(8));";
 	$result_code = $ip_to_guid_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_guid_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
 	$cmd = "CREATE INDEX ip_to_guid_index ON ip_to_guid (ip,guid)";
@@ -1104,68 +1094,63 @@ sub initialize_databases {
     if ($tables{'ip_to_name'}) { print "IP <-> NAME database brought online\n\n"; }
     else {
 	print "Creating ip_to_name database...\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE ip_to_name (id INTEGER PRIMARY KEY, ip VARCHAR(15), name VARCHAR(64) );";
+	$cmd = "CREATE TABLE ip_to_name (id INTEGER PRIMARY KEY, ip VARCHAR(15), name VARCHAR(64));";
 	$result_code = $ip_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
 	$cmd = "CREATE INDEX ip_to_name_index ON ip_to_name (ip,name)";
 	$result_code = $ip_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-    # The !seen database
+    # The seen database
     $sth = $seen_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
-    if ($tables{'seen'}) { print "!seen database brought online\n\n"; }
+    if ($tables{'seen'}) { print "seen database brought online\n\n"; }
     else {
 	print "Creating seen database...\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE seen (id INTEGER PRIMARY KEY, name VARCHAR(64), time INTEGER, saying VARCHAR(128) );";
+	$cmd = "CREATE TABLE seen (id INTEGER PRIMARY KEY, name VARCHAR(64), time INTEGER, saying VARCHAR(128));";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
 	$cmd = "CREATE INDEX seen_time_saying ON seen (name,time,saying)";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-	# The !name database
+	# The name database
     $sth = $names_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $names_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
-    if ($tables{'names'}) { print "!name database brought online\n\n"; }
+    if ($tables{'names'}) { print "name database brought online\n\n"; }
     else {
 	print "Creating names database...\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE names (id INTEGER PRIMARY KEY, name VARCHAR(64) );";
+	$cmd = "CREATE TABLE names (id INTEGER PRIMARY KEY, name VARCHAR(64));";
 	$result_code = $names_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $names_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
 	$cmd = "CREATE INDEX names_index ON names (name)";
 	$result_code = $names_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $names_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-	# The !rank database
+	# The rank database
     $sth = $ranks_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
-    if ($tables{'ranks'}) { print "!ranks database brought online\n\n"; }
+    if ($tables{'ranks'}) { print "ranks database brought online\n\n"; }
     else {
 	print "Creating ranks database...\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE ranks (id INTEGER PRIMARY KEY, rank VARCHAR(64) );";
+	$cmd = "CREATE TABLE ranks (id INTEGER PRIMARY KEY, rank VARCHAR(64));";
 	$result_code = $ranks_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ranks_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
 	$cmd = "CREATE INDEX ranks_index ON ranks (rank)";
 	$result_code = $ranks_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ranks_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-    # The !bans database
+    # The bans database
     $sth = $bans_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'bans'}) { print "bans database brought online\n\n"; }
     else {
     print "Creating bans database...\n\n";
-	sleep 1;
-    $cmd = "CREATE TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INTEGER, name VARCHAR(64) );";
+    $cmd = "CREATE TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INT(8), name VARCHAR(64));";
     $result_code = $bans_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $bans_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
     $cmd = "CREATE INDEX bans_all ON bans (id, name, ban_time, unban_time, ip, guid, name)";
@@ -1180,8 +1165,7 @@ sub initialize_databases {
     if ($tables{'definitions'}) { print "definitions database brought online\n\n"; }
     else {
     print "Creating definitions database...\n\n";
-    sleep 1;
-    $cmd = "CREATE TABLE definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250) );";
+    $cmd = "CREATE TABLE definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
     $cmd = "CREATE INDEX definitions_all ON definitions (id, term, definition)";
@@ -1191,7 +1175,6 @@ sub initialize_databases {
     if ($tables{'cached'}) { print "cached definitions index database brought online\n\n"; }
     else {
     print "Creating cached database...\n\n";
-	sleep 1;
     $cmd = "CREATE TABLE cached (id INTEGER PRIMARY KEY, term VARCHAR(32));";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
@@ -1202,7 +1185,6 @@ sub initialize_databases {
     if ($tables{'cached_definitions'}) { print "cached definitions data database brought online\n\n"; }
     else {
     print "Creating cached_definitions database...\n\n";
-	sleep 1;
     $cmd = "CREATE TABLE cached_definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
@@ -1210,31 +1192,19 @@ sub initialize_databases {
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-    # The !stats database
+    # The stats database
     $sth = $stats_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     while (@tmp = $sth->fetchrow_array) { foreach (@tmp) { $tables{$_} = $_; } }
-    if ($tables{'stats'}) { print "!stats database brought online\n\n"; }
+    if ($tables{'stats'}) { print "stats database brought online\n\n"; }
     else {
 	print "Creating stats database\n\n";
-	sleep 1;
-	$cmd = "CREATE TABLE stats (id INTEGER PRIMARY KEY, name VARCHAR(64), kills INTEGER, deaths INTEGER, headshots INTEGER );";
+	$cmd = "CREATE TABLE stats (id INTEGER PRIMARY KEY, name VARCHAR(64), kills INTEGER, deaths INTEGER, headshots INTEGER, pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bad_shots INTEGER, first_bloods INTEGER, bomb_plants INTEGER, bomb_defuses INTEGER );";
 	$result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX stats_index ON stats (name,kills,deaths,headshots)";
+	$cmd = "CREATE INDEX stats_index ON stats (name,kills,deaths,headshots,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,first_bloods,bomb_plants,bomb_defuses)";
 	$result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-    }
-    if ($tables{'stats2'}) { print "The other !stats database brought online\n\n"; }
-    else {
-    print "Creating stats2 database...\n\n";
-    sleep 1;
-    $cmd = "CREATE TABLE stats2 (id INTEGER PRIMARY KEY, name VARCHAR(64), pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bad_shots INTEGER, bomb_plants INTEGER, bomb_defuses INTEGER);";
-    $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX stats2_index ON stats2 (name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses)";
-    $result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
 }
 # END: initialize_databases
@@ -1321,7 +1291,7 @@ sub chat{
     }
     # End Anti-Spam functions
 
-    # populate the !seen data
+    # populate the seen data
     my $is_there;
     $sth = $seen_dbh->prepare("SELECT count(*) FROM seen WHERE name=?");
     $sth->execute($name) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
@@ -1336,7 +1306,7 @@ sub chat{
 	$sth = $seen_dbh->prepare("INSERT INTO seen VALUES (NULL, ?, ?, ?)");
 	$sth->execute($name,$time,$message) or &die_nice("Unable to do insert\n");
     }
-    # end of !seen data population
+    # end of seen data population
 
     # ##################################
     # Server Response / Penalty System #
@@ -1389,14 +1359,14 @@ sub chat{
 		    # bad shot abuse
 		    if (&flood_protection('badshot-two', 30, $slot)) { }
 		    else {
-			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
-			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
+			$stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE name=?");
+			$stats_sth->execute($name) or &die_nice("Unable to update stats\n");
 		    }
 		}
 		else {
 		    # update the Bad Shot counter.
-		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET bad_shots = bad_shots + 1 WHERE name=?");
-		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");	
+		    $stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE name=?");
+		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats\n");	
 		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7не понравилось то как его убил^1"' . &strip_color($last_killed_by{$slot}));
 		}
 	    }  
@@ -1412,14 +1382,14 @@ sub chat{
 		    # nice shot abuse
 			if (&flood_protection('niceshot-two', 30, $slot)) { }
 			else {
-			$stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
-			$stats_sth->execute($name) or &die_nice("Unable to update stats2\n");
+			$stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE name=?");
+			$stats_sth->execute($name) or &die_nice("Unable to update stats\n");
 			}
 		}
 		else {
 		    # update the Nice Shot counter.
-		    $stats_sth = $stats_dbh->prepare("UPDATE stats2 SET nice_shots = nice_shots + 1 WHERE name=?");
-		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats2\n");
+		    $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE name=?");
+		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats\n");
 		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7понравилось ^7то как его убил^1"' . &strip_color($last_killed_by{$slot}));
 		}
 	    }  
@@ -1511,7 +1481,6 @@ sub chat{
 	}
 	elsif ($message =~ /^!tempban\s+(.+)/i) {
 	    if (&check_access('tempban')) {
-		my $tempbantime = 30;
 		&tempban_command($1,$tempbantime);
 		}
 	}
@@ -1644,7 +1613,6 @@ sub chat{
 		if (&check_access('undefine')) {
 		if (&flood_protection('undefine', 30, $slot)) { }
 	    my $undefine = $1;
-	    my @row;
 		$sth = $definitions_dbh->prepare('SELECT count(*) FROM definitions WHERE term=?;');
 		$sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 		@row = $sth->fetchrow_array;
@@ -1720,9 +1688,8 @@ sub chat{
 	# !rcon
         elsif ($message =~ /^!rcon\s+(.+)/i) {
 		    if (&check_access('rcon')) {
-		    my $command = $1;
-			if (($command =~ /rcon_password/mi) or ($command =~ /killserver/mi) or ($command =~ /quit/mi)) { }
-            else { &rcon_command("$command"); }
+			if (($1 =~ /rcon_password/mi) or ($1 =~ /killserver/mi) or ($1 =~ /quit/mi)) { }
+            else { &rcon_command("$1"); }
 		    }
         }
 	# !broadcast
@@ -1763,9 +1730,10 @@ sub chat{
 		    $last_activity_by_slot{$reset_slot} = 'gone';
 		    $idle_warn_level{$reset_slot} = 0;
 		    &update_name_by_slot('SLOT_EMPTY', $reset_slot);
-		    $ip_by_slot{$reset_slot} = 'SLOT_EMPTY';
+		    $ip_by_slot{$reset_slot} = 'not_yet_known';
 		    $guid_by_slot{$reset_slot} = 0;
 		    $spam_count{$reset_slot} = 0;
+			$spam_last_said{$slot} = &random_pwd(6);
 		    $last_ping{$reset_slot} = 0;
 		    $ping_average{$reset_slot} = 0;
 		    $penalty_points{$reset_slot} = 0;
@@ -1773,6 +1741,7 @@ sub chat{
 		    $kill_spree{$reset_slot} = 0;
 		    $best_spree{$reset_slot} = 0;
 		    $ignore{$reset_slot} = 0;
+			$fake_name_by_slot{$reset_slot} = undef;
 			}
 		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" сбрасываю параметры..."');
 	    }
@@ -1789,7 +1758,6 @@ sub chat{
         elsif ($message =~ /^!fixnames/i) {
             if (&check_access('fixnames')) {
 			if (&flood_protection('fixnames', 30)) { }
-			    my @row;
                 $sth = $guid_to_name_dbh->prepare('SELECT count(*) FROM guid_to_name;');
                 $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
                 @row = $sth->fetchrow_array;
@@ -1811,12 +1779,11 @@ sub chat{
         elsif ($message =~ /^!rank\s*$/i) {
             if (&check_access('rank')) {
 			if (&flood_protection('rank', 30, $slot)) { return 1; }
-			my @row;
-	        my $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
+	        $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
             $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
             @row = $ranks_sth->fetchrow_array;
 	        if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено рангов в базе данных"'); }
-	        else { &rcon_command("say ^2$name_by_slot{$slot}^7" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
+	        else { &rcon_command("say ^2$name_by_slot{$slot}^7:" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
 			}
         }
 	# !version
@@ -1893,10 +1860,10 @@ sub chat{
 	    if (&check_access('killcam')) { &rcon_command("say  " . '"!killcam on  ... или !killcam off ... ?"'); }
 	}
     # !friendlyfire
-        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i) ) {
+        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i)) {
             if (&check_access('friendlyfire')) { &friendlyfire_command($1); }
         }
-        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) or ($message =~ /^!team[ _\-]?kill\s*$/i) ) {
+        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) or ($message =~ /^!team[ _\-]?kill\s*$/i)) {
         if (&check_access('friendlyfire')) {
 		&rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^50 ^7чтобы ВЫКЛЮЧИТЬ огонь по союзникам"');
 		sleep 1;
@@ -2093,7 +2060,7 @@ sub chat{
         if ($message =~ /^!(calculater?|calc|calculator)\s+(.+)/i) {
 	    my $expression = $2;
 	    if  ($expression =~ /[^\d\.\+\-\/\* \(\)]/) {}
-	    else { &rcon_command("say ^2$expression ^7=^1 " . eval($expression) ); }
+	    else { &rcon_command("say ^2$expression ^7=^1 " . eval($expression)); }
         }
 		# !sin (value)
         if ($message =~ /^!sin\s+(\d+)/i) {
@@ -2418,7 +2385,6 @@ sub rcon_status {
     my $status = &rcon_query('status');
     print "$status\n";
     my @lines = split(/\n/,$status);
-	my @row;
     my $line;
     my $slot;
     my $score;
@@ -2464,9 +2430,9 @@ sub rcon_status {
 		# we know the GUID is non-zero.  Is it the one we most recently saw join?
 		if (($guid == $most_recent_guid) && ($slot == $most_recent_slot)) {
 		    # was it recent enough to still be cached by activision?
-		    if ( ($time - $most_recent_time) < (2 * $rconstatus_interval) ) {
+		    if (($time - $most_recent_time) < (2 * $rconstatus_interval)) {
 			# Is it time to run another sanity check?
-			if ( ($time - $last_guid_sanity_check) > $guid_sanity_check_interval ) { &guid_sanity_check($guid,$ip); }
+			if (($time - $last_guid_sanity_check) > ($guid_sanity_check_interval)) { &guid_sanity_check($guid,$ip); }
 		    } 
 		}
 	    }
@@ -2502,7 +2468,7 @@ sub rcon_status {
     foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
 	if ($slot >= 0) {
 	    if ($guid_by_slot{$slot}) {
-		my $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
+		$sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
 	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
 		$ip_by_slot{$slot} = 'unknown';
 		$sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
@@ -2513,7 +2479,7 @@ sub rcon_status {
 	    }
 		}
 		elsif (!$guid_by_slot{$slot}) {
-		my $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
+		$sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
 	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
 		$ip_by_slot{$slot} = 'unknown';
 		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
@@ -2527,7 +2493,11 @@ sub rcon_status {
     }
     # END:  IP Guessing from cache
 	# BEGIN: Check for Banned IP's
-	my $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	foreach $slot (sort { $a <=> $b } keys %ping_by_slot) {
+	if ($slot >= 0) {
+	if (($ping_by_slot{$slot} eq 'CNCT') or ($ping_by_slot{$slot} eq '999')) { }
+	else {
+	$sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
     foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
     if ($slot >= 0) {
 		if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
@@ -2536,15 +2506,18 @@ sub rcon_status {
 		sleep 1;
 		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 		sleep 1;
-		&rcon_command("say ^1$row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+		&rcon_command("say ^1$row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 		sleep 1;
 		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . '"^7У вас перманентный бан."'); }
-		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
+		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
 		sleep 1;
 		&rcon_command("clientkick $slot");
 		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
 	    }
 		}
+	}
+	}
+	}
 	}
 	}
 }
@@ -2554,27 +2527,27 @@ sub rcon_status {
 sub check_banned_guid {
     my $guid = shift;
 	my $name = shift;
-	my $sth;
     $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	    $sth->execute($guid);
-	    while (@row = $sth->fetchrow_array) {
-		sleep 1;
-		&rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
-		sleep 1;
-		&rcon_command("say $row[5]^7:" . '"Был забанен "' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
-		sleep 1;
-		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
-		else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через "' . &duration( ( $row[2]) - $time ) ); }
-		sleep 1;
-		&rcon_command("clientkick $slot");
-		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
-	    }
+	$sth->execute($guid);
+	while (@row = $sth->fetchrow_array) {
+    sleep 1;
+	&rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+	sleep 1;
+	&rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+	sleep 1;
+	if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
+	else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
+	sleep 1;
+	&rcon_command("clientkick $slot");
+	&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	}
 }
 # END: Check for Banned GUID
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
     my ($command) = @_;
+	my $error;
     # odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
 	$rcon->execute($command);
@@ -2583,7 +2556,7 @@ sub rcon_command {
 	print "RCON: $command\n";
 	}
     sleep 1;
-    if (my $error = $rcon->error) {
+    if ($error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
 	# Try rebuilding the object
 	if ($error eq 'Rcon timeout') {
@@ -2601,6 +2574,7 @@ sub rcon_command {
 sub rcon_query {
     my ($command) = @_;
 	my $result;
+	my $error;
 	# odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
 	$result = $rcon->execute($command);
@@ -2609,7 +2583,7 @@ sub rcon_query {
 	print "RCON: $command\n"; 
 	}
     sleep 1; 
-    if (my $error = $rcon->error) {
+    if ($error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
     # Try rebuilding the object
     if ($error eq 'Rcon timeout') {
@@ -2627,16 +2601,12 @@ sub rcon_query {
 sub geolocate_ip {
     my $ip = shift;
     my $metric = 0;
-
     if (!defined($ip)) { return '"Неверный IP-Адрес"'; }
 	if ($ip =~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:  "' . "$ip"; }
-
     my $gi = Geo::IP->open("Geo/GeoLiteCity.dat", GEOIP_STANDARD);
     my $record = $gi->record_by_addr($ip);
-
 	if (!defined($record)) { return '"ниоткуда..."'; }
-
     # debugging
     if (defined($record->country_code)) { print "\n\tCountry Code: " . $record->country_code . "\n"; }
     if (defined($record->country_code3)) { print "\tCountry Code 3: " . $record->country_code3 . "\n"; }
@@ -2651,9 +2621,7 @@ sub geolocate_ip {
     if (defined($record->area_code)) { print "\tArea Code: " . $record->area_code . "\n"; }
 	if (defined($record->continent_code)) { print "\tContinent Code: " . $record->continent_code . "\n"; }
 	if (defined($record->metro_code)) { print "\tMetro Code " . $record->metro_code . "\n\n"; }
-
     my $geo_ip_info;
-
     if (defined($record->city)) {
         # we know the city
         if (defined($record->region_name)) {
@@ -2688,17 +2656,14 @@ sub geolocate_ip {
         # I give up.
         $geo_ip_info = '"ниоткуда"';
     }
-
     if ((defined($record->country_code)) && ($record->country_code eq 'US')) { $metric = 0 }
     else { $metric = 1; }
-
     # GPS Coordinates
     if (($config->{'ip'} !~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./)) {
 	if ((defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
 	    my ($player_lat, $player_lon) = ($record->latitude, $record->longitude);
 	    # gps coordinates are defined for this IP.
 	    # now make sure we have coordinates for the server.
-
 	    $record = $gi->record_by_name($config->{'ip'});
 	    if ((defined($record)) && (defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
 		my ($home_lat, $home_lon) = ($record->latitude, $record->longitude);
@@ -2738,9 +2703,9 @@ sub cache_ip_to_guid {
 	elsif (!defined($ip)) { &die_nice("cache_ip_to_guid was called without an ip\n"); }
     if ($guid) {
 	# only log this if the guid isn't zero
-	my $sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid WHERE ip=? AND guid=?");
+	$sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid WHERE ip=? AND guid=?");
 	$sth->execute($ip,$guid) or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
-	my @row = $sth->fetchrow_array;
+	@row = $sth->fetchrow_array;
 	if ($row[0]) { }
 	else {
 	    &log_to_file('logs/guid.log', "New IP to GUID mapping: $ip - $guid");
@@ -2759,9 +2724,9 @@ sub cache_ip_to_name {
     # idiot gates
     if (!defined($name)) { &die_nice("cache_ip_to_name was called without a name\n"); }
 	elsif (!defined($ip)) { &die_nice("cache_ip_to_name was called without an ip\n"); }
-    my $sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name WHERE ip=? AND name=?");
+    $sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name WHERE ip=? AND name=?");
     $sth->execute($ip,$name) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-    my @row = $sth->fetchrow_array;
+    @row = $sth->fetchrow_array;
     if ($row[0]) { }
     else {
 	&log_to_file('logs/guid.log', "Caching IP to NAME mapping: $ip - $name");
@@ -2775,13 +2740,11 @@ sub cache_ip_to_name {
 # BEGIN: seen($search_string)
 sub seen {
     my $search_string = shift;
-    my $sth = $seen_dbh->prepare("SELECT name,time,saying FROM seen WHERE name LIKE ? ORDER BY time DESC LIMIT 5");
+    $sth = $seen_dbh->prepare("SELECT name,time,saying FROM seen WHERE name LIKE ? ORDER BY time DESC LIMIT 5");
     $sth->execute("\%$search_string\%") or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-    my @row;
     if (&flood_protection('seen', (10 + ($sth->rows * 5)), $slot)) { return 1; }
     while (@row = $sth->fetchrow_array) {
 	&rcon_command("say " . " $row[0] " . '" ^7был замечен на сервере "' . "" . duration($time - $row[1]) . "" . '" назад, и сказал:"' . '"' . " $row[2]");
-	print "SEEN: $row[0] was last seen " . duration($time - $row[1]) . " ago, saying: $row[2]\n";
 	sleep 1;
     }
 }
@@ -2801,7 +2764,6 @@ sub stats {
     if (&flood_protection('stats', 30)) { return 1; }
     my $name = shift;
     my $search_string = shift;
-	my $kills;
     if ($search_string ne '') {
 	my @matches = &matching_users($search_string);
 	if ($#matches == 0) { $name = $name_by_slot{$matches[0]}; }
@@ -2812,9 +2774,6 @@ sub stats {
     }
     if (($name eq 'Unknown Soldier') or ($name eq 'UnnamedPlayer')) { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
 	else {
-	# 1st generation stats;
-    # id,name,kills,deaths,headshots
-    # 0  1    2     3      4
     my $stats_msg = '"Статистика^2"' . "$name^7:";
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
     $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -2823,100 +2782,104 @@ sub stats {
 	$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	@row = $stats_sth->fetchrow_array;
     }
-	# kills, deaths, headshots
     if ($row[0]) {
-	$kills = $row[2];
-	$stats_msg .= " ^2$row[2]" . '"^7убийств,"' . "^1$row[3]" . '"^7смертей,"' . "^3$row[4]" . '"^7хедшотов,"';
+	# kills, deaths, headshots
+	my $kills = $row[2];
+	my $deaths = $row[3];
+	my $headshots = $row[4];
+	$stats_msg .= " ^2$kills" . '"^7убийств,"' . "^1$deaths" . '"^7смертей,"' . "^3$headshots" . '"^7хедшотов,"';
 	# k2d_ratio
-	if ($row[3]) {
+	if ($row[2] && $row[3]) {
 	    my $k2d_ratio = int($row[2] / $row[3] * 100) / 100;
 	    $stats_msg .= "^8$k2d_ratio^7" . '"^7к/д соотношение,"';
 	}
-	else { $stats_msg .= '"^7к/д соотношение пока не определено,"'; }
 	# headshot_percent
-	if ($row[2]) {
+	if ($row[2] && $row[4]) {
 	    my $headshot_percent = int($row[4] / $row[2] * 10000) / 100;
-	    $stats_msg .= "^3$headshot_percent" . '"^7процентов хедшотов"';
-	} 
-    }
-    else {
-	$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?)");
-	$stats_sth->execute($name, 0, 0, 0) or &die_nice("Unable to do insert\n");
-	$stats_msg = '"Не найдено статистики для:"' . "$name";
-    }
+	    $stats_msg .= "^3$headshot_percent" . '"^7проц. хедшотов"';
+	}
     &rcon_command("say $stats_msg");
     sleep 1; 
-    # 2nd generation stats;
-    # id,name,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,bomb_plants,bomb_defuses
-    # 0  1    2            3             4          5             6            7           8                9              10         11        12          13
     $stats_msg = '"Статистика^2"' . "$name^7:";
-    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats2 WHERE name=?");
-    $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    @row = $stats_sth->fetchrow_array;
-    if ((!$row[0]) && ($name ne &strip_color($name))) {
-        $stats_sth->execute(&strip_color($name)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-        @row = $stats_sth->fetchrow_array;
-    }
 	# pistol_ratio,grenade_ratio,bash_ratio
-    if (($row[0]) && $kills) {
-	my $pistol_ratio = ($row[2]) ? int($row[2] / $kills * 10000) / 100 : 0;
-	my $grenade_ratio = ($row[3]) ? int($row[3] / $kills * 10000) / 100 : 0;
-	my $bash_ratio = ($row[4]) ? int($row[4] / $kills * 10000) / 100 : 0;
+    if ($row[2]) {
+	my $pistol_ratio = ($row[5]) ? int($row[5] / $row[2] * 10000) / 100 : 0;
+	my $grenade_ratio = ($row[6]) ? int($row[6] / $row[2] * 10000) / 100 : 0;
+	my $bash_ratio = ($row[7]) ? int($row[7] / $row[2] * 10000) / 100 : 0;
 	$stats_msg .= " ^9$pistol_ratio" . '"^7пистолетов,"' . "^9$grenade_ratio" . '"^7гранат,"' . "^9$bash_ratio" . '"^7ближнего боя"';
-	if (($row[2]) or ($row[3]) or ($row[4])) {
+	if (($row[5]) or ($row[6]) or ($row[7])) {
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
 	# shotgun_ratio,sniper_ratio,rifle_ratio,machinegun_ratio
 	$stats_msg = '"Статистика^2"' . "$name^7:";
-	my $shotgun_ratio = (($row[5]) && ($kills)) ? int($row[5] / $kills * 10000) / 100 : 0;
-    my $sniper_ratio = (($row[6]) && ($kills)) ? int($row[6] / $kills * 10000) / 100 : 0;
-    my $rifle_ratio = (($row[7]) && ($kills)) ? int($row[7] / $kills * 10000) / 100 : 0;
-	my $machinegun_ratio = (($row[8]) && ($kills)) ? int($row[8] / $kills * 10000) / 100 : 0;
+	my $shotgun_ratio = (($row[8]) && ($row[2])) ? int($row[8] / $row[2] * 10000) / 100 : 0;
+    my $sniper_ratio = (($row[9]) && ($row[2])) ? int($row[9] / $row[2] * 10000) / 100 : 0;
+    my $rifle_ratio = (($row[10]) && ($row[2])) ? int($row[10] / $row[2] * 10000) / 100 : 0;
+	my $machinegun_ratio = (($row[11]) && ($row[2])) ? int($row[11] / $row[2] * 10000) / 100 : 0;
     $stats_msg .= " ^7^9$shotgun_ratio" . '"^7дробовиков,"' . "^9$sniper_ratio" . '"^7снайп.винтовок,"' . "^9$rifle_ratio" . '"^7винтовок,"' . "^9$machinegun_ratio" . '"^7автоматов"';
-	if (($row[5]) or ($row[6]) or ($row[7]) or ($row[8])) {
+	if (($row[8]) or ($row[9]) or ($row[10]) or ($row[11])) {
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
     # best_killspree
-	if ($row[9]) {
+	my $best_killspree = $row[12];
+	if ($best_killspree) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Лучшая серия убийств -^6"' . "$row[9]";
+	    $stats_msg .= '"Лучшая серия убийств -^6"' . "$best_killspree";
+	    &rcon_command("say $stats_msg");
+	    sleep 1;
+	}
+	# nice_shots
+	my $nice_shots = $row[13];
+	my $niceshot_ratio = (($row[13]) && ($row[2])) ? int($row[13] / $row[2] * 10000) / 100 : 0;
+	if (($nice_shots) && ($config->{'nice_shots'})) {
+	    $stats_msg = '"Статистика^2"' . "$name^7:";
+	    $stats_msg .= '"Понравившихся убийств:"' . "^2$row[13] ^7(^2$niceshot_ratio" . '"^7процентов)"';
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
     # bad_shots
-	my $badshot_ratio = (($row[11]) && ($kills)) ? int($row[11] / $kills * 10000) / 100 : 0;
-	if (($row[11]) && ($config->{'bad_shots'})) {
+	my $bad_shots = $row[14];
+	my $badshot_ratio = (($row[14]) && ($row[2])) ? int($row[14] / $row[2] * 10000) / 100 : 0;
+	if (($bad_shots) && ($config->{'bad_shots'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Не понравившихся убийств:"' . "^1$row[11] ^7(^1$badshot_ratio" . '"^7процентов)"';
+	    $stats_msg .= '"Не понравившихся убийств:"' . "^1$row[14] ^7(^1$badshot_ratio" . '"^7процентов)"';
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
-    # nice_shots
-	my $niceshot_ratio = (($row[10]) && ($kills)) ? int($row[10] / $kills * 10000) / 100 : 0;
-	if (($row[10]) && ($config->{'nice_shots'})) {
+	# first_bloods
+	my $first_bloods = $row[15];
+	if (($first_bloods) && ($config->{'first_blood'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Понравившихся убийств:"' . "^2$row[10] ^7(^2$niceshot_ratio" . '"^7процентов)"';
+	   $stats_msg .= '"Первой крови:"' . "^1$first_bloods";
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
 	if ($game_type eq 'sd') {
 	# bomb_plants
-	if ($row[12]) {
+	my $bomb_plants = $row[16];
+	if ($bomb_plants) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Взрывчатки заложено:"' . "^4$row[12]";
+	    $stats_msg .= '"Взрывчатки заложено:"' . "^4$bomb_plants";
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
 	# bomb_defuses
-	if ($row[13]) {
+	my $bomb_defuses = $row[17];
+	if ($bomb_defuses) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
-	    $stats_msg .= '"Взрывчатки обезврежено:"' . "^5$row[13]";
+	    $stats_msg .= '"Взрывчатки обезврежено:"' . "^5$bomb_defuses";
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
 	}
+	}
+	}
+    else {
+	&rcon_command("say " . '"Не найдено статистики для:"' . "$name");
+	$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
+	$stats_sth->execute($name, 0, 0, 0) or &die_nice("Unable to do insert\n");
     }
 	}
 }
@@ -3150,15 +3113,11 @@ sub clear_stats {
 if (&flood_protection('clearstats', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $victim;
-	my $sth;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$victim = $name_by_slot{$matches[0]};
 	$sth = $stats_dbh->prepare('DELETE FROM stats where name=?;');
-    $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-	$sth->execute(&strip_color($victim)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-	$sth = $stats_dbh->prepare('DELETE FROM stats2 where name=?;');
     $sth->execute($victim) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	$sth->execute(&strip_color($victim)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	&rcon_command("say " . '"Удалена статистика для:"' . "$victim");
@@ -3173,7 +3132,6 @@ if (&flood_protection('clearnames', 30, $slot)) { return 1; }
     my $victim_guid;
 	my $victim_name;
 	my $victim_ip;
-	my $sth;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
@@ -3272,9 +3230,9 @@ sub add_name {
     if (&flood_protection('addname', 30, $slot)) { return 1; }
 	my $name = shift;
 	if (!defined($name)) { &die_nice("!addname was called without a name\n"); }
-	my $sth = $names_dbh->prepare("SELECT count(*) FROM names WHERE name=?");
+	$sth = $names_dbh->prepare("SELECT count(*) FROM names WHERE name=?");
 	$sth->execute($name) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
-	my @row = $sth->fetchrow_array;
+	@row = $sth->fetchrow_array;
 	if ($row[0]) { &rcon_command("say " . '"Имя"' . '"' . "^2$name" . '"' . '"^7уже есть в базе данных"'); }
 	else {
 	    $sth = $names_dbh->prepare("INSERT INTO names VALUES (NULL, ?)");
@@ -3288,9 +3246,9 @@ sub add_rank {
     if (&flood_protection('addrank', 30, $slot)) { return 1; }
 	my $rank = shift;
 	if (!defined($rank)) { &die_nice("!addrank was called without a rank\n"); }
-	my $sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks WHERE rank=?");
+	$sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks WHERE rank=?");
 	$sth->execute($rank) or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
-	my @row = $sth->fetchrow_array;
+	@row = $sth->fetchrow_array;
 	if ($row[0]) { &rcon_command("say " . '"Ранг"' . '"' . "^2$rank" . '"' . '"^7уже есть в базе данных"'); }
 	else {
 	    $sth = $ranks_dbh->prepare("INSERT INTO ranks VALUES (NULL, ?)");
@@ -3304,11 +3262,11 @@ sub clear_name {
     if (&flood_protection('clearname', 30, $slot)) { return 1; }
 	my $name = shift;
 	if (!defined($name)) { &die_nice("!clearname was called without a name\n"); }
-	my $sth = $names_dbh->prepare("SELECT count(*) FROM names WHERE name=?");
+	$sth = $names_dbh->prepare("SELECT count(*) FROM names WHERE name=?");
 	$sth->execute($name) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
-	my @row = $sth->fetchrow_array;
+	@row = $sth->fetchrow_array;
 	if ($row[0]) {
-	my $sth = $names_dbh->prepare("DELETE FROM names WHERE name=?");
+	$sth = $names_dbh->prepare("DELETE FROM names WHERE name=?");
 	$sth->execute($name) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
 	&rcon_command("say " . '"Имя"' . '"' . "^2$name" . '"' . '"^7удалено из базы данных"');
 	}
@@ -3320,11 +3278,11 @@ sub clear_rank {
     if (&flood_protection('clearrank', 30, $slot)) { return 1; }
 	my $rank = shift;
 	if (!defined($rank)) { &die_nice("!clearrank was called without a rank\n"); }
-	my $sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks WHERE rank=?");
+	$sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks WHERE rank=?");
 	$sth->execute($rank) or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
-	my @row = $sth->fetchrow_array;
+	@row = $sth->fetchrow_array;
 	if ($row[0]) {
-	my $sth = $ranks_dbh->prepare("DELETE FROM ranks WHERE rank=?");
+	$sth = $ranks_dbh->prepare("DELETE FROM ranks WHERE rank=?");
 	$sth->execute($rank) or &die_nice("Unable to execute query: $names_dbh->errstr\n");
 	&rcon_command("say " . '"Ранг"' . '"' . "^2$rank" . '"' . '"^7удален из базы данных"');
 	}
@@ -3340,11 +3298,14 @@ sub name_player {
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
-	my $names_sth = $names_dbh->prepare("SELECT * FROM names ORDER BY RANDOM() LIMIT 1;");
+	if (!defined($fake_name_by_slot{$slot})) {
+    $names_sth = $names_dbh->prepare("SELECT * FROM names ORDER BY RANDOM() LIMIT 1;");
     $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
-    @row = $names_sth->fetchrow_array;
-	if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено имен в базе данных"'); }
-	else { &rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$row[1]"); }
+	@row = $names_sth->fetchrow_array;
+	if (!$row[0]) { $fake_name_by_slot{$slot} = '^2В базе данных нет имен, используйте !addname чтобы добавить имена'; }
+	else { $fake_name_by_slot{$slot} = $row[1]; }
+	}
+	&rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$fake_name_by_slot{$slot}");
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
 }
@@ -3352,8 +3313,6 @@ sub name_player {
 sub database_info {
 if (&flood_protection('dbinfo', 30, $slot)) { return 1; }
 my $message = shift;
-my @row;
-my $sth;
 if ($message =~ /^(bans|bans.db)$/i) {
 $sth = $bans_dbh->prepare("SELECT count(*) FROM bans");
 $sth->execute() or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
@@ -3476,13 +3435,17 @@ sub tempban_command {
 	return 0;
 	}
 	}
+	my $ban_name = 'unknown';
     my $ban_ip = 'undefined';
+	my $ban_guid = '12345678';
     my $unban_time = $time + $tempbantime*60;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом на"' . "^1$tempbantime^7" . $minutes);
+	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
+	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
     &log_to_file('logs/kick.log', "!TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
-    my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-    $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
+    $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
+    $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
 }
 
@@ -3505,13 +3468,17 @@ sub ban_command {
 	return 0;
 	}
 	}
+	my $ban_name = 'unknown';
     my $ban_ip = 'undefined';
+	my $ban_guid = '12345678';
     my $unban_time = 2125091758;
     &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был забанен админом"');
+	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
+	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
     &log_to_file('logs/kick.log', "!BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");	   
-    my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-    $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
+    $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
+    $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
 }
 
@@ -3520,10 +3487,8 @@ sub ban_command {
 sub unban_command {
 if (&flood_protection('unban', 30, $slot)) { return 1; }
     my $unban = shift;
-    my $bans_sth;
     my $delete_sth; 
     my $key;
-    my @row;
     my @unban_these;
     if ($unban =~ /^\#?(\d+)$/) {
 	$unban = $1;
@@ -3658,13 +3623,11 @@ sub glitch_command {
 # BEGIN: !best
 sub best {
     if (&flood_protection('best', 300)) { return 1; }
-    my @row;
-    my $sth;
     my $counter = 1;
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
     # Most Kills
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY kills DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 0 ORDER BY kills DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество убийств^7:"');
     sleep 1;
@@ -3675,7 +3638,7 @@ sub best {
     # Best Kill to Death ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 50 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 100 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Игроки с лучшим к/д соотношением^7:"');
     sleep 1;
@@ -3686,7 +3649,7 @@ sub best {
     # Best Headshot Percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 50 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 100 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучший процент хедшотов^7:"');
     sleep 1;
@@ -3697,35 +3660,35 @@ sub best {
     # Best Kill Spree
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and best_killspree > 0 ORDER BY best_killspree DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and best_killspree > 0 ORDER BY best_killspree DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучшие серии убийств^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^6"' .  "$row[9]" . '"^7убийствами подряд"');
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^6"' .  "$row[12]" . '"^7убийствами подряд"');
         sleep 1;
     }
 	if ($game_type eq 'sd') {
 	# Best Bomb Plants
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество заложенной взрывчатки^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^4"' .  "$row[12]" . '"^7закладками взрывчатки"');
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^4"' .  "$row[16]" . '"^7закладками взрывчатки"');
         sleep 1;
     }
 	# Best Bomb Defuses
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats2 WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество обезвреженной взрывчатки^7:"');
     sleep 1;
     while (@row = $sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^5"' .  "$row[13]" . '"^7обезвреживаниями взрывчатки"');
+        &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^5"' .  "$row[17]" . '"^7обезвреживаниями взрывчатки"');
         sleep 1;
     }
 	}
@@ -3801,7 +3764,6 @@ sub names {
     my $key;
     my @matches = &matching_users($search_string);
     my @names;
-    my @row;
     my $ip;
     my $guessed = 0;
     if ($#matches == -1) {
@@ -3811,7 +3773,7 @@ sub names {
     elsif ($#matches == 0) {
         &log_to_file('logs/commands.log', "$name executed an !names search for $name_by_slot{$matches[0]}");
         if ($guid_by_slot{$matches[0]} > 0) {
-            my $sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 10;");
+            $sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 10;");
             $sth->execute($guid_by_slot{$matches[0]}) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
             while (@row = $sth->fetchrow_array) { push @names, $row[0]; }
         }
@@ -3821,7 +3783,7 @@ sub names {
 	    $guessed = 1;
 	}
         if ($ip =~ /\d+\.\d+\.\d+\.\d+/) {
-            my $sth = $ip_to_name_dbh->prepare("SELECT name FROM ip_to_name WHERE ip=? ORDER BY id DESC LIMIT 10;");
+            $sth = $ip_to_name_dbh->prepare("SELECT name FROM ip_to_name WHERE ip=? ORDER BY id DESC LIMIT 10;");
             $sth->execute($ip) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
             while (@row = $sth->fetchrow_array) { push @names, $row[0]; }
         }
@@ -3880,12 +3842,10 @@ sub names {
 sub worst {
     if (&flood_protection('worst', 300)) { return 1; }
     &rcon_command("say " . '"^1Худшие ^7игроки сервера:"');
-    my @row;
-    my $sth;
     my $counter = 1;
     sleep 1;
     # Most deaths
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" ORDER BY deaths DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and deaths > 0 ORDER BY deaths DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say" . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
@@ -3896,7 +3856,7 @@ sub worst {
     # Worst k2d ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 50) and (deaths > 10)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 100) and (deaths > 50)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Игроки с худшим к/д соотношением^7:"');
     sleep 1;
@@ -3907,7 +3867,7 @@ sub worst {
     # Worst headshot percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 50) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 100) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Худший процент хедшотов^7:"');
     sleep 1;
@@ -4070,19 +4030,18 @@ sub tell {
 # BEGIN: &last_bans($number);
 sub last_bans {
     my $number = shift;
-	my @row;
 	my ($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name);
     # keep some sane limits.
     if ($number > 10) { $number = 10; }
     if ($number < 0) { $number = 1; }
     $number = int($number);
     if (&flood_protection('lastbans', 30, $slot)) { return 1; }
-    my $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
+    $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
     while (@row = $bans_sth->fetchrow_array) {
 	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
 	my $txt_time = &duration($time - $ban_time);
-    &rcon_command("say ^2$ban_name" . '"^7был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$ban_id^7)");
+    &rcon_command("say ^2$ban_name" . '"^7был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$ban_id^7, IP - ^3$ban_ip^7, GUID - ^3$ban_guid^7)");
     sleep 1;
 	}
 	if (!$ban_id) { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
@@ -4097,8 +4056,6 @@ sub dictionary {
     my $term;
     my $content;
     my $counter = 0;
-    my @row;
-    my $sth;
 
     if (!defined($word)) {
 	&rcon_command("say " . '"!define что?"');
@@ -4267,7 +4224,6 @@ sub check_guid_zero_players {
 		    print "\tThis is a valid CD Key, but is being used from multiple locations\n";
 		    print "\tActivision only allows one IP per key.\n\n";
 		    $dirtbag = 1;
-		    # $kick_reason = "using the same CD-Key from multiple computers.  One at a time, please.";
 		    $kick_reason = "an ^4invalid CD-KEY^2.  Perhaps your CD-KEY is already in use?";
 		}
 		if (($dirtbag) && ($reason eq 'BANNED_CDKEY')) {
@@ -4276,11 +4232,15 @@ sub check_guid_zero_players {
 		    sleep 1;
 		    &rcon_command("clientkick $slot");
 		    &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
+			my $ban_name = 'unknown';
 		    my $ban_ip = 'undefined';
+			my $ban_guid = '12345678';
 		    my $unban_time = $time + 28800;
+			if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
 		    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
-		    my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-		    $bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, $name_by_slot{$slot}) or &die_nice("Unable to do insert\n");
+			if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
+		    $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
+		    $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 		}
 	    }
 	}
@@ -4303,6 +4263,12 @@ sub tan {
  sin($_[0]) / cos($_[0])
 }
 
+sub random_pwd {
+    my $length = shift;
+    my @chars = (0 .. 9, 'a' .. 'z', 'A' .. 'Z');
+    return join '', @chars[ map rand @chars, 0 .. $length ];
+}
+
  sub ftp_connect {
     # initialize FTP connection here.
     fileparse_set_fstype; # FTP uses UNIX rules
@@ -4320,7 +4286,7 @@ sub tan {
     $ftp_lines && &ftp_getNlines;
     $ftp_type = $ftp->binary;
     $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
-    $ftp_verbose && warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n";
+    $ftp_verbose && warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n\n";
 }
 
 sub ftp_getNlines {
@@ -4458,13 +4424,16 @@ sub update_name_by_slot {
 		    }
 		    if (($old_name_stolen) && ($new_name_stolen)) {
 			&rcon_command("say " . '"^1ОБНАРУЖЕНА КРАЖА НИКНЕЙМОВ:"' . "^3Slot \#^2 $slot" . '"^7был перманентно забанен за кражу никнеймов!"');
+			my $ban_name = 'NAME STEALING JERKASS';
 			my $ban_ip = 'undefined';
+			my $ban_guid = '12345678';
 			my $unban_time = 2125091758;
 			if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
+			if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip / $guid_by_slot{$slot} was permanently for being a name thief:  $name / $name_by_slot{$slot} ");
-			my $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-			$bans_sth->execute($time, $unban_time, $ban_ip, $guid_by_slot{$slot}, 'NAME STEALING') or &die_nice("Unable to do insert\n");					
+			$bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
+			$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");					
 		    }  
 		}
 		# End of Name Thief Detection
