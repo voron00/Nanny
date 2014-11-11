@@ -29,13 +29,4 @@ Nanny
 
 В Linux в параметрах терминала установить кодировку Windows-1251
 
-В Mac OSX поддержки кодировки нет
-
-Превью:
-
-Ubuntu 14.10
-![ScreenShot](http://i.imgur.com/WjR2jse.png)
-Windows 8.1
-![ScreenShot](http://i.imgur.com/9xD8ME5.png)
-OSX Yosemite 
-![ScreenShot](http://i.imgur.com/L5isoHd.jpg)
+В Mac OSX поддержки кодировки нет.
