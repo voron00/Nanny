@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 7';
+my $version = '3.3 RUS Build 8';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -496,6 +496,7 @@ while (1) {
 		    $first_blood = 1;
 		    &rcon_command("say " . '"ѕ≈–¬јя  –ќ¬№:^1"' . &strip_color($attacker_name) . '"^7убил^2"' . &strip_color($victim_name));
 		    print "FIRST BLOOD: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . "\n";
+			# First blood stats tracking
 			$stats_sth = $stats_dbh->prepare("UPDATE stats SET first_bloods = first_bloods + 1 WHERE name=?");
 		    $stats_sth->execute(&strip_color($attacker_name)) or &die_nice("Unable to update stats\n");
 		}
@@ -504,7 +505,6 @@ while (1) {
 		    if (!defined($kill_spree{$attacker_slot})) { $kill_spree{$attacker_slot} = 1; }
 			else { $kill_spree{$attacker_slot} += 1; } 
 		    if (defined($kill_spree{$victim_slot})) {
-			# print "KILLSPREE: $victim_name had killed $kill_spree{$victim_slot} people in a row\n";
 			if (!defined($best_spree{$victim_slot})) { $best_spree{$victim_slot} = 0; }
 			if (($kill_spree{$victim_slot} > 2) && ($kill_spree{$victim_slot} > $best_spree{$victim_slot})) {
 			    $best_spree{$victim_slot} = $kill_spree{$victim_slot};  
@@ -571,11 +571,13 @@ while (1) {
 		$last_killed_by{$slot} = 'none';
 		$penalty_points{$slot} = 0;
 		$ignore{$slot} = 0;
+		# assign fake name to a player
 		$names_sth = $names_dbh->prepare("SELECT * FROM names ORDER BY RANDOM() LIMIT 1;");
         $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
 		@row = $names_sth->fetchrow_array;
 	    if (!$row[0]) { $fake_name_by_slot{$slot} = '^2¬ базе данных нет имен, используйте !addname чтобы добавить имена'; }
 		else { $fake_name_by_slot{$slot} = $row[1]; }
+		# end of fake name assigning
 		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"'. "$name" . '^7 присоединилс€ к игре'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
 		# Check for banned GUID
@@ -604,12 +606,10 @@ while (1) {
 		$best_spree{$slot} = 0;
 		$ignore{$slot} = 0;
 		$fake_name_by_slot{$slot} = undef;
-
 		# populate the seen data
 		$seen_sth = $seen_dbh->prepare("UPDATE seen SET time=? WHERE name=?");
 		$seen_sth->execute($time,$name) or &die_nice("Unable to do update\n");
 		# end of seen data population
-
         if ($config->{'show_quits'}) { print "QUIT: " . &strip_color($name) . " has left the game\n"; }
 		if ($config->{'show_game_quits'}) { &rcon_command("say " . '"'. "$name" . '^7 покинул игру'); }
         }
@@ -625,8 +625,7 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
-	    $chatmode = 1;
-		&chat($chatmode);
+		&chat($chatmode = 'global');
 	    }
 		elsif ($line =~ /^sayteam;(\d+);(\d+);([^;]+);(.*)/) {
 		# a "SAYTEAM" event has happened
@@ -636,8 +635,7 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
-		$chatmode = 2;
-		&chat($chatmode);
+		&chat($chatmode = 'team');
         }
 	    # else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
 	}
@@ -651,8 +649,7 @@ while (1) {
                 &update_name_by_slot($name, $slot);
                 $guid_by_slot{$slot} = $guid;
                 $message =~ s/^\x15//;
-				$chatmode = 3;
-                &chat($chatmode);
+                &chat($chatmode = 'private');
             }
             # else { print "WARNING: unrecognized syntax for tell line:\n\t$line\n"; }
         }
@@ -733,7 +730,8 @@ while (1) {
 	    if ($line =~ /^A;(\d+);(\d+);(\w+);(.*);bomb_plant/) {
 		($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
 		$name =~ s/$problematic_characters//g;
-		 print "BOMB: " . &strip_color($name) . " planted the bomb\n";
+		print "BOMB: " . &strip_color($name) . " planted the bomb\n";
+		# bomb plants stats tracking
 		$stats_sth = $stats_dbh->prepare("UPDATE stats SET bomb_plants = bomb_plants + 1 WHERE name=?");
 		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats\n");
 	    }
@@ -741,6 +739,7 @@ while (1) {
         ($guid,$slot,$attacker_team,$name) = ($1,$2,$3,$4);
 		$name =~ s/$problematic_characters//g;
         print "BOMB: " . &strip_color($name) . " defused the bomb\n";
+		# bomb defuses stats tracking
 		$stats_sth = $stats_dbh->prepare("UPDATE stats SET bomb_defuses = bomb_defuses + 1 WHERE name=?");
 		$stats_sth->execute(&strip_color($name)) or &die_nice("Unable to update stats\n");
 		}
@@ -979,7 +978,7 @@ sub load_config_file {
 		else { $config->{$config_name} = 0; }
                 print "$config_name: " . $config->{$config_name} . "\n";
             }
-	    else { 
+	    else {
 		print "\nWARNING: unrecognized config file directive:\n";
 		print "\toffending line: $config_name = $config_val\n\n";
 	    }
@@ -1028,30 +1027,6 @@ sub open_server_logfile {
 	}
 # END: open_server_logfile
 
-# BEGIN: cache_guid_to_name(guid,name)
-sub cache_guid_to_name {
-    my $guid = shift;
-    my $name = shift;
-    # idiot gates
-    if (!defined($guid)) { &die_nice("cache_guid_to_name was called without a guid number\n"); }
-	elsif ($guid !~ /^\d+$/) { &die_nice("cache_guid_to_name guid was not a number: |$guid|\n"); }
-	elsif (!defined($name)) { &die_nice("cache_guid_to_name was called without a name\n"); }  
-    if ($guid) {
-	# only log this if the guid isn't zero
-	$sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE guid=? AND name=?");
-	$sth->execute($guid,$name) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-	@row = $sth->fetchrow_array;
-	if ($row[0]) { }
-	else {
-	    &log_to_file('logs/guid.log', "Caching GUID to NAME mapping: $guid - $name");
-	    print "Caching GUID to NAME mapping: $guid - $name\n";
-	    $sth = $guid_to_name_dbh->prepare("INSERT INTO guid_to_name VALUES (NULL, ?, ?)");
-	    $sth->execute($guid, $name) or &die_nice("Unable to do insert\n");
-	}
-    }
-}
-# END: cache_guid_to_name
-
 # BEGIN: initialize_databases
 sub initialize_databases {
     my %tables;
@@ -1062,7 +1037,7 @@ sub initialize_databases {
     $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
     # The GUID to NAME database
-    if ($tables{'guid_to_name'}) { print "GUID <-> Name database brought online\n\n"; }
+    if ($tables{'guid_to_name'}) { print "GUID <-> NAME database brought online\n\n"; }
     else {
 	print "Creating guid_to_name database...\n\n";
 	$cmd = "CREATE TABLE guid_to_name (id INTEGER PRIMARY KEY, guid INT(8), name VARCHAR(64));";
@@ -1255,13 +1230,13 @@ sub chat{
     if (!defined($ignore{$slot})) { $ignore{$slot} = 0; }
     # print the message to the console
     if ($config->{'show_talk'}) {
-	if ($chatmode == 1) { print &strip_color("GLOBAL CHAT: $name: $message\n"); }
-	if ($chatmode == 2) { print &strip_color("TEAM CHAT: $name: $message\n"); }
-	if ($chatmode == 3) { print &strip_color("PRIVATE CHAT: $name: $message\n"); }
+	if ($chatmode eq 'global') { print &strip_color("GLOBAL CHAT: $name: $message\n"); }
+	if ($chatmode eq 'team') { print &strip_color("TEAM CHAT: $name: $message\n"); }
+	if ($chatmode eq 'private') { print &strip_color("PRIVATE CHAT: $name: $message\n"); }
 	}
-	if ($chatmode == 1) { &log_to_file('logs/chat.log', &strip_color("GLOBAL CHAT: $name: $message")); }
-	if ($chatmode == 2) { &log_to_file('logs/chat.log', &strip_color("TEAM CHAT: $name: $message")); }
-	if ($chatmode == 3) { &log_to_file('logs/chat.log', &strip_color("PRIVATE CHAT: $name: $message")); }
+	if ($chatmode eq 'global') { &log_to_file('logs/chat.log', &strip_color("GLOBAL CHAT: $name: $message")); }
+	if ($chatmode eq 'team') { &log_to_file('logs/chat.log', &strip_color("TEAM CHAT: $name: $message")); }
+	if ($chatmode eq 'private') { &log_to_file('logs/chat.log', &strip_color("PRIVATE CHAT: $name: $message")); }
     # Anti-Spam functions
     if (($config->{'antispam'}) && (!$ignore{$slot})) {
 	if (!defined($spam_last_said{$slot})) { $spam_last_said{$slot} = $message; }
@@ -2441,20 +2416,20 @@ sub rcon_status {
 		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
 		    if (($last_ping{$slot} eq '999') && ($config->{'ping_enforcement'}) && ($config->{'999_quick_kick'})) {
 			print "PING ENFORCEMENT: 999 ping for $name\n";
-			&rcon_command("say " . &strip_color($name) . '" ^7был выкинут за 999 пинг"');
+			&rcon_command("say " . &strip_color($name) . '"^7был выкинут за 999 пинг"');
 			sleep 1;
 			&rcon_command("clientkick $slot");
 			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long");
 			}
 		}
-		else {
+		elsif ($ping > $config->{'max_ping'}) {
 		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
 		    if ($last_ping{$slot} > ($config->{'max_ping'}) && ($config->{'ping_enforcement'})) {
 			print "PING ENFORCEMENT: too high ping for $name\n";
-			&rcon_command("say " . &strip_color($name) . '"^7 был выкинут за слишком высокий пинг"' . " ($ping_by_slot{$slot} / $config->{'max_ping'})");
+			&rcon_command("say " . &strip_color($name) . '"^7был выкинут за слишком высокий пинг"' . "($ping_by_slot{$slot} | $config->{'max_ping'})");
 			sleep 1;
 			&rcon_command("clientkick $slot");
-			&log_to_file('logs/kick.log', "$name was kicked for having too high of an average ping. ($ping_by_slot{$slot} / $config->{'max_ping'})");
+			&log_to_file('logs/kick.log', "$name was kicked for having too high ping. ($ping_by_slot{$slot} | $config->{'max_ping'})");
 			}
 		}
 		# we need to remember this for the next ping we check.
@@ -2691,6 +2666,30 @@ sub geolocate_ip {
     return $geo_ip_info;
 }
 # END geolocate_ip
+
+# BEGIN: cache_guid_to_name(guid,name)
+sub cache_guid_to_name {
+    my $guid = shift;
+    my $name = shift;
+    # idiot gates
+    if (!defined($guid)) { &die_nice("cache_guid_to_name was called without a guid number\n"); }
+	elsif ($guid !~ /^\d+$/) { &die_nice("cache_guid_to_name guid was not a number: |$guid|\n"); }
+	elsif (!defined($name)) { &die_nice("cache_guid_to_name was called without a name\n"); }  
+    if ($guid) {
+	# only log this if the guid isn't zero
+	$sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE guid=? AND name=?");
+	$sth->execute($guid,$name) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+	@row = $sth->fetchrow_array;
+	if ($row[0]) { }
+	else {
+	    &log_to_file('logs/guid.log', "Caching GUID to NAME mapping: $guid - $name");
+	    print "Caching GUID to NAME mapping: $guid - $name\n";
+	    $sth = $guid_to_name_dbh->prepare("INSERT INTO guid_to_name VALUES (NULL, ?, ?)");
+	    $sth->execute($guid, $name) or &die_nice("Unable to do insert\n");
+	}
+    }
+}
+# END: cache_guid_to_name
 
 # BEGIN: cache_ip_to_guid($ip,$guid)
 sub cache_ip_to_guid {
@@ -4078,7 +4077,7 @@ sub dictionary {
     while (@row = $sth->fetchrow_array) {
         print "DATABASE DEFINITION: $row[0]\n";
         $counter++;
-	if ($#definitions < 8) { push (@definitions, "^$counter$counter^3) ^2 $row[0]"); }
+	if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2 $row[0]"); }
     }
     # Now we sanatize what we're looking for - online databases don't have multiword definitions.
     if ($word =~ /[^A-Za-z\-\_\s\d]/) {
@@ -4097,7 +4096,7 @@ sub dictionary {
 	while (@row = $sth->fetchrow_array) {
 	    print "CACHED ONLINE DEFINITION: $row[0]\n";
 	    $counter++;
-	    if ($#definitions < 8) { push (@definitions, "^$counter$counter^3) ^2 $row[0]"); }
+	    if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2 $row[0]"); }
 	}
     }
 	else {
@@ -4114,7 +4113,7 @@ sub dictionary {
 		$sth = $definitions_dbh->prepare("INSERT INTO cached_definitions VALUES (NULL, ?, ?)");
 		$sth->execute($word,$definition) or &die_nice("Unable to do insert\n");
 		# 8 definitions max by default
-		if ($#definitions < 8) { push (@definitions, "^$counter$counter^3) ^2 $definition"); }
+		if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2 $definition"); }
 	    }
 	}
 	$sth = $definitions_dbh->prepare("INSERT INTO cached VALUES (NULL, ?)");
