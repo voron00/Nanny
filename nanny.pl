@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 10';
+my $version = '3.3 RUS Build 11';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -587,7 +587,7 @@ while (1) {
 		if (($config->{'show_game_joins'}) && ($game_type ne 'sd')) { &rcon_command("say " . '"'. "$name" . '^7 присоединился к игре'); }
 		if ($config->{'show_joins'}) { print "JOIN: " . &strip_color($name) . " has joined the game\n"; }
 		# Check for banned GUID
-		&check_banned_guid($guid,$name);
+		&check_banned_guid($guid,$name,$slot);
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
 	}
@@ -2417,7 +2417,7 @@ sub rcon_status {
 		}
 	    }
 		# Check for banned IP
-		if ($ping ne 'CNCT' or $ping ne '999' or $ping ne 'ZMBI') { &check_banned_ip($ip,$name); }
+		if ($ping ne 'CNCT' or $ping ne '999' or $ping ne 'ZMBI') { &check_banned_ip($ip,$name,$slot); }
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
 		if ($ping eq '999') {
@@ -2481,6 +2481,7 @@ sub rcon_status {
 sub check_banned_guid {
     my $guid = shift;
 	my $name = shift;
+	my $slot = shift;
     $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
 	$sth->execute($guid);
 	while (@row = $sth->fetchrow_array) {
@@ -2494,6 +2495,7 @@ sub check_banned_guid {
 	sleep 1;
 	&rcon_command("clientkick $slot");
 	&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	$last_rconstatus = $time;
 	}
 }
 # END: Check for Banned GUID
@@ -2502,6 +2504,7 @@ sub check_banned_guid {
 sub check_banned_ip {
     my $ip = shift;
 	my $name = shift;
+	my $slot = shift;
     $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
 	$sth->execute($ip);
 	while (@row = $sth->fetchrow_array) {
@@ -2515,6 +2518,7 @@ sub check_banned_ip {
 	sleep 1;
 	&rcon_command("clientkick $slot");
 	&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	$last_rconstatus = $time;
 	}
 }
 # END: Check for Banned IP
@@ -3402,7 +3406,7 @@ if (&flood_protection('kick', 30, $slot)) { return 1; }
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
-	&rcon_command("say ^1$name_by_slot{$matches[0]}" . '" ^7был выкинут админом"');
+	&rcon_command("say ^1$name_by_slot{$matches[0]}" . '"^7был выкинут админом"');
 	sleep 1;
 	&rcon_command("clientkick $matches[0]");
 	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
@@ -3438,7 +3442,7 @@ sub tempban_command {
     my $ban_ip = 'undefined';
 	my $ban_guid = '12345678';
     my $unban_time = $time + $tempbantime*60;
-    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был временно забанен админом на"' . "^1$tempbantime^7" . $minutes);
+    &rcon_command("say ^1$name_by_slot{$slot}" . '"^7был временно забанен админом на"' . "^1$tempbantime^7" . $minutes);
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
@@ -3471,7 +3475,7 @@ sub ban_command {
     my $ban_ip = 'undefined';
 	my $ban_guid = '12345678';
     my $unban_time = 2125091758;
-    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7был забанен админом"');
+    &rcon_command("say ^1$name_by_slot{$slot}" . '"^7был забанен админом"');
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
