@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 8';
+my $version = '3.3 RUS Build 10';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -483,13 +483,19 @@ while (1) {
 		# End of kill-stats tracking
 
 		# print the kill to the screen
-		if (($damage_location eq 'head') && ($config->{'show_headshots'})) { print "HEADSHOT: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . " - HEADSHOT!\n"; }
+		if ($damage_location eq 'head') {
+		if ($config->{'show_headshots'}) { print "HEADSHOT: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . " - HEADSHOT!\n"; }
+		&log_to_file('logs/kills.log', "HEADSHOT: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . " - HEADSHOT!");
+		}
 		else {
 		    if ($config->{'show_kills'}) {
 			if ($victim_slot eq $attacker_slot) { print "SUICIDE: " . &strip_color($attacker_name) . " killed himself\n"; }
 			elsif ($damage_type eq 'MOD_FALLING') { print "FALL: " . &strip_color($victim_name) . " fell to their death\n"; }
 			else { print "KILL: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . "\n"; }
 		    }
+			if ($victim_slot eq $attacker_slot) { &log_to_file('logs/kills.log', "SUICIDE: " . &strip_color($attacker_name) . " killed himself"); }
+			elsif ($damage_type eq 'MOD_FALLING') { &log_to_file('logs/kills.log', "FALL: " . &strip_color($victim_name) . " fell to their death"); }
+			else { &log_to_file('logs/kills.log', "KILL: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name)); }
 		}
 		# First Blood
 		if (($config->{'first_blood'}) && ($first_blood == 0) && ($attacker_slot ne $victim_slot) && ($attacker_slot >= 0)) {
@@ -2410,6 +2416,8 @@ sub rcon_status {
 		    } 
 		}
 	    }
+		# Check for banned IP
+		if ($ping ne 'CNCT' or $ping ne '999' or $ping ne 'ZMBI') { &check_banned_ip($ip,$name); }
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
 		if ($ping eq '999') {
@@ -2466,34 +2474,6 @@ sub rcon_status {
 	}
     }
     # END:  IP Guessing from cache
-	# BEGIN: Check for Banned IP's
-	foreach $slot (sort { $a <=> $b } keys %ping_by_slot) {
-	if ($slot >= 0) {
-	if (($ping_by_slot{$slot} eq 'CNCT') or ($ping_by_slot{$slot} eq '999')) { }
-	else {
-	$sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-    foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
-    if ($slot >= 0) {
-		if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-	    $sth->execute($ip_by_slot{$slot});
-	    while (@row = $sth->fetchrow_array) {
-		sleep 1;
-		&rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
-		sleep 1;
-		&rcon_command("say ^1$row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
-		sleep 1;
-		if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name_by_slot{$slot}) . '"^7У вас перманентный бан."'); }
-		else { &rcon_command("say ^1" . &strip_color($name_by_slot{$slot}) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
-		sleep 1;
-		&rcon_command("clientkick $slot");
-		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
-	    }
-		}
-	}
-	}
-	}
-	}
-	}
 }
 # END: rcon_status
 
@@ -2517,6 +2497,27 @@ sub check_banned_guid {
 	}
 }
 # END: Check for Banned GUID
+
+# BEGIN: Check for Banned IP
+sub check_banned_ip {
+    my $ip = shift;
+	my $name = shift;
+    $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	$sth->execute($ip);
+	while (@row = $sth->fetchrow_array) {
+    sleep 1;
+	&rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+	sleep 1;
+	&rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+	sleep 1;
+	if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
+	else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
+	sleep 1;
+	&rcon_command("clientkick $slot");
+	&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	}
+}
+# END: Check for Banned IP
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
