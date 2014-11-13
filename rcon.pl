@@ -20,10 +20,10 @@ print "Type 'q' to quit.\n\n";
 while (1) {
 	    print "kkrcon> ";
 	    $command = <STDIN>;
-            if (!defined($command)) {
+        if (!defined($command)) {
 		    print "\n";
 		    exit(0);
-			}
+		}
 	    chomp($command);
 	    if ( $command =~ /^\s*$/ ) { next; }
         if ($command eq "q" or $command eq "quit") { exit(0); }
