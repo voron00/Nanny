@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 12';
+my $version = '3.3 RUS Build 14';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -769,7 +769,7 @@ while (1) {
 	# Freshen the rcon status if it's time
 	if (($time - $last_rconstatus) >= ($rconstatus_interval)) {
 	    $last_rconstatus = $time;
-	    &rcon_status;
+	    &status;
 	}
 	# Anti-Idle check
 	if ($config->{'antiidle'}) {
@@ -1501,7 +1501,7 @@ sub chat{
         }
         elsif ($message =~ /^!ip\s*$/i) {
 		if (&flood_protection('ip-self', 30, $slot)) { }
-		&rcon_command("say " . '"IP-Адрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}");
+		else { &rcon_command("say " . '"IP-Адрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}"); }
 		}
 		# !id (search_string)
         elsif ($message =~ /^!id\s+(.+)/i) {
@@ -1509,7 +1509,7 @@ sub chat{
         }
         elsif ($message =~ /^!id\s*$/i) {
 		if (&flood_protection('id-self', 30, $slot)) { }
-		&rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot");
+		else { &rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot"); }
 		}
 		# !guid (search_string)
         elsif ($message =~ /^!guid\s+(.+)/i) {
@@ -1517,7 +1517,7 @@ sub chat{
         }
         elsif ($message =~ /^!guid\s*$/i) {
 		if (&flood_protection('guid-self', 30, $slot)) { }
-		&rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}");
+		else { &rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}"); }
 		}
 		# !age (search_string)
         elsif ($message =~ /^!age\s+(.+)/i) {
@@ -2206,7 +2206,7 @@ sub chat{
 	# !ragequit
 	elsif ($message =~ /^!rage|rq|ragequit\b/i) {
 	if (&flood_protection('rage', 30, $slot)) { }
-        &rcon_command("say " . "^1$name_by_slot{$slot}" . '"^7 покрыл всех матом, обиделся и вышел из игры."');
+        &rcon_command("say " . "^1$name_by_slot{$slot}" . '"^7покрыл всех матом, обиделся и вышел из игры."');
 		sleep 1;
 		&rcon_command("clientkick $slot");
     }
@@ -2360,8 +2360,8 @@ sub locate {
 }
 # END: locate
 
-# BEGIN: rcon_status
-sub rcon_status {
+# BEGIN: status
+sub status {
     my $status = &rcon_query('status');
     print "$status\n";
     my @lines = split(/\n/,$status);
@@ -2475,7 +2475,7 @@ sub rcon_status {
     }
     # END:  IP Guessing from cache
 }
-# END: rcon_status
+# END: status
 
 # BEGIN: Check for Banned IP
 sub check_banned_ip {
@@ -4037,7 +4037,6 @@ sub tell {
 # BEGIN: &last_bans($number);
 sub last_bans {
     my $number = shift;
-	my ($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name);
     # keep some sane limits.
     if ($number > 10) { $number = 10; }
     if ($number < 0) { $number = 1; }
@@ -4046,12 +4045,11 @@ sub last_bans {
     $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
     while (@row = $bans_sth->fetchrow_array) {
-	($ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = @row;
-	my $txt_time = &duration($time - $ban_time);
-    &rcon_command("say ^2$ban_name" . '"^7был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$ban_id^7, IP - ^3$ban_ip^7, GUID - ^3$ban_guid^7)");
+	my $txt_time = &duration($time - $row[1]);
+    &rcon_command("say ^2$row[5]" . '"^7был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$row[0]^7, IP - ^3$row[3]^7, GUID - ^3$row[4]^7)");
     sleep 1;
 	}
-	if (!$ban_id) { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
+	if (!$row[0]) { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
 }
 # END: &last_bans($number);
 
