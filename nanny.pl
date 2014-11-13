@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 11';
+my $version = '3.3 RUS Build 12';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1049,7 +1049,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE guid_to_name (id INTEGER PRIMARY KEY, guid INT(8), name VARCHAR(64));";
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code rows were inserted\n"; }
-	$cmd = "CREATE INDEX guid_index ON guid_to_name (guid,name)";
+	$cmd = "CREATE INDEX guid_index ON guid_to_name (id,guid,name)";
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code rows were inserted\n"; }
     }
@@ -1063,7 +1063,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE ip_to_guid (id INTEGER PRIMARY KEY, ip VARCHAR(15), guid INT(8));";
 	$result_code = $ip_to_guid_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_guid_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX ip_to_guid_index ON ip_to_guid (ip,guid)";
+	$cmd = "CREATE INDEX ip_to_guid_index ON ip_to_guid (id,ip,guid)";
 	$result_code = $ip_to_guid_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_guid_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1077,7 +1077,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE ip_to_name (id INTEGER PRIMARY KEY, ip VARCHAR(15), name VARCHAR(64));";
 	$result_code = $ip_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX ip_to_name_index ON ip_to_name (ip,name)";
+	$cmd = "CREATE INDEX ip_to_name_index ON ip_to_name (id,ip,name)";
 	$result_code = $ip_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ip_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1091,7 +1091,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE seen (id INTEGER PRIMARY KEY, name VARCHAR(64), time INTEGER, saying VARCHAR(128));";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX seen_time_saying ON seen (name,time,saying)";
+	$cmd = "CREATE INDEX seen_time_saying ON seen (id,name,time,saying)";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1105,7 +1105,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE names (id INTEGER PRIMARY KEY, name VARCHAR(64));";
 	$result_code = $names_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $names_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX names_index ON names (name)";
+	$cmd = "CREATE INDEX names_index ON names (id,name)";
 	$result_code = $names_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $names_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1119,7 +1119,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE ranks (id INTEGER PRIMARY KEY, rank VARCHAR(64));";
 	$result_code = $ranks_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ranks_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX ranks_index ON ranks (rank)";
+	$cmd = "CREATE INDEX ranks_index ON ranks (id,rank)";
 	$result_code = $ranks_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $ranks_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1133,7 +1133,7 @@ sub initialize_databases {
     $cmd = "CREATE TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INT(8), name VARCHAR(64));";
     $result_code = $bans_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $bans_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX bans_all ON bans (id, name, ban_time, unban_time, ip, guid, name)";
+    $cmd = "CREATE INDEX bans_all ON bans (id,ban_time,unban_time,ip,guid,name)";
     $result_code = $bans_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $bans_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1148,7 +1148,7 @@ sub initialize_databases {
     $cmd = "CREATE TABLE definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX definitions_all ON definitions (id, term, definition)";
+    $cmd = "CREATE INDEX definitions_all ON definitions (id,term,definition)";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1158,7 +1158,7 @@ sub initialize_databases {
     $cmd = "CREATE TABLE cached (id INTEGER PRIMARY KEY, term VARCHAR(32));";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX cached_all ON cached (id, term)";
+    $cmd = "CREATE INDEX cached_all ON cached (id,term)";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1168,7 +1168,7 @@ sub initialize_databases {
     $cmd = "CREATE TABLE cached_definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX cached_defintions_all ON cached_definitions (id, term, definition)";
+    $cmd = "CREATE INDEX cached_defintions_all ON cached_definitions (id,term,definition)";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1182,7 +1182,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE stats (id INTEGER PRIMARY KEY, name VARCHAR(64), kills INTEGER, deaths INTEGER, headshots INTEGER, pistol_kills INTEGER, grenade_kills INTEGER, bash_kills INTEGER, shotgun_kills INTEGER, sniper_kills INTEGER, rifle_kills INTEGER, machinegun_kills INTEGER, best_killspree INTEGER, nice_shots INTEGER, bad_shots INTEGER, first_bloods INTEGER, bomb_plants INTEGER, bomb_defuses INTEGER );";
 	$result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX stats_index ON stats (name,kills,deaths,headshots,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,first_bloods,bomb_plants,bomb_defuses)";
+	$cmd = "CREATE INDEX stats_index ON stats (id,name,kills,deaths,headshots,pistol_kills,grenade_kills,bash_kills,shotgun_kills,sniper_kills,rifle_kills,machinegun_kills,best_killspree,nice_shots,bad_shots,first_bloods,bomb_plants,bomb_defuses)";
 	$result_code = $stats_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $stats_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -2477,29 +2477,6 @@ sub rcon_status {
 }
 # END: rcon_status
 
-# BEGIN: Check for Banned GUID
-sub check_banned_guid {
-    my $guid = shift;
-	my $name = shift;
-	my $slot = shift;
-    $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	$sth->execute($guid);
-	while (@row = $sth->fetchrow_array) {
-    sleep 1;
-	&rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
-	sleep 1;
-	&rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
-	sleep 1;
-	if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
-	else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
-	sleep 1;
-	&rcon_command("clientkick $slot");
-	&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
-	$last_rconstatus = $time;
-	}
-}
-# END: Check for Banned GUID
-
 # BEGIN: Check for Banned IP
 sub check_banned_ip {
     my $ip = shift;
@@ -2508,6 +2485,7 @@ sub check_banned_ip {
     $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
 	$sth->execute($ip);
 	while (@row = $sth->fetchrow_array) {
+	if ($row[3] ne 'undefined') {
     sleep 1;
 	&rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
 	sleep 1;
@@ -2517,11 +2495,37 @@ sub check_banned_ip {
 	else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
 	sleep 1;
 	&rcon_command("clientkick $slot");
-	&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $guid_by_slot{$slot}  ($row[5]) - (BAN ID#: $row[0])");
+	&log_to_file('logs/kick.log', "KICK: BANNED: $name was kicked - banned IP: $ip ($row[3]) - (BAN ID#: $row[0])");
 	$last_rconstatus = $time;
+	}
 	}
 }
 # END: Check for Banned IP
+
+# BEGIN: Check for Banned GUID
+sub check_banned_guid {
+    my $guid = shift;
+	my $name = shift;
+	my $slot = shift;
+    $sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	$sth->execute($guid);
+	while (@row = $sth->fetchrow_array) {
+	if ($row[4] ne '12345678') {
+    sleep 1;
+	&rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+	sleep 1;
+	&rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+	sleep 1;
+	if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
+	else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
+	sleep 1;
+	&rcon_command("clientkick $slot");
+	&log_to_file('logs/kick.log', "KICK: BANNED: $name was kicked - banned GUID: $guid ($row[4]) - (BAN ID#: $row[0])");
+	$last_rconstatus = $time;
+	}
+	}
+}
+# END: Check for Banned GUID
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
