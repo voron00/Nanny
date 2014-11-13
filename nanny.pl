@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 14';
+my $version = '3.3 RUS Build 15';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2534,6 +2534,7 @@ sub rcon_command {
     # odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
 	$rcon->execute($command);
+	&log_to_file('logs/rcon.log', "RCON: executed command: $command");
     if ($config->{'show_rcon'}) {
 	$command =~ s/\^\d//g;
 	print "RCON: $command\n";
@@ -2561,6 +2562,7 @@ sub rcon_query {
 	# odd bug regarding double slashes.
     $command =~ s/\/\/+/\//g;
 	$result = $rcon->execute($command);
+	&log_to_file('logs/rcon.log', "RCON: executed command: $command");
     if ($config->{'show_rcon'}) {
 	$command =~ s/\^\d//g;
 	print "RCON: $command\n"; 
