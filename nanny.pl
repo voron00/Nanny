@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 16';
+my $version = '3.3 RUS Build 17';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2318,7 +2318,7 @@ sub locate {
     if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 120))) { return 1; }
     if (&flood_protection('locate', 30, $slot)) { return 1; }
     foreach $slot (@matches) {
-	if ((&strip_color($name_by_slot{$slot})) && ($ip_by_slot{$slot})) {
+	if ($ip_by_slot{$slot}) {
 	    print "MATCH: " . &strip_color($name_by_slot{$slot}) . ", IP = $ip_by_slot{$slot}\n";
 	    $ip = $ip_by_slot{$slot};
 	    if ($ip =~ /\?$/) {
@@ -2380,10 +2380,10 @@ sub status {
     my $colorless;
     foreach $line (@lines) {
 	if ($line =~ /^map:\s+(\w+)/) { $map_name = $1; }
-	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+(-?\d+)\s+(\d+)/) {
+	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)/) {
 	    ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
-		# strip trailing spaces and a white color after a name.
-		$name =~ s/\^\d\s+$//;
+		# strip trailing spaces.
+		$name =~ s/\s+$//;
 		$name =~ s/$problematic_characters//g;
 		# cache ping
 	    $ping_by_slot{$slot} = $ping;
