@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 15';
+my $version = '3.3 RUS Build 16';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2318,43 +2318,44 @@ sub locate {
     if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 120))) { return 1; }
     if (&flood_protection('locate', 30, $slot)) { return 1; }
     foreach $slot (@matches) {
-	if ((&strip_color($name_by_slot{$slot}))) {
+	if ((&strip_color($name_by_slot{$slot})) && ($ip_by_slot{$slot})) {
 	    print "MATCH: " . &strip_color($name_by_slot{$slot}) . ", IP = $ip_by_slot{$slot}\n";
 	    $ip = $ip_by_slot{$slot};
 	    if ($ip =~ /\?$/) {
 		$guessed = 1;
 		$ip =~ s/\?$//;
 	    }
-	    if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/) { 
+	    if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/) {
 		$location = &geolocate_ip($ip);
 		if ($location =~ /,.* - .+/) {
-		    if ($guessed) { $location = $name_by_slot{$slot} . '"^7 вероятно зашел к нам из районов около ^2"' . $location; }
-		    else { $location = $name_by_slot{$slot} . '"^7 зашел к нам из^2"' . $location; }
+		    if ($guessed) { $location = $name_by_slot{$slot} . '"^7вероятно зашел к нам из районов около^2"' . $location; }
+		    else { $location = $name_by_slot{$slot} . '"^7зашел к нам из районов около^2"' . $location; }
 		}
 		else {
-		    if ($guessed) { $location = $name_by_slot{$slot} . '"^7 вероятно зашел к нам из ^2"' . $location; }
-		    else { $location = $name_by_slot{$slot} . '"^7 зашел к нам из ^2"' . $location; }
+		    if ($guessed) { $location = $name_by_slot{$slot} . '"^7вероятно зашел к нам из^2"' . $location; }
+		    else { $location = $name_by_slot{$slot} . '"^7зашел к нам из^2"' . $location; }
 		}
 		# location spoofing
 		foreach $spoof_match (keys(%location_spoof)) {
-		if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . '^7 ' . $location_spoof{$spoof_match}; }
+		if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . '^7' . $location_spoof{$spoof_match}; }
 		}
 		&rcon_command("say " . "$location");
-		print "$location\n";
 		sleep 1;
-	    }
-		else {
-		# no valid IP for this slot.
-		# Sit on our hands?
 	    }
 	}
     }
     if ($search_string =~ /^console|nanny|server\b/i) {
 	$location = &geolocate_ip($config->{'ip'});
-	if ($location =~ /,.* - .+/) { $location = '"Этот сервер находится в ^2"' . $location; }
-	else { $location = '"Этот сервер находится в ^2"' . $location; }
+	if ($location =~ /,.* - .+/) { $location = '"Этот сервер находится в районах около^2"' . $location; }
+	else { $location = '"Этот сервер находится в^2"' . $location; }
 	&rcon_command("say $location");
-	print "$location\n";
+	sleep 1;
+    }
+	elsif ($search_string =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/) {
+	$location = &geolocate_ip($1);
+	if ($location =~ /,.* - .+/) { $location = '"Этот IP находится в районах около^2"' . $location; }
+	else { $location = '"Этот IP находится в^2"' . $location; }
+	&rcon_command("say $location");
 	sleep 1;
     }
 }
@@ -2586,30 +2587,16 @@ sub rcon_query {
 sub geolocate_ip {
     my $ip = shift;
     my $metric = 0;
-    if (!defined($ip)) { return '"Неверный IP-Адрес"'; }
+    if (!$ip) { return '"Не указан IP-Адрес"'; }
 	if ($ip =~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
-    if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:  "' . "$ip"; }
+    if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:"' . "$ip"; }
     my $gi = Geo::IP->open("Geo/GeoLiteCity.dat", GEOIP_STANDARD);
     my $record = $gi->record_by_addr($ip);
-	if (!defined($record)) { return '"ниоткуда..."'; }
-    # debugging
-    if (defined($record->country_code)) { print "\n\tCountry Code: " . $record->country_code . "\n"; }
-    if (defined($record->country_code3)) { print "\tCountry Code 3: " . $record->country_code3 . "\n"; }
-    if (defined($record->country_name)) { print "\tCountry Name: " . $record->country_name . "\n"; }
-    if (defined($record->region)) { print "\tRegion: " . $record->region . "\n"; }
-	if (defined($record->region_name)) { print "\tRegion Name: " . $record->region_name . "\n"; }
-    if (defined($record->city)) { print "\tCity: " . $record->city . "\n"; }
-    if (defined($record->postal_code)) { print "\tPostal Code: " . $record->postal_code . "\n"; }
-    if (defined($record->latitude)) { print "\tLattitude: " . $record->latitude . "\n"; }
-    if (defined($record->longitude)) { print "\tLongitude: " . $record->longitude . "\n"; }
-	if (defined($record->time_zone)) { print "\tTime Zone: " . $record->time_zone . "\n"; }
-    if (defined($record->area_code)) { print "\tArea Code: " . $record->area_code . "\n"; }
-	if (defined($record->continent_code)) { print "\tContinent Code: " . $record->continent_code . "\n"; }
-	if (defined($record->metro_code)) { print "\tMetro Code " . $record->metro_code . "\n\n"; }
-    my $geo_ip_info;
-    if (defined($record->city)) {
+	my $geo_ip_info;
+	if (!$record) { return '"ниоткуда..."'; }
+    if ($record->city) {
         # we know the city
-        if (defined($record->region_name)) {
+        if ($record->region_name) {
             # and we know the region name
             if ($record->city ne $record->region_name) {
                 # the city and region name are different, all three are relevant.
@@ -2625,15 +2612,15 @@ sub geolocate_ip {
             $geo_ip_info = $record->city . '^7,^2 ' . $record->country_name;
         }
     }
-	elsif (defined($record->region_name)) {
+	elsif ($record->region_name) {
         # don't know the city, but we know the region name and country.  close enough.
         $geo_ip_info = $record->region_name . '^7,^2 ' . $record->country_name;
     }
-	elsif (defined($record->country_name)) {
+	elsif ($record->country_name) {
         # We may not know much, but we know the country.
         $geo_ip_info = $record->country_name;
     }
-	elsif (defined($record->country_code)) {
+	elsif ($record->country_code) {
         # How about a 2 letter country code at least?
         $geo_ip_info = $record->country_code;
     }
@@ -2641,16 +2628,16 @@ sub geolocate_ip {
         # I give up.
         $geo_ip_info = '"ниоткуда"';
     }
-    if ((defined($record->country_code)) && ($record->country_code eq 'US')) { $metric = 0 }
+    if (($record->country_code) && ($record->country_code eq 'US')) { $metric = 0 }
     else { $metric = 1; }
     # GPS Coordinates
     if (($config->{'ip'} !~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./)) {
-	if ((defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
+	if (($record->latitude) && ($record->longitude) && ($record->latitude =~ /\d/)) {
 	    my ($player_lat, $player_lon) = ($record->latitude, $record->longitude);
 	    # gps coordinates are defined for this IP.
 	    # now make sure we have coordinates for the server.
 	    $record = $gi->record_by_name($config->{'ip'});
-	    if ((defined($record)) && (defined($record->latitude)) && (defined($record->longitude)) && ($record->latitude =~ /\d/)) {
+	    if (($record->latitude) && ($record->longitude) && ($record->latitude =~ /\d/)) {
 		my ($home_lat, $home_lon) = ($record->latitude, $record->longitude);
 		# Workaround for my server
 		if (($config->{'ip'}) eq '62.140.250.90') {
@@ -2662,13 +2649,15 @@ sub geolocate_ip {
 		if ($ip ne $config->{'ip'}) {
 		if ($metric) {
                     $dist = int($dist/1000);
-					if ($player_lat eq '60.0000' && $player_lon eq '100.0000') { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
-					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"километров до сервера"'; }
+					# Workaround for standard 'europe' lat and lon
+					if ($player_lat eq '60.0000' && $player_lon eq '100.0000') { $geo_ip_info .= '^7,"расстояние до сервера неизвестно"'; }
+					else { $geo_ip_info .= "^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		            $dist = int($dist/1609.344);
-					if ($player_lat eq '60.0000' && $player_lon eq '100.0000') { $geo_ip_info .= '"^7,  расстояние до сервера неизвестно"'; }
-					else { $geo_ip_info .= " ^7, ^1$dist^7" . '"миль до сервера"'; }
+					# Workaround for standard 'europe' lat and lon
+					if ($player_lat eq '60.0000' && $player_lon eq '100.0000') { $geo_ip_info .= '^7,"расстояние до сервера неизвестно"'; }
+					else { $geo_ip_info .= "^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 		}
 	    }
@@ -3320,80 +3309,80 @@ sub name_player {
 }
 
 sub database_info {
-if (&flood_protection('dbinfo', 30, $slot)) { return 1; }
-my $message = shift;
-if ($message =~ /^(bans|bans.db)$/i) {
-$sth = $bans_dbh->prepare("SELECT count(*) FROM bans");
-$sth->execute() or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2bans.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2bans.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(definitions|definitions.db)$/i) {
-$sth = $definitions_dbh->prepare("SELECT count(*) FROM definitions");
-$sth->execute() or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2definitions.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2definitions.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(guid_to_name|guid_to_name.db)$/i) {
-$sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name");
-$sth->execute() or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2guid_to_name.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2guid_to_name.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(ip_to_guid|ip_to_guid.db)$/i) {
-$sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid");
-$sth->execute() or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_guid.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2ip_to_guid.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(ip_to_name|ip_to_name.db)$/i) {
-$sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name");
-$sth->execute() or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_name.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2ip_to_name.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(names|names.db)$/i) {
-$sth = $names_dbh->prepare("SELECT count(*) FROM names");
-$sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2names.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2names.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(ranks|ranks.db)$/i) {
-$sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks");
-$sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ranks.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2ranks.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(seen|seen.db)$/i) {
-$sth = $seen_dbh->prepare("SELECT count(*) FROM seen");
-$sth->execute() or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2seen.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2seen.db ^7нет записей"'); }
-}
-elsif ($message =~ /^(stats|stats.db)$/i) {
-$sth = $stats_dbh->prepare("SELECT count(*) FROM stats");
-$sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-@row = $sth->fetchrow_array;
-if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2stats.db"'); }
-else { &rcon_command("say " . '"В базе данных ^2stats.db ^7нет записей"'); }
-}
-else {
-&rcon_command("say " . '"Неверная база данных:"' . "$message");
-sleep 1;
-&rcon_command("say " . '"Используемые базы данных: ^2bans.db^7, ^2definitions.db^7, ^2guid_to_name.db"');
-sleep 1;
-&rcon_command("say " . '"Используемые базы данных: ^2ip_to_guid.db^7, ^2ip_to_name.db^7, ^2names.db^7, ^2ranks.db"');
-sleep 1;
-&rcon_command("say " . '"Используемые базы данных: ^2seen.db^7, ^2stats.db"');
-}
+    if (&flood_protection('dbinfo', 30, $slot)) { return 1; }
+    my $message = shift;
+    if ($message =~ /^(bans|bans.db)$/i) {
+    $sth = $bans_dbh->prepare("SELECT count(*) FROM bans");
+    $sth->execute() or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2bans.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2bans.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(definitions|definitions.db)$/i) {
+    $sth = $definitions_dbh->prepare("SELECT count(*) FROM definitions");
+    $sth->execute() or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2definitions.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2definitions.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(guid_to_name|guid_to_name.db)$/i) {
+    $sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name");
+    $sth->execute() or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2guid_to_name.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2guid_to_name.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(ip_to_guid|ip_to_guid.db)$/i) {
+    $sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid");
+    $sth->execute() or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_guid.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2ip_to_guid.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(ip_to_name|ip_to_name.db)$/i) {
+    $sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name");
+    $sth->execute() or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_name.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2ip_to_name.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(names|names.db)$/i) {
+    $sth = $names_dbh->prepare("SELECT count(*) FROM names");
+    $sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2names.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2names.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(ranks|ranks.db)$/i) {
+    $sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks");
+    $sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ranks.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2ranks.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(seen|seen.db)$/i) {
+    $sth = $seen_dbh->prepare("SELECT count(*) FROM seen");
+    $sth->execute() or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2seen.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2seen.db ^7нет записей"'); }
+    }
+    elsif ($message =~ /^(stats|stats.db)$/i) {
+    $sth = $stats_dbh->prepare("SELECT count(*) FROM stats");
+    $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+    @row = $sth->fetchrow_array;
+    if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2stats.db"'); }
+    else { &rcon_command("say " . '"В базе данных ^2stats.db ^7нет записей"'); }
+    }
+    else {
+    &rcon_command("say " . '"Неверная база данных:"' . "$message");
+    sleep 1;
+    &rcon_command("say " . '"Используемые базы данных: ^2bans.db^7, ^2definitions.db^7, ^2guid_to_name.db"');
+    sleep 1;
+    &rcon_command("say " . '"Используемые базы данных: ^2ip_to_guid.db^7, ^2ip_to_name.db^7, ^2names.db^7, ^2ranks.db"');
+    sleep 1;
+    &rcon_command("say " . '"Используемые базы данных: ^2seen.db^7, ^2stats.db"');
+    }
 }
 
 # BEGIN: !kick($search_string)
