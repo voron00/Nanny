@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS Build 17';
+my $version = '3.3 RUS svn 18';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -224,30 +224,30 @@ elsif ($logfile_mode eq 'ftp') { &ftp_connect }
 &initialize_databases;
 
 # Startup message
-print "
-================================================================================
-                     Сиделка для сервера Call of Duty 2
-                         Версия $version
-                            Автор - smugllama
-                        Доработка и перевод - VoroN
+print "================================================================================\n";
 
-                       RCON-модуль основан на KKrcon
-                       http://kkrcon.sourceforge.net
+print "                     Сиделка для сервера Call of Duty 2\n";
+print "                          Версия $version\n";
+print "                            Автор - smugllama\n";
+print "                       Доработка и перевод - VoroN\n\n";
 
-                     IP-Геолокация предоставлена MaxMind
-                          http://www.maxmind.com
+print "                       RCON-модуль основан на KKrcon\n";
+print "                       http://kkrcon.sourceforge.net\n\n";
 
-                      Поддержка удаленных FTP лог-файлов
-                      основана на ftptail от Will Moffat
-                    http://hamstersoup.wordpress.com/ftptail
+print "                    IP-Геолокация предоставлена MaxMind\n";
+print "                         http://www.maxmind.com\n\n";
 
-                    Оригинанльная версия NannyBot доступна на:
-                        http://smaert.com/nannybot.zip
-		
-                    Последняя Русская версия доступна на:
-                      https://github.com/voron00/Nanny
+print "                    Поддержка удаленных FTP лог-файлов\n";
+print "                    основана на ftptail от Will Moffat\n";
+print "                  http://hamstersoup.wordpress.com/ftptail\n\n";
 
-================================================================================\n\n";
+print "                 Оригинанльная версия NannyBot доступна на:\n";
+print "                      http://smaert.com/nannybot.zip\n\n";
+
+print "                   Последняя Русская версия доступна на:\n";
+print "                     https://github.com/voron00/Nanny\n\n";
+
+print "================================================================================\n";
 
 # initialize the timers
 $time = time;
@@ -696,14 +696,14 @@ while (1) {
 	    if ($line =~ /\\gamename\\([^\\]+)/) { $game_name = $1; }
 	    if ($line =~ /\\mapname\\([^\\]+)/) { $map_name = $1; }
 	    if ($line =~ /\\scr_friendlyfire\\([^\\]+)/) { $friendly_fire = $1; }
-            if ($line =~ /\\scr_killcam\\([^\\]+)/) { $kill_cam = $1; }
+        if ($line =~ /\\scr_killcam\\([^\\]+)/) { $kill_cam = $1; }
 	    if ($line =~ /\\shortversion\\([^\\]+)/) { $cod_version = $1; }
 	    if ($line =~ /\\sv_hostname\\([^\\]+)/) { $server_name = $1; }
-            if ($line =~ /\\sv_maxclients\\([^\\]+)/) { $max_clients = $1; }
+        if ($line =~ /\\sv_maxclients\\([^\\]+)/) { $max_clients = $1; }
 	    if ($line =~ /\\sv_maxPing\\([^\\]+)/) { $max_ping = $1; }
 	    if ($line =~ /\\sv_privateClients\\([^\\]+)/) { $private_clients = $1; }
-            if ($line =~ /\\sv_pure\\([^\\]+)/) { $pure = $1; }
-            if ($line =~ /\\sv_voice\\([^\\]+)/) { $voice = $1; }
+        if ($line =~ /\\sv_pure\\([^\\]+)/) { $pure = $1; }
+        if ($line =~ /\\sv_voice\\([^\\]+)/) { $voice = $1; }
 	    print "MAP STARTING: $map_name $game_type\n";
 		# prepare for First Blood
 		$first_blood = 0;
@@ -1407,7 +1407,7 @@ sub chat{
     # #####################
 
     if ((!$ignore{$slot}) && ($message =~ /^!/)) {
-    
+
 	# !locate (search_string)
 	if ($message =~ /^!(locate|geolocate)\s+(.+)/i) {
 	    if (&check_access('locate')) { &locate($2); }
@@ -2352,9 +2352,10 @@ sub locate {
 	sleep 1;
     }
 	elsif ($search_string =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/) {
-	$location = &geolocate_ip($1);
-	if ($location =~ /,.* - .+/) { $location = '"Этот IP находится в районах около^2"' . $location; }
-	else { $location = '"Этот IP находится в^2"' . $location; }
+	my $target_ip = $1;
+	$location = &geolocate_ip($target_ip);
+	if ($location =~ /,.* - .+/) { $location = "^3$target_ip" . '"^7находится в районах около^2"' . $location; }
+	else { $location = "^3$target_ip" . '"^7находится в^2"' . $location; }
 	&rcon_command("say $location");
 	sleep 1;
     }
@@ -2594,6 +2595,21 @@ sub geolocate_ip {
     my $record = $gi->record_by_addr($ip);
 	my $geo_ip_info;
 	if (!$record) { return '"ниоткуда..."'; }
+	# debugging
+    if (defined($record->country_code)) { print "\n\tCountry Code: " . $record->country_code . "\n"; }
+    if (defined($record->country_code3)) { print "\tCountry Code 3: " . $record->country_code3 . "\n"; }
+    if (defined($record->country_name)) { print "\tCountry Name: " . $record->country_name . "\n"; }
+    if (defined($record->region)) { print "\tRegion: " . $record->region . "\n"; }
+	if (defined($record->region_name)) { print "\tRegion Name: " . $record->region_name . "\n"; }
+    if (defined($record->city)) { print "\tCity: " . $record->city . "\n"; }
+    if (defined($record->postal_code)) { print "\tPostal Code: " . $record->postal_code . "\n"; }
+    if (defined($record->latitude)) { print "\tLattitude: " . $record->latitude . "\n"; }
+    if (defined($record->longitude)) { print "\tLongitude: " . $record->longitude . "\n"; }
+	if (defined($record->time_zone)) { print "\tTime Zone: " . $record->time_zone . "\n"; }
+    if (defined($record->area_code)) { print "\tArea Code: " . $record->area_code . "\n"; }
+	if (defined($record->continent_code)) { print "\tContinent Code: " . $record->continent_code . "\n"; }
+	if (defined($record->metro_code)) { print "\tMetro Code " . $record->metro_code . "\n\n"; }
+	# end of debugging
     if ($record->city) {
         # we know the city
         if ($record->region_name) {
