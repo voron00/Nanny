@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 18';
+my $version = '3.3 RUS svn 19';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1008,13 +1008,12 @@ sub die_nice {
     if ((!defined($message)) or ($message !~ /./)) { $message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
 	# dirty workaround, but sometimes server can drop a ftp connection or it can be lost on client side
-	if ($ftpfail eq 1) {
-    print "Can't connect to ftp server. Please check your config and internet connection.\nWill try to reconnect in 10 seconds\n\n";
+	if ($ftpfail) {
 	sleep 10;
 	&ftp_connect;
 	$ftpfail = 0;
 	}
-	elsif ($ftpfail eq 0) {
+	elsif (!$ftpfail) {
 	print "Press <ENTER> to close this program\n";
 	my $who_cares = <STDIN>;
     -e $ftp_tmpFileName && unlink($ftp_tmpFileName);
@@ -2838,7 +2837,7 @@ sub stats {
 	}
     # best_killspree
 	my $best_killspree = $row[12];
-	if ($best_killspree) {
+	if ($best_killspree && ($config->{'killing_sprees'})) {
 	    $stats_msg = '"Статистика^2"' . "$name^7:";
 	    $stats_msg .= '"Лучшая серия убийств -^6"' . "$best_killspree";
 	    &rcon_command("say $stats_msg");
