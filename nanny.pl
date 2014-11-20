@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 19';
+my $version = '3.3 RUS svn 20';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4226,7 +4226,7 @@ sub check_guid_zero_players {
 		    print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
 		    print "\tThis IP address is using a stolen copy of CoD2\n\n";
 		    $dirtbag = 1;
-		    $kick_reason = "using a STOLEN CD-Key that Activision has BANNED.  ^1Go buy the game.";
+		    $kick_reason = '"был выкинут за использование заблокированного ключа диска"';
 		}
 		if ($reason eq 'INVALID_CDKEY') {
 		    print "Explaination of: $reason\n";
@@ -4235,11 +4235,11 @@ sub check_guid_zero_players {
 		    print "\tThis is a valid CD Key, but is being used from multiple locations\n";
 		    print "\tActivision only allows one IP per key.\n\n";
 		    $dirtbag = 1;
-		    $kick_reason = "an ^4invalid CD-KEY^2.  Perhaps your CD-KEY is already in use?";
+		    $kick_reason = '"был выкинут за использование неверного ключа диска. ¬еро€тно этот ключ уже где-то используетс€"';
 		}
 		if (($dirtbag) && ($reason eq 'BANNED_CDKEY')) {
 		    print"DIRTBAG: $name_by_slot{$slot} - $reason\n";
-		    &rcon_command("say ^1$name_by_slot{$slot} ^2was kicked for $kick_reason");
+		    &rcon_command("say ^1$name_by_slot{$slot} $kick_reason");
 		    sleep 1;
 		    &rcon_command("clientkick $slot");
 		    &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
