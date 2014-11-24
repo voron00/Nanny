@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 20';
+my $version = '3.3 RUS svn 21';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4051,11 +4051,13 @@ sub last_bans {
     $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
     while (@row = $bans_sth->fetchrow_array) {
-	my $txt_time = &duration($time - $row[1]);
+    if ($row[0]) {
+    my $txt_time = &duration($time - $row[1]);
     &rcon_command("say ^2$row[5]" . '"^7был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$row[0]^7, IP - ^3$row[3]^7, GUID - ^3$row[4]^7)");
     sleep 1;
-	}
-	if (!$row[0]) { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
+    }
+    else { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
+    }
 }
 # END: &last_bans($number);
 
