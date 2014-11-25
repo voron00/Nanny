@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 21';
+my $version = '3.3 RUS svn 22';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4368,6 +4368,7 @@ sub ftp_get_line {
 	    # we reverse the order so that lines pop out in chronological order
 	    @ftp_buffer = reverse @ftp_buffer;	    
         }
+	sleep 1;
     }
     if (defined($ftp_buffer[0])) {
 	$line = pop @ftp_buffer;
