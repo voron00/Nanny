@@ -44,15 +44,15 @@
 #  monthly log rotations
 #  guess a favorite weapon? :)
 #  Rewrite config parser?
-#  ability to specify tempban time via config? ...done
+#  ability to specify tempban time via config?
 
 #  Command wish list:
 #  !teambalance on/off ...done
 #  !forcerespawn on/off ...done
 #  !spectatefree on/off ...done
-#  !rifles on/off/only
-#  !bolt on/off/only
-#  !mgs on/off/only
+#  !rifles on/off/only ...done
+#  !bolt on/off/only ...done
+#  !mgs on/off/only ...done
 
 # NOTE:  rcon names have full color codes, kill lines have full colors, chat lines do not.
 
@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 22';
+my $version = '3.3 RUS svn 25';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1641,23 +1641,58 @@ sub chat{
 	}
 	# !smoke
         elsif ($message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s+(.+)/i) {
-	    if (&check_access('weapon_control')) { &toggle_weapon('scr_allow_smokegrenades', '"Дымовые гранаты"', $2); }
-	}
-	elsif ($message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s*$/i) {
+	    if (&check_access('weapon_control')) { &toggle_weapon('"Дымовые гранаты"', $2); }
+	    }
+	    elsif ($message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s*$/i) {
 	    if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
-	}
-        # !grenades
+	    }
+    # !grenades
         elsif ($message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s+(.+)/i) {
-            if (&check_access('weapon_control')) { &toggle_weapon('scr_allow_fraggrenades', '"Осколочные гранаты"', $2); }
+            if (&check_access('weapon_control')) { &toggle_weapon('"Осколочные гранаты"', $2); }
         }
         elsif ($message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s*$/i) {
             if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
         }
-        # !shotguns
+    # !shotguns
         elsif ($message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s+(.+)/i) {
-            if (&check_access('weapon_control')) { &toggle_weapon('scr_allow_shotgun', '"Дробовики"', $2); }
+            if (&check_access('weapon_control')) { &toggle_weapon('"Дробовики"', $2); }
         }
         elsif ($message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s*$/i) {
+            if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
+        }
+	# !rifles
+  	    elsif ($message =~ /^!(rifles?|bolt?)\s+(.+)/i) {
+            if (&check_access('weapon_control')) { &toggle_weapon('"Винтовки"', $2); }
+        }
+        elsif ($message =~ /^!(rifles?|bolt?)\s*$/i) {
+            if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
+        }
+	# !semirifles
+  	    elsif ($message =~ /^!(semirifles?)\s+(.+)/i) {
+            if (&check_access('weapon_control')) { &toggle_weapon('"Полуавтоматические винтовки"', $2); }
+        }
+        elsif ($message =~ /^!(semirifles?)\s*$/i) {
+            if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
+        }
+	# !snipers
+  	    elsif ($message =~ /^!(snipers?|sniper_rifles?|sniper rifles?)\s+(.+)/i) {
+            if (&check_access('weapon_control')) { &toggle_weapon('"Снайперские винтовки"', $2); }
+        }
+        elsif ($message =~ /^!(snipers?|sniper_rifles?|sniper rifles?)\s*$/i) {
+            if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
+        }
+	# !mgs
+  	    elsif ($message =~ /^!(mgs?|machineguns?|machine_guns?)\s+(.+)/i) {
+            if (&check_access('weapon_control')) { &toggle_weapon('"Пулеметы"', $2); }
+        }
+        elsif ($message =~ /^!(mgs?|machineguns?|machine_guns?)\s*$/i) {
+            if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
+        }
+	# !smgs
+  	    elsif ($message =~ /^!(smgs?|submachineguns?|submachine_guns?)\s+(.+)/i) {
+            if (&check_access('weapon_control')) { &toggle_weapon('"Автоматы"', $2); }
+        }
+        elsif ($message =~ /^!(smgs?|submachineguns?|submachine_guns?)\s*$/i) {
             if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
         }
 	# !say
@@ -3670,6 +3705,7 @@ sub best {
         &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^3"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
         sleep 1;
    }
+    if ($config->{'killing_sprees'}) {
     # Best Kill Spree
     $counter = 1;
     sleep 1;
@@ -3681,6 +3717,7 @@ sub best {
         &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^6"' .  "$row[12]" . '"^7убийствами подряд"');
         sleep 1;
     }
+	}
 	if ($game_type eq 'sd') {
 	# Best Bomb Plants
     $counter = 1;
@@ -4377,27 +4414,151 @@ sub ftp_get_line {
 	else { return undef; }
 }
 
-# &toggle_weapon('scr_allow_smokegrenades', 'Smoke Grenades', $2);
+# &toggle_weapon($description, $requested_state);
 sub toggle_weapon {
-    my ($attribute, $description, $requested_state) = (@_);
-    my $is_was;
-    if ($description =~ /s$/i) { $is_was = 'were'; }
-    else { $is_was = 'was'; }
-    if ($requested_state =~ /yes|1|on|enable/i) {
-	&log_to_file('logs/admin.log', "$description $is_was enabled by:  $name - GUID $guid");
-	&rcon_command("set $attribute \"1\"");
-	&rcon_command("say " . "^2$description" .  '"^7были ^2ВКЛЮЧЕНЫ^7 админом."');
-    }
+    my ($description, $requested_state) = (@_);
+    if ($description eq '"Дымовые гранаты"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_smokegrenades 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-        &log_to_file('logs/admin.log', "$description $is_was disabled by:  $name - GUID $guid");
-        &rcon_command("set $attribute \"0\"");
-        &rcon_command("say " . "^2$description" .  '"^7были ^1ВЫКЛЮЧЕНЫ^7 админом."');
-    }
-	else {
-	&log_to_file('logs/admin.log', "$description $is_was set to $requested_state:  $name - GUID $guid");
-        &rcon_command("set $attribute \"$requested_state\"");
-        &rcon_command("say " . "^2$description" . '"^7были установлены в режим"' . "^1$requested_state" . '"^7админом."');
-    }
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_smokegrenades 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
+	elsif ($description eq '"Осколочные гранаты"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_fraggrenades 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
+	elsif ($requested_state =~ /no|0|off|disable/i) {
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_fraggrenades 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
+	elsif ($description eq '"Дробовики"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_shotgun 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
+	elsif ($requested_state =~ /no|0|off|disable/i) {
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_shotgun 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
+	elsif ($description eq '"Винтовки"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_kar98k 1");
+    &rcon_command("set scr_allow_enfield 1");
+    &rcon_command("set scr_allow_nagant 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
+	elsif ($requested_state =~ /no|0|off|disable/i) {
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_kar98k 0");
+    &rcon_command("set scr_allow_enfield 0");
+    &rcon_command("set scr_allow_nagant 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
+	elsif ($description eq '"Полуавтоматические винтовки"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_m1carbine 1");
+    &rcon_command("set scr_allow_m1garand 1");
+    &rcon_command("set scr_allow_g43 1");
+	&rcon_command("set scr_allow_svt40 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
+	elsif ($requested_state =~ /no|0|off|disable/i) {
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_m1carbine 0");
+    &rcon_command("set scr_allow_m1garand 0");
+    &rcon_command("set scr_allow_g43 0");
+	&rcon_command("set scr_allow_svt40 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
+	elsif ($description eq '"Снайперские винтовки"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_kar98ksniper 1");
+    &rcon_command("set scr_allow_enfieldsniper 1");
+    &rcon_command("set scr_allow_nagantsniper 1");
+	&rcon_command("set scr_allow_springfield 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
+	elsif ($requested_state =~ /no|0|off|disable/i) {
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_kar98ksniper 0");
+    &rcon_command("set scr_allow_enfieldsniper 0");
+    &rcon_command("set scr_allow_nagantsniper 0");
+	&rcon_command("set scr_allow_springfield 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
+	elsif ($description eq '"Пулеметы"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_bar 1");
+    &rcon_command("set scr_allow_bren 1");
+    &rcon_command("set scr_allow_mp44 1");
+	&rcon_command("set scr_allow_ppsh 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
+	elsif ($requested_state =~ /no|0|off|disable/i) {
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_bar 0");
+    &rcon_command("set scr_allow_bren 0");
+    &rcon_command("set scr_allow_mp44 0");
+	&rcon_command("set scr_allow_ppsh 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
+	elsif ($description eq '"Автоматы"') {
+	if ($requested_state =~ /yes|1|on|enable/i) {
+	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("set scr_allow_sten 1");
+    &rcon_command("set scr_allow_mp40 1");
+    &rcon_command("set scr_allow_thompson 1");
+	&rcon_command("set scr_allow_pps42 1");
+	&rcon_command("set scr_allow_greasegun 1");
+	&rcon_command("say $description" . '"были включены админом."');
+	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
+	}
+	elsif ($requested_state =~ /no|0|off|disable/i) {
+	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("set scr_allow_sten 0");
+    &rcon_command("set scr_allow_mp40 0");
+    &rcon_command("set scr_allow_thompson 0");
+	&rcon_command("set scr_allow_pps42 0");
+	&rcon_command("set scr_allow_greasegun 0");
+	&rcon_command("say $description" . '"были выключены админом."');
+	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
+	}
+	}
 }
 
 sub update_name_by_slot {
