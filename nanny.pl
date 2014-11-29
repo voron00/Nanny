@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 25';
+my $version = '3.3 RUS svn 26';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -270,7 +270,7 @@ $temporary = &rcon_query('shortversion');
 if ($temporary =~ /\"shortversion\" is: \"(\d+\.\d+)\^7\"/m) {
    $cod_version = $1;
    if ($cod_version =~ /./) { print "CoD2 version is: $cod_version\n"; }
- }
+}
 else { print "WARNING: unable to parse cod_version:  $temporary\n"; }
 
 # Ask the server what it's official name is
@@ -296,7 +296,7 @@ $temporary = &rcon_query('mapname');
 if ($temporary =~ /\"mapname\" is: \"(\w+)\^7\"/m) {
    $map_name = $1;
    if ($map_name =~ /./) { print "Current map is: $map_name\n"; }
-   }
+}
 else { print "WARNING: unable to parse game_type:  $temporary\n"; }
 
 # Ask which gametype is now present
@@ -304,7 +304,7 @@ $temporary = &rcon_query('g_gametype');
 if ($temporary =~ /\"g_gametype\" is: \"(\w+)\^7\"/m) {
    $game_type = $1;
    if ($game_type =~ /./) { print "Gametype is: $game_type\n"; }
-   }
+}
 else { print "WARNING: unable to parse game_type:  $temporary\n"; }
 
 # Main Loop
@@ -399,9 +399,8 @@ while (1) {
 
 		# Glitch Server Mode
 		if ($config->{'glitch_server_mode'}) {
-			print "GLITCH SERVER MODE:  " . &strip_color($attacker_name) . " killed someone.  Kicking!\n";
+			print "GLITCH SERVER MODE:  " . &strip_color($attacker_name) . " killed someone. Kicking!\n";
 			&rcon_command("say ^1" . $attacker_name . ":^1 " . $config->{'glitch_kill_kick_message'});
-			print &strip_color($attacker_name) . ": " . $config->{'glitch_kill_kick_message'} . "\n"; 
 			sleep 1;
 			&rcon_command("clientkick $attacker_slot");
 			&log_to_file('logs/kick.log', "GLITCH_KILL: Murderer!  Kicking $attacker_name for killing other people");
@@ -762,7 +761,7 @@ while (1) {
 	else {
 	# We have reached the end of the logfile.
 	# Delay some time so we aren't constantly hammering this loop
-	usleep(10000);
+	usleep(100000);
 	# cache the time to limit the number of syscalls
 	$time = time;
 	$timestring = scalar(localtime($time));
@@ -1225,7 +1224,7 @@ sub idle_check {
 # END: idle_check
 
 # BEGIN: chat
-sub chat{
+sub chat {
     # Relevant Globals: 
     #   $name
     #   $slot 
@@ -1413,7 +1412,7 @@ sub chat{
 	}
 	elsif ($message =~ /^!(locate|geolocate)\s*$/i) {
 	    if (&check_access('locate')) {
-		if (&flood_protection('locate-miss', 15, $slot)) { }
+		if (&flood_protection('locate-miss', 10, $slot)) { }
         else { &rcon_command("say " . '"!locate кого?"'); }
 	    }
 	}
@@ -1443,7 +1442,7 @@ sub chat{
 	}
 	elsif ($message =~ /^!seen\s*$/i) {
 	    if (&check_access('seen')) {
-		if (&flood_protection('seen-miss', 15, $slot)) { }
+		if (&flood_protection('seen-miss', 10, $slot)) { }
 		else { &rcon_command("say " . '"!seen кого?"'); }
 	    }
 	}
@@ -1583,7 +1582,7 @@ sub chat{
         }
 		elsif ($message =~ /^!(define|dictionary|dict)\s*$/i) {
             if (&check_access('define')) {
-		if (&flood_protection('dictionary-miss', 15, $slot)) { }
+		if (&flood_protection('dictionary-miss', 10, $slot)) { }
 		else { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7Что нужно добавить в словарь?"'); }
 		    }
 		}
@@ -1769,7 +1768,7 @@ sub chat{
 	    }
 	}
 	# !fixnames
-        elsif ($message =~ /^!fixnames/i) {
+    elsif ($message =~ /^!fixnames/i) {
             if (&check_access('fixnames')) {
 			if (&flood_protection('fixnames', 30)) { }
                 $sth = $guid_to_name_dbh->prepare('SELECT count(*) FROM guid_to_name;');
@@ -1788,9 +1787,9 @@ sub chat{
                 if ($row[0] == 1) { &rcon_command("say " . '"^7Удалена одна запись из базы ^2IP <-> NAME"'); }
 				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2IP <-> NAME^7 которые имели слишком длинный формат"'); }
             }
-        }
-    	# !rank
-        elsif ($message =~ /^!rank\s*$/i) {
+    }
+    # !rank
+    elsif ($message =~ /^!rank\s*$/i) {
             if (&check_access('rank')) {
 			if (&flood_protection('rank', 30, $slot)) { return 1; }
 	        $ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
@@ -1799,7 +1798,7 @@ sub chat{
 	        if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено рангов в базе данных"'); }
 	        else { &rcon_command("say ^2$name_by_slot{$slot}^7:" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
 			}
-        }
+    }
 	# !version
 	elsif ($message =~ /^!(version|ver)\b/i) {
 	    if (&check_access('version')) {
@@ -1816,7 +1815,7 @@ sub chat{
 			&rcon_command("say " . '"Доработка и перевод - ^5V^0oro^5N"');
 		    sleep 1;
 		    &rcon_command("say " . '"^3Исходный код данной версии можно найти тут:^2 https://github.com/voron00/Nanny"');
-		}	    
+		}
 	    }
 	}
     # !nextmap  (not to be confused with !rotate)
@@ -1934,122 +1933,122 @@ sub chat{
     }
 	# !help
 	elsif ($message =~ /^!help\b/i) {
-	    if (&flood_protection('help', 30)) {}
+	    if (&flood_protection('help', 120)) { }
 	    else {
 		if (&check_access('stats')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробную статистику"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробную статистику"');
 		    sleep 1;
 		}
 		if (&check_access('seen')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!seen ^5игрок ^7чтобы узнать когда он был на сервере и что говорил"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!seen ^5игрок ^7чтобы узнать когда он был на сервере и что говорил"');
 		    sleep 1;
 		}
 		if (&check_access('locate')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!locate ^5игрок ^7чтобы узнать его приблизительное местоположение"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!locate ^5игрок ^7чтобы узнать его приблизительное местоположение"');
 		    sleep 1;
 		}
 		if (&check_access('lastkill')) {
-            &rcon_command("say " . '"^7Вы можете использовать ^1!lastkill ^7чтобы узнать кто в последний раз вас убил"');
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!lastkill ^7чтобы узнать кто в последний раз вас убил"');
             sleep 1;
             }
 		if (&check_access('map_control')) {		
-		    &rcon_command("say " . '"^7Вы можете сменить тип игры при помощи: ^1!dm !tdm !ctf !sd !hq"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете сменить тип игры при помощи: ^1!dm !tdm !ctf !sd !hq"');
 		    sleep 1;
-		    &rcon_command("say " . '"^7Вы можете ^1!restart ^7карты или ^1!rotate ^7чтобы перейти к следующей"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!restart ^7карты или ^1!rotate ^7чтобы перейти к следующей"');
 		    sleep 1;
-		    &rcon_command("say " . '"или: ^1!beltot !brecourt !burgundy !caen !carentan !el-alamein !moscow !leningrad !matmata !st.mereeglise !stalingrad !toujane !villers"');
+		    &rcon_command("say $name^7:" . '"или: ^1!beltot !brecourt !burgundy !caen !carentan !el-alamein !moscow !leningrad !matmata !st.mereeglise !stalingrad !toujane !villers"');
 		    sleep 1;
 		}
 		if (&check_access('kick')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!kick ^5игрок ^7чтобы выкинуть его с сервера"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!kick ^5игрок ^7чтобы выкинуть его с сервера"');
 		    sleep 1;
 		}
 		if (&check_access('tempban')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!tempban ^5игрок ^7чтобы временно забанить игрока"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!tempban ^5игрок ^7чтобы временно забанить игрока"');
 		    sleep 1;
 		}
 		if (&check_access('ban')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!ban ^5игрок ^7чтобы навсегда забанить игрока"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!ban ^5игрок ^7чтобы навсегда забанить игрока"');
 		    sleep 1;
-		    &rcon_command("say " . '"^7Вы можете ^1!unban ^5игрок ^7или ^1!unban ^5banID# ^7чтобы снять бан"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!unban ^5игрок ^7или ^1!unban ^5banID# ^7чтобы снять бан"');
 		    sleep 1;
-		    &rcon_command("say " . '"^7Вы можете использовать  ^1!lastbans ^5номер ^7чтобы посмотреть список последних забаненных игроков"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!lastbans ^5номер ^7чтобы посмотреть список последних забаненных игроков"');
             sleep 1;
 		}
 		if (&check_access('voting')) {
-		    &rcon_command("say " . '"^7Вы можете включить голосование ^1!voting ^5on ^7or или выключить его ^1!voting ^5off"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете включить голосование ^1!voting ^5on ^7or или выключить его ^1!voting ^5off"');
 		    sleep 1;
 		}
 		if (&check_access('killcam')) {
-		    &rcon_command("say " . '"^7Вы можете включить ^1!killcam ^5on ^7или выключить ^1!killcam ^5off"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете включить ^1!killcam ^5on ^7или выключить ^1!killcam ^5off"');
 		    sleep 1;
 		}
 		if (&check_access('teamkill')) {
-            &rcon_command("say " . '"^7Вы можете ^1!friendlyfire ^5[0-4] ^7чтобы установить режим огня по союзникам"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!friendlyfire ^5[0-4] ^7чтобы установить режим огня по союзникам"');
             sleep 1;
             }
 		if (&check_access('fly')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!fly ^7чтобы выключить гравитацию на 20 секунд"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!fly ^7чтобы выключить гравитацию на 20 секунд"');
 		    sleep 1;
 		}
 		if (&check_access('gravity')) {
-            &rcon_command("say " . '"^7Вы можете ^1!gravity ^5число ^7чтобы установить режим гравитации"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!gravity ^5число ^7чтобы установить режим гравитации"');
             sleep 1;
             }
 		if (&check_access('speed')) {
-            &rcon_command("say " . '"^7Вы можете ^1!speed ^5число ^7чтобы установить режим скорости"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!speed ^5число ^7чтобы установить режим скорости"');
             sleep 1;
             }
 		if (&check_access('glitch')) {
-		    &rcon_command("say " . '"^7Вы можете включить ^1!glitch ^5on ^7чтобы включить режим не убивания ^1!glitch ^5off ^7чтобы вернуть нормальный режим"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете включить ^1!glitch ^5on ^7чтобы включить режим не убивания ^1!glitch ^5off ^7чтобы вернуть нормальный режим"');
 		    sleep 1;
 		}
 		if (&check_access('names')) {
-		    &rcon_command("say " . '"^7Вы можете ^1!names ^5игрок ^7чтобы узнать с какими никами он играл"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!names ^5игрок ^7чтобы узнать с какими никами он играл"');
 		    sleep 1;
 		}
 		if (&check_access('best')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!best ^7чтобы посмотреть список лучших игроков на сервере"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!best ^7чтобы посмотреть список лучших игроков на сервере"');
 		    sleep 1;
 		}
 		if (&check_access('worst')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!worst ^7чтобы посмотреть список худших игроков на сервере"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!worst ^7чтобы посмотреть список худших игроков на сервере"');
 		    sleep 1;
 		}
 		if (&check_access('uptime')) {
-		    &rcon_command("say " . '"^7Вы можете использовать  ^1!uptime ^7чтобы посмотреть сколько времени сервер работает"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!uptime ^7чтобы посмотреть сколько времени сервер работает"');
 		    sleep 1;
 		}
         if (&check_access('define')) {
-            &rcon_command("say " . '"^7Вы можете^1!define ^5слово ^7чтобы добавить его в словарь"');
+            &rcon_command("say $name^7:" . '"^7Вы можете^1!define ^5слово ^7чтобы добавить его в словарь"');
             sleep 1;
         }
 		if (&check_access('version')) {
-		    &rcon_command("say " . '"^7Вы можете использовать ^1!version ^7чтобы узнать версию программы и авторов а также ссылки на скачивание"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!version ^7чтобы узнать версию программы и авторов а также ссылки на скачивание"');
 		    sleep 1;
 		}
 		if (&check_access('reset')) {
-            &rcon_command("say " . '"^7Вы можете использовать  ^1!reset ^7чтобы сбросить параметры"');
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!reset ^7чтобы сбросить параметры"');
             sleep 1;
             }
 		if (&check_access('reboot')) {
-            &rcon_command("say " . '"^7Вы можете использовать  ^1!reboot ^7чтобы перезапустить программу"');
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!reboot ^7чтобы перезапустить программу"');
             sleep 1;
             }
 		if (&check_access('ignore')) {
-            &rcon_command("say " . '"^7Вы можете ^1!ignore ^5игрок^7 чтобы запретить мне слушать что он сказал"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!ignore ^5игрок^7 чтобы запретить мне слушать что он сказал"');
             sleep 1;
             }
 		if (&check_access('broadcast')) {
-            &rcon_command("say " . '"^7Вы можете ^1!broadcast ^5сообщение ^7чтобы отправить его на другие серверы"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!broadcast ^5сообщение ^7чтобы отправить его на другие серверы"');
             sleep 1;
             }
 		if (&check_access('hostname')) {
-            &rcon_command("say " . '"^7Вы можете ^1!hostname ^5Имя ^7чтобы переименовать сервер"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!hostname ^5Имя ^7чтобы переименовать сервер"');
             sleep 1;
             }
 		if (&check_access('forgive')) {
-            &rcon_command("say " . '"^7Вы можете ^1!forgive ^5игрок ^7чтобы простить игроку его выходки"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!forgive ^5игрок ^7чтобы простить игроку его выходки"');
             sleep 1;
             }
 	    }
@@ -2349,8 +2348,13 @@ sub locate {
     my $ip;
     my $guessed;
     my $spoof_match;
-    if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 120))) { return 1; }
-    if (&flood_protection('locate', 30, $slot)) { return 1; }
+	if (($#matches == -1) && ($search_string !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/)) {
+        if (&flood_protection('locate-nomatch', 10, $slot)) { return 1; }
+        &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+    }
+	else {
+	if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) && (&flood_protection('locate-all', 120))) { return 1; }
+	if (&flood_protection('locate', 30, $slot)) { return 1; }
     foreach $slot (@matches) {
 	if ($ip_by_slot{$slot}) {
 	    print "MATCH: " . &strip_color($name_by_slot{$slot}) . ", IP = $ip_by_slot{$slot}\n";
@@ -2378,6 +2382,7 @@ sub locate {
 	    }
 	}
     }
+	}
     if ($search_string =~ /^console|nanny|server\b/i) {
 	$location = &geolocate_ip($config->{'ip'});
 	if ($location =~ /,.* - .+/) { $location = '"Этот сервер находится в районах около^2"' . $location; }
@@ -3817,7 +3822,7 @@ sub names {
     my $ip;
     my $guessed = 0;
     if ($#matches == -1) {
-	if (&flood_protection('names-nomatch', 15, $slot)) { return 1; }
+	if (&flood_protection('names-nomatch', 10, $slot)) { return 1; }
 	&rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
     }
     elsif ($#matches == 0) {
@@ -3838,7 +3843,7 @@ sub names {
             while (@row = $sth->fetchrow_array) { push @names, $row[0]; }
         }
         if ($#names == -1) {
-	    if (&flood_protection('names-none', 15, $slot)) { return 1; }
+	    if (&flood_protection('names-none', 10, $slot)) { return 1; }
 	    &rcon_command("say " . '"Не найдено имен для:"' . " $name_by_slot{$matches[0]}");
 	    }
         else {
@@ -3874,7 +3879,7 @@ sub names {
             # finally, announce the list.
 	    my $found_none = 1;
 	    my @announce_list = keys %name_hash;
-	    if (&flood_protection('names', (15 + (5 * $#announce_list)), $slot)) { return 1; }
+	    if (&flood_protection('names', (10 + (5 * $#announce_list)), $slot)) { return 1; }
             foreach $key (@announce_list) {
                 if ($name_by_slot{$matches[0]} ne $key) {
 		    if ($guessed) { &rcon_command("say $name_by_slot{$matches[0]}" . '" ^7вероятно еще играл как:"' . '"' . " $key"); }
@@ -4067,7 +4072,7 @@ sub tell {
     if ((!defined($message)) or ($message !~ /./)) { return 1; }
     my @matches = &matching_users($search_string);
     if ($#matches == -1) {
-        if (&flood_protection('tell-nomatch', 15, $slot)) { return 1; }
+        if (&flood_protection('tell-nomatch', 10, $slot)) { return 1; }
         &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
     }
     else {
@@ -4133,9 +4138,9 @@ sub dictionary {
     }
     # Now we sanatize what we're looking for - online databases don't have multiword definitions.
     if ($word =~ /[^A-Za-z\-\_\s\d]/) {
-	&rcon_command("say " . '"Неверный ввод, используйте !define = *слово* чтобы добавить его в базу данных"');
+	&rcon_command("say $name^7:" . '"Неверный ввод, используйте !define = *слово* чтобы добавить его в базу данных"');
 	sleep 1;
-	&rcon_command("say " . '"Или !define *слово* чтобы посмотреть результаты из онлайн-словаря WordNet"');
+	&rcon_command("say $name^7:" . '"Или !define *слово* чтобы посмотреть результаты из онлайн-словаря WordNet"');
     return 1;
     }
     $sth = $definitions_dbh->prepare('SELECT count(id) FROM cached WHERE term=?;');
@@ -4401,11 +4406,10 @@ sub ftp_get_line {
             $ftp_inbandSignaling && print "#END: (This is a hack to signal end of data in pipe)\n";
             $ftp_inbandSignaling && &ftp_flushPipe;
             unlink($ftp_tmpFileName);
-            $ftp_lastEnd = $ftp_currentEnd;  
+            $ftp_lastEnd = $ftp_currentEnd;
 	    # we reverse the order so that lines pop out in chronological order
-	    @ftp_buffer = reverse @ftp_buffer;	    
+	    @ftp_buffer = reverse @ftp_buffer;
         }
-	sleep 1;
     }
     if (defined($ftp_buffer[0])) {
 	$line = pop @ftp_buffer;
