@@ -70,6 +70,7 @@ use Time::HiRes qw (usleep); # high resolution timers
 use Socket; # Used for asking activision for GUID numbers for sanity check
 use IO::Select; # also used by the udp routines for manual GUID lookup
 use LWP::Simple; # HTTP fetches are used for the dictionary
+use XML::Simple; # Easily read/write XML
 use Net::FTP; # FTP support for remote logfiles
 use File::Basename; # ftptail support
 use File::Temp qw/ :POSIX /; # ftptail support
@@ -87,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 26';
+my $version = '3.3 RUS svn 27';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1472,6 +1473,13 @@ sub chat {
 	elsif ($message =~ /^!ban\s*$/i) {
 	    if (&check_access('ban')) { &rcon_command("say " . '"!ban кого?"'); }
 	}
+		# !exchange
+        elsif ($message =~ /^!(exchange?|курс?)\s+(.+)/i) {
+            if (&check_access('exchange')) { &exchange($2); }
+        }
+		elsif ($message =~ /^!(exchange?|курс?)\s*$/i) {
+            if (&check_access('exchange')) { &rcon_command("say " . '"' . "!$1" . '"' . '"*валюта*"'); }
+        }
         # !unban (search_string)
         elsif ($message =~ /^!unban\s+(.+)/i) {
             if (&check_access('ban')) { &unban_command($1); }
@@ -1932,7 +1940,7 @@ sub chat {
 	        }
     }
 	# !help
-	elsif ($message =~ /^!help\b/i) {
+	elsif ($message =~ /^!help|помощь\b/i) {
 	    if (&flood_protection('help', 120)) { }
 	    else {
 		if (&check_access('stats')) {
@@ -2348,7 +2356,7 @@ sub locate {
     my $ip;
     my $guessed;
     my $spoof_match;
-	if (($#matches == -1) && ($search_string !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/)) {
+	if (($#matches == -1) && ($search_string !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/ or $search_string !~ /^console|nanny|server\b/i)) {
         if (&flood_protection('locate-nomatch', 10, $slot)) { return 1; }
         &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
     }
@@ -4799,4 +4807,35 @@ sub big_red_button_command {
     sleep 1;
     &rcon_command("kick all");
     &log_to_file('logs/kick.log', "!KICK: All Players were kicked by $name - GUID $guid - via !nuke command");
+}
+
+# BEGIN: exchange
+sub exchange {
+if (&flood_protection('exchange', 30, $slot)) { return 1; }
+my $currency = shift;
+my $line;
+my $date;
+my $xml;
+my @lines;
+my $valutes;
+my $valute;
+my $ua = LWP::UserAgent->new('timeout'=>15);
+my $response = $ua->get("http://cbr.ru/scripts/XML_daily.asp");
+if ($response->is_success) {
+    $xml = XMLin($response->content);
+	@lines = split(/\n/,$response->content);
+	foreach $line (@lines) {
+	if ($line =~ /<ValCurs\s+Date="(\d+\.\d+\.\d+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
+	}
+    $valutes = $xml->{'Valute'};
+    for $valute (@{$valutes}) {
+	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) {
+        if ($valute->{'CharCode'} eq 'USD') { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . $valute->{'Value'} . '"^7рублей"'); }
+		}
+		if ($currency =~ /^EUR|euro|евро$/i) {
+        if ($valute->{'CharCode'} eq 'EUR') { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . $valute->{'Value'} . '"^7рублей"'); }
+		}
+    }
+}
+else { &rcon_command("say " . '"Сайт ЦБ РФ в настоящее время недоступен, повторите попытку позже"'); }
 }
