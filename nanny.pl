@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 27';
+my $version = '3.3 RUS svn 28';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2356,7 +2356,7 @@ sub locate {
     my $ip;
     my $guessed;
     my $spoof_match;
-	if (($#matches == -1) && ($search_string !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/ or $search_string !~ /^console|nanny|server\b/i)) {
+	if (($#matches == -1) && ($search_string !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/) && ($search_string !~ /^console|nanny|server\b/i)) {
         if (&flood_protection('locate-nomatch', 10, $slot)) { return 1; }
         &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
     }
