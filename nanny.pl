@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 28';
+my $version = '3.3 RUS svn 30';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2100,7 +2100,7 @@ sub chat {
 	    &rcon_command("say $^V");
 		}
 		# !osinfo
-        if ($message =~ /^!osinfo\b/i) {
+        if ($message =~ /^!osinfo|osname\b/i) {
 	    &rcon_command("say $^O");
 		}
     # !speed (number)
@@ -4813,6 +4813,7 @@ sub big_red_button_command {
 sub exchange {
 if (&flood_protection('exchange', 30, $slot)) { return 1; }
 my $currency = shift;
+my $today = $time{'dd/mm/yyyy'};
 my $line;
 my $date;
 my $xml;
@@ -4820,7 +4821,7 @@ my @lines;
 my $valutes;
 my $valute;
 my $ua = LWP::UserAgent->new('timeout'=>15);
-my $response = $ua->get("http://cbr.ru/scripts/XML_daily.asp");
+my $response = $ua->get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
 if ($response->is_success) {
     $xml = XMLin($response->content);
 	@lines = split(/\n/,$response->content);
@@ -4832,7 +4833,7 @@ if ($response->is_success) {
 	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) {
         if ($valute->{'CharCode'} eq 'USD') { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . $valute->{'Value'} . '"^7рублей"'); }
 		}
-		if ($currency =~ /^EUR|euro|евро$/i) {
+		elsif ($currency =~ /^EUR|euro|евро$/i) {
         if ($valute->{'CharCode'} eq 'EUR') { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . $valute->{'Value'} . '"^7рублей"'); }
 		}
     }
