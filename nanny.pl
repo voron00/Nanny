@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 30';
+my $version = '3.3 RUS svn 31';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4813,7 +4813,7 @@ sub big_red_button_command {
 sub exchange {
 if (&flood_protection('exchange', 30, $slot)) { return 1; }
 my $currency = shift;
-my $today = $time{'dd/mm/yyyy'};
+my $today = $time{'dd.mm.yyyy'};
 my $line;
 my $date;
 my $xml;
@@ -4826,7 +4826,7 @@ if ($response->is_success) {
     $xml = XMLin($response->content);
 	@lines = split(/\n/,$response->content);
 	foreach $line (@lines) {
-	if ($line =~ /<ValCurs\s+Date="(\d+\.\d+\.\d+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
+	if ($line =~ /<.*(\d{1,2}[\/.]\d{1,2}[\/.]\d{1,4}).*>/) { $date = $1; }
 	}
     $valutes = $xml->{'Valute'};
     for $valute (@{$valutes}) {
