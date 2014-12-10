@@ -69,8 +69,7 @@ use Time::Format; # easy to use time formatting
 use Time::HiRes qw (usleep); # high resolution timers
 use Socket; # Used for asking activision for GUID numbers for sanity check
 use IO::Select; # also used by the udp routines for manual GUID lookup
-use LWP::Simple; # HTTP fetches are used for the dictionary
-use XML::Simple; # Easily read/write XML
+use LWP; # HTTP fetches
 use Net::FTP; # FTP support for remote logfiles
 use File::Basename; # ftptail support
 use File::Temp qw/ :POSIX /; # ftptail support
@@ -88,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 31';
+my $version = '3.3 RUS svn 32';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1094,11 +1093,11 @@ sub initialize_databases {
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-	# The name database
+	# The names database
     $sth = $names_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $names_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
-    if ($tables{'names'}) { print "name database brought online\n\n"; }
+    if ($tables{'names'}) { print "names database brought online\n\n"; }
     else {
 	print "Creating names database...\n\n";
 	$cmd = "CREATE TABLE names (id INTEGER PRIMARY KEY, name VARCHAR(64));";
@@ -1108,7 +1107,7 @@ sub initialize_databases {
 	$result_code = $names_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $names_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
-	# The rank database
+	# The ranks database
     $sth = $ranks_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
     foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
@@ -1148,26 +1147,6 @@ sub initialize_databases {
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
     $cmd = "CREATE INDEX definitions_all ON definitions (id,term,definition)";
-    $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-    }
-    if ($tables{'cached'}) { print "cached definitions index database brought online\n\n"; }
-    else {
-    print "Creating cached database...\n\n";
-    $cmd = "CREATE TABLE cached (id INTEGER PRIMARY KEY, term VARCHAR(32));";
-    $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX cached_all ON cached (id,term)";
-    $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
-    }
-    if ($tables{'cached_definitions'}) { print "cached definitions data database brought online\n\n"; }
-    else {
-    print "Creating cached_definitions database...\n\n";
-    $cmd = "CREATE TABLE cached_definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
-    $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
-    if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX cached_defintions_all ON cached_definitions (id,term,definition)";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1604,9 +1583,9 @@ sub chat {
 		@row = $sth->fetchrow_array;
 		$sth = $definitions_dbh->prepare('DELETE FROM definitions WHERE term=?;');
 		$sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
-		if ($row[0] == 1) { &rcon_command("say " . '"^2Удалено определение для: "' . '"' . "^1$undefine"); }
-		elsif ($row[0] > 1) { &rcon_command("say " . '"^2Удалено "' . "$row[0]" . '" определений для: "' . '"' . "^1$undefine"); }
-		else { &rcon_command("say " . '"^2Больше нет определений для: "' . '"' . "^1$undefine");}
+		if ($row[0] == 1) { &rcon_command("say " . '"^2Удалено одно определение для:"' . '"' . "^1$undefine"); }
+		elsif ($row[0] > 1) { &rcon_command("say " . '"^2Удалено"' . "^3$row[0]^2" . '"определений для:"' . '"' . "^1$undefine"); }
+		else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undefine");}
 		}
 		}
 	# !stats
@@ -1909,15 +1888,15 @@ sub chat {
 	elsif ($message =~ /^!glitch\s*$/i) {
 	    if (&check_access('glitch')) { &rcon_command("say !glitch on" . '" или !glitch off ... ?"'); }
 	}
-	# forcerespawn
+	# !forcerespawn
 		elsif ($message =~ /^!forcerespawn\s*$/i) {
 	    if (&check_access('forcerespawn')) { &rcon_command("say !forcerespawn on" . '" или !forcerespawn off?"'); }
 	}
-	# teambalance
-		elsif ($message =~ /^!teambalance\s*$/i) {
+	# !teambalance
+		elsif ($message =~ /^!teambalance|autobalance\s*$/i) {
 	    if (&check_access('teambalance')) { &rcon_command("say !teambalance on" . '" или !teambalance off?"'); }
 	}
-	# spectatefree
+	# !spectatefree
 		elsif ($message =~ /^!spectatefree\s*$/i) {
 	    if (&check_access('spectatefree')) { &rcon_command("say !spectatefree on" . '" или !spectatefree off?"'); }
 	}
@@ -2107,12 +2086,12 @@ sub chat {
         if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
             if (&check_access('speed')) { &speed_command($2); }
         }
-	# !big red button
+	# !nuke
 	if ($message =~ /^!(big red button|nuke)/i) {
-	    if (&check_access('nuke')) { &big_red_button_command; }
+	    if (&check_access('nuke')) { &nuke; }
 	}
 	# Map Commands
-	# !beltot and !farmhouse command
+	# !beltot or !farmhouse command
 	elsif ($message =~ /^!beltot\b|!farmhouse\b/i) {
 	    if (&check_access('map_control')) {
 		&rcon_command("say " . '"^2Смена на: "' . "^3Beltot, France      ^7(mp_farmhouse)");
@@ -3537,7 +3516,7 @@ sub ban_command {
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
-    &log_to_file('logs/kick.log', "!BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");	   
+    &log_to_file('logs/kick.log', "BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");	   
     $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
@@ -4117,7 +4096,7 @@ sub dictionary {
     my @definitions;
     my $definition;
     my $term;
-    my $content;
+    my $response;
     my $counter = 0;
 
     if (!defined($word)) {
@@ -4131,7 +4110,7 @@ sub dictionary {
 	if (&check_access('define')) {
 	    $sth = $definitions_dbh->prepare("INSERT INTO definitions VALUES (NULL, ?, ?)");
 	    $sth->execute($term,$definition) or &die_nice("Unable to do insert\n");
-	    &rcon_command("say " . '" ^2Добавлено определение для: "' . '"' . "^1$term");
+	    &rcon_command("say " . '"^2Добавлено определение для:"' . '"' . "^1$term");
 	    return 0;
 	}
     }
@@ -4142,6 +4121,7 @@ sub dictionary {
     while (@row = $sth->fetchrow_array) {
         print "DATABASE DEFINITION: $row[0]\n";
         $counter++;
+		# 8 definitions max by default
 	if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2 $row[0]"); }
     }
     # Now we sanatize what we're looking for - online databases don't have multiword definitions.
@@ -4151,43 +4131,27 @@ sub dictionary {
 	&rcon_command("say $name^7:" . '"Или !define *слово* чтобы посмотреть результаты из онлайн-словаря WordNet"');
     return 1;
     }
-    $sth = $definitions_dbh->prepare('SELECT count(id) FROM cached WHERE term=?;');
-    $sth->execute($word) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
-    @row = $sth->fetchrow_array;
-    if ($row[0]) {
-	# skip the lookup - we have it cached - intead, we pull the data from our database cache.
-	$sth = $definitions_dbh->prepare('SELECT definition FROM cached_definitions WHERE term=?;');
-	$sth->execute($word) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
-	while (@row = $sth->fetchrow_array) {
-	    print "CACHED ONLINE DEFINITION: $row[0]\n";
-	    $counter++;
-	    if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2 $row[0]"); }
-	}
-    }
+	my $ua = LWP::UserAgent->new('timeout'=>10);
+	$response = $ua->get("http://wordnetweb.princeton.edu/perl/webwn?s=" . $word);
+	if ($response->is_success) { }
 	else {
-	$content = get("http://wordnetweb.princeton.edu/perl/webwn?s=" . $word);
-	if (!defined($content)) {
 	    &rcon_command("say " . '"Словарь WordNet в настоящее время недоступен, попробуйте позже"');
 	    return 1;
 	}
-	@lines = split(/\n+/,$content);
+	@lines = split(/\n+/,$response->content);
 	foreach (@lines) {
 	    if (/<\s*b>$word<\/b>[^\(]+\(([^\)]*)\)/) {
 		$definition = $1;
+		print "ONLINE DEFINITION: $1\n";
 		$counter++;
-		$sth = $definitions_dbh->prepare("INSERT INTO cached_definitions VALUES (NULL, ?, ?)");
-		$sth->execute($word,$definition) or &die_nice("Unable to do insert\n");
 		# 8 definitions max by default
 		if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2 $definition"); }
 	    }
 	}
-	$sth = $definitions_dbh->prepare("INSERT INTO cached VALUES (NULL, ?)");
-	$sth->execute($word) or &die_nice("Unable to do insert into dictionary - cached table\n");
-    }
     if (!$counter) { &rcon_command("say " . '"^7К сожалению, не найдено определений для слова:"' . "^2$word"); }
 	else {
-    if ($counter == 1) { &rcon_command("say " . '"^21 ^7определение найдено для слова:"' . "^2$word"); }
-	else { &rcon_command("say ^2$counter " . '"^7определений найдено для слова:"' . "^2$word"); }
+    if ($counter == 1) { &rcon_command("say " . '"^31 ^7определение найдено для слова:"' . "^2$word"); }
+	else { &rcon_command("say ^3$counter " . '"^7определений найдено для слова:"' . "^2$word"); }
 	sleep 1;
         foreach $definition (@definitions) {
         &rcon_command("say $definition");
@@ -4801,8 +4765,8 @@ sub broadcast_message {
     else { &rcon_command("say " . '"Ваше сообщение было успешно передано на"' . "^1$num_servers" . '"других серверов"'); }
 }
 
-# BEGIN: big_red_button_command
-sub big_red_button_command {
+# BEGIN: nuke
+sub nuke {
     &rcon_command("say " . '"О НЕТ, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!"');
     sleep 1;
     &rcon_command("kick all");
@@ -4814,29 +4778,17 @@ sub exchange {
 if (&flood_protection('exchange', 30, $slot)) { return 1; }
 my $currency = shift;
 my $today = $time{'dd.mm.yyyy'};
-my $line;
 my $date;
-my $xml;
-my @lines;
-my $valutes;
-my $valute;
-my $ua = LWP::UserAgent->new('timeout'=>15);
+my $dollar;
+my $euro;
+my $ua = LWP::UserAgent->new('timeout'=>10);
 my $response = $ua->get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
 if ($response->is_success) {
-    $xml = XMLin($response->content);
-	@lines = split(/\n/,$response->content);
-	foreach $line (@lines) {
-	if ($line =~ /<.*(\d{1,2}[\/.]\d{1,2}[\/.]\d{1,4}).*>/) { $date = $1; }
-	}
-    $valutes = $xml->{'Valute'};
-    for $valute (@{$valutes}) {
-	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) {
-        if ($valute->{'CharCode'} eq 'USD') { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . $valute->{'Value'} . '"^7рублей"'); }
-		}
-		elsif ($currency =~ /^EUR|euro|евро$/i) {
-        if ($valute->{'CharCode'} eq 'EUR') { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . $valute->{'Value'} . '"^7рублей"'); }
-		}
-    }
+	if ($response->content =~ /<\w+\s+\w+="(\d+[\/.]\d+[\/.]\d+)"\s+\w+="\w+\s+\w+\s+\w+">/) { $date = $1; }
+	if ($response->content =~ /<Name>Доллар\s+США<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $dollar = $1 }
+	if ($response->content =~ /<Name>Евро<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $euro = $1 }
+	if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
+	if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
 }
 else { &rcon_command("say " . '"Сайт ЦБ РФ в настоящее время недоступен, повторите попытку позже"'); }
 }
