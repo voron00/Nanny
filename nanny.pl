@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 32';
+my $version = '3.3 RUS svn 33';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1138,8 +1138,7 @@ sub initialize_databases {
     # The definitions database
     $sth = $definitions_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
-    my @tmp;
-    while (@tmp = $sth->fetchrow_array) { foreach (@tmp) { $tables{$_} = $_; } }
+    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'definitions'}) { print "definitions database brought online\n\n"; }
     else {
     print "Creating definitions database...\n\n";
@@ -1153,7 +1152,7 @@ sub initialize_databases {
     # The stats database
     $sth = $stats_dbh->prepare("SELECT name FROM SQLITE_MASTER");
     $sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-    while (@tmp = $sth->fetchrow_array) { foreach (@tmp) { $tables{$_} = $_; } }
+    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'stats'}) { print "stats database brought online\n\n"; }
     else {
 	print "Creating stats database\n\n";
