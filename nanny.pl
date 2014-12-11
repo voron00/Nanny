@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 35';
+my $version = '3.3 RUS svn 36';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2392,22 +2392,10 @@ sub status {
     my $status = &rcon_query('status');
     print "$status\n";
     my @lines = split(/\n/,$status);
-    my $line;
-    my $slot;
-    my $score;
-    my $ping;
-    my $guid;
-    my $rate;
-    my $qport;
-    my $ip;
-    my $port;
-    my $lastmsg;
-    my $name;
-    my $colorless;
-    foreach $line (@lines) {
-	if ($line =~ /^map:\s+(\w+)/) { $map_name = $1; }
-	if ($line =~ /^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)/) {
-	    ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
+    foreach (@lines) {
+	if (/^map:\s+(\w+)$/) { $map_name = $1; }
+	if (/^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
+	my ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
 		# strip trailing spaces.
 		$name =~ s/\s+$//;
 		$name =~ s/$problematic_characters//g;
@@ -2426,7 +2414,7 @@ sub status {
 	    # cache the ip_to_name mapping
 	    if (($ip) and ($name)) { &cache_ip_to_name($ip,$name); }
 	    # cache names without color codes, too.
-	    $colorless = &strip_color($name);
+	    my $colorless = &strip_color($name);
 	    if ($colorless ne $name) {
 		&update_name_by_slot($colorless, $slot);
 		if (($ip) and ($colorless)) { &cache_ip_to_name($ip,$colorless); }
@@ -2783,7 +2771,7 @@ sub seen {
     $sth->execute("\%$search_string\%") or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     if (&flood_protection('seen', (10 + ($sth->rows * 5)), $slot)) { return 1; }
     while (@row = $sth->fetchrow_array) {
-	&rcon_command("say " . " $row[0] " . '" ^7был замечен на сервере "' . "" . duration($time - $row[1]) . "" . '" назад, и сказал:"' . '"' . " $row[2]");
+	&rcon_command("say $row[0]" . '"^7был замечен на сервере"' . duration($time - $row[1]) . '"назад и сказал:"' . '"' . "$row[2]");
 	sleep 1;
     }
 }
@@ -3482,7 +3470,7 @@ sub tempban_command {
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
-    &log_to_file('logs/kick.log', "!TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
+    &log_to_file('logs/kick.log', "TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
     $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
@@ -3868,12 +3856,12 @@ sub names {
 	    if (&flood_protection('names', (10 + (5 * $#announce_list)), $slot)) { return 1; }
             foreach $key (@announce_list) {
                 if ($name_by_slot{$matches[0]} ne $key) {
-		    if ($guessed) { &rcon_command("say $name_by_slot{$matches[0]}" . '" ^7вероятно еще играл как:"' . '"' . " $key"); }
-		    else { &rcon_command("say $name_by_slot{$matches[0]}" . '" ^7еще играл как:"' . '"' . " $key"); }
+		    if ($guessed) { &rcon_command("say $name_by_slot{$matches[0]}" . '"^7вероятно еще играл как:"' . '"' . "$key"); }
+		    else { &rcon_command("say $name_by_slot{$matches[0]}" . '"^7еще играл как:"' . '"' . "$key"); }
 		    $found_none = 0;
                 }
             }
-	    if ($found_none) { &rcon_command("say " . '"Не найдено имен для"' ." $name_by_slot{$matches[0]}"); }
+	    if ($found_none) { &rcon_command("say " . '"Не найдено имен для"' . " $name_by_slot{$matches[0]}"); }
         }
     }
     elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
