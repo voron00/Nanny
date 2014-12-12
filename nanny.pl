@@ -69,7 +69,7 @@ use Time::Format; # easy to use time formatting
 use Time::HiRes qw (usleep); # high resolution timers
 use Socket; # Used for asking activision for GUID numbers for sanity check
 use IO::Select; # also used by the udp routines for manual GUID lookup
-use LWP; # HTTP fetches
+use LWP::Simple; # HTTP fetches, simple procedural interface to LWP
 use Net::FTP; # FTP support for remote logfiles
 use File::Basename; # ftptail support
 use File::Temp qw/ :POSIX /; # ftptail support
@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 36';
+my $version = '3.3 RUS svn 37';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -275,9 +275,8 @@ else { print "WARNING: unable to parse cod_version:  $temporary\n"; }
 
 # Ask the server what it's official name is
 $temporary = &rcon_query("sv_hostname");
-if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
+if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\^7\"/m) {
     $server_name = $1;
-    $server_name =~ s/\^7$//;
     if ($server_name =~ /./) { print "Server Name is: $server_name\n"; }
 }
 else { print "WARNING: cant parse the sv_hostname results.\n"; }
@@ -289,7 +288,7 @@ if ($temporary =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
     if ($voting) { print "Voting is currently turned ON\n"; }
     else { print "Voting is currently turned OFF\n"; }
 }
-else { print "Sorry, cant parse the g_allowVote results.\n"; }
+else { print "WARNING: unable to parse the g_allowVote results.\n"; }
 
 # Ask which map is now present
 $temporary = &rcon_query('mapname');
@@ -370,7 +369,7 @@ while (1) {
 	$line =~ s/\s+$//;
 
 	# hold onto the first character of the line
-	# doing single character eq is faster than regex ~=
+	# doing single character eq is faster than regex
 	$first_char = substr($line, 0, 1);
 
 	# Which class of event is the line we just read?
@@ -1310,7 +1309,7 @@ sub chat {
 
     # Call Bad shot
     if (($config->{'bad_shots'}) and (!$ignore{$slot})) {
-	if ($message =~ /^!?bs\W*$|^!?bad\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that was (bs|badshot)\W*$/i) {
+	if ($message =~ /^!?bs\W*$|^!?bad\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that\s+was\s+(bs|badshot)\W*$/i) {
 	    if ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) {
 		if (&flood_protection('badshot', 30, $slot)) {
 		    # bad shot abuse
@@ -1333,7 +1332,7 @@ sub chat {
 
     # Call Nice Shot
     if (($config->{'nice_shots'}) and (!$ignore{$slot})) {
-	if ($message =~ /\bnice\W? (one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
+	if ($message =~ /\bnice\W?\s+(one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
 	    if ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) {
 		if (&flood_protection('niceshot', 30, $slot)) {
 		    # nice shot abuse
@@ -1714,9 +1713,8 @@ sub chat {
             if (&check_access('hostname')) {
 			if (&flood_protection('hostname', 30, $slot)) { }
 			$temporary = &rcon_query("sv_hostname");
-            if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\"/m) {
+            if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\^7\"/m) {
             $server_name = $1;
-            $server_name =~ s/\^7$//;
             if ($server_name =~ /./) { &rcon_command("say " . '"Сейчас сервер называется"' . "$server_name^7," .  '"используйте !hostname чтобы изменить название сервера"'); }
             }
 			}
@@ -2475,7 +2473,7 @@ sub status {
 		}
 	    }
 		}
-		elsif (!$guid_by_slot{$slot}) {
+		else {
 		$sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
 	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
 		$ip_by_slot{$slot} = 'unknown';
@@ -4083,7 +4081,7 @@ sub dictionary {
     my @definitions;
     my $definition;
     my $term;
-    my $response;
+    my $content;
     my $counter = 0;
 
     if (!defined($word)) {
@@ -4118,14 +4116,13 @@ sub dictionary {
 	&rcon_command("say $name^7:" . '"Или !define *слово* чтобы посмотреть результаты из онлайн-словаря WordNet"');
     return 1;
     }
-	my $ua = LWP::UserAgent->new('timeout'=>10);
-	$response = $ua->get("http://wordnetweb.princeton.edu/perl/webwn?s=" . $word);
-	if ($response->is_success) { }
-	else {
+	$content = get("http://wordnetweb.princeton.edu/perl/webwn?s=" . $word);
+	if (!defined($content)) {
 	    &rcon_command("say " . '"Словарь WordNet в настоящее время недоступен, попробуйте позже"');
 	    return 1;
 	}
-	@lines = split(/\n+/,$response->content);
+	else {
+	@lines = split(/\n+/,$content);
 	foreach (@lines) {
 	    if (/<\s*b>$word<\/b>[^\(]+\(([^\)]*)\)/) {
 		$definition = $1;
@@ -4145,6 +4142,7 @@ sub dictionary {
 	    sleep 1;
         }
     }
+	}
 }
 
 sub check_guid_zero_players {
@@ -4768,12 +4766,11 @@ my $today = $time{'dd.mm.yyyy'};
 my $date;
 my $dollar;
 my $euro;
-my $ua = LWP::UserAgent->new('timeout'=>10);
-my $response = $ua->get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
-if ($response->is_success) {
-	if ($response->content =~ /<\w+\s+\w+="(\d+[\/.]\d+[\/.]\d+)"\s+\w+="\w+\s+\w+\s+\w+">/) { $date = $1; }
-	if ($response->content =~ /<Name>Доллар\s+США<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $dollar = $1 }
-	if ($response->content =~ /<Name>Евро<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $euro = $1 }
+my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
+if (defined($content)) {
+	if ($content =~ /<ValCurs\s+Date="(\d+[\/.]\d+[\/.]\d+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
+	if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $dollar = $1 }
+	if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $euro = $1 }
 	if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
 	if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
 }

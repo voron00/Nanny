@@ -8,8 +8,6 @@ package KKrcon;
 #   use KKrcon;
 #   $rcon = new KKrcon(Password=>PASSWORD, [Host=>HOST], [Port=>PORT], [Type=>"new"|"old"]);
 #   $result  = $rcon->execute(COMMAND);
-#   %players = $rcon->getPlayers();
-#   $player  = $rcon->getPlayer(USERID);
 #
 # Copyright (C) 2000, 2001  Rod May
 # 
@@ -71,7 +69,7 @@ sub execute {
 			$msg = "\xFF\xFF\xFF\xFFrcon $1 \"" . $self->{"rcon_password"} . "\" $command\0";
 			$ans = $self->sendrecv($msg);
 		}
-		elsif (!$self->error()) {
+		elsif (!$self->error) {
 			$ans = "";
 			$self->{"error"} = "No challenge response";
 		}
@@ -95,9 +93,9 @@ sub sendrecv {
 	my $proto  = $self->{"_proto"};
 	# Open socket
 	socket(RCON, PF_INET, SOCK_DGRAM, $proto) or die("KKrcon: socket: $!\n");
-	# bind causes problems if hostname() gets wrong interface...
+	# bind causes problems if hostname gets wrong interface...
 	# and it doesn't seem to be necessary
-	# my $iaddr = gethostbyname(hostname());
+	# my $iaddr = gethostbyname(hostname);
 	# my $paddr = sockaddr_in(0, $iaddr);
 	# bind(RCON, $paddr) or die("KKrcon: bind: $!\n");
 	my $hispaddr = sockaddr_in($port, $ipaddr);
@@ -161,44 +159,6 @@ sub sendrecv {
 sub error {
 	my ($self) = @_;
 	return $self->{"error"};
-}
-
-# Parse "status" command output into player information
-
-sub getPlayers {
-	my ($self) = @_;
-	my $name;
-	my $userid;
-	my $wonid;
-	my $frags;
-	my $time;
-	my $ping;
-	my $loss;
-	my $address;
-	my $status = $self->execute("status");
-	my @lines = split(/[\r\n]+/, $status);
-	my %players;
-
-	foreach $line (@lines) {
-		if ($line =~ /^\#[\s\d]\d\s+(.+)\s+(\d+)\s+(\d+)\s+([\d-]+)\s+([\d:]+)\s+(\d+)\s+(\d+)\s+(\S+)$/x) {
-		($name,$userid,$wonid,$frags,$time,$ping,$loss,$address) = ($1,$2,$3,$4,$5,$6,$7,$8);
-		$players{$userid} = {"Name" => $name,"UserID" => $userid,"WONID" => $wonid,"Frags" => $frags,"Time" => $time,"Ping" => $ping,"Loss" => $loss,"Address" => $address};
-		}
-	}
-	return %players;
-}
-
-# Get information about a player by userID
-
-sub getPlayer {
-	my ($self, $userid) = @_;
-	my %players = $self->getPlayers();
-
-	if (defined($players{$userid})) { return $players{$userid}; }
-	else {
-		$self->{"error"} = "No such player # $userid";
-		return 0;
-	}
 }
 
 1;
