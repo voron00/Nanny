@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 39';
+my $version = '3.3 RUS svn 40';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -722,19 +722,31 @@ while (1) {
 		elsif ($line =~ /^W;([^;]*);(\d+);([^;]*)/) {
 		($attacker_team,$guid,$name) = ($1,$2,$3);
 		$name =~ s/$problematic_characters//g;
-		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have WON this game of $game_type on $map_name\n"; }
-		else { print "GAME OVER: $name has WON this game of $game_type on $map_name\n"; }
 		# cache the guid and name
 		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have WON this game of $game_type on $map_name\n"; }
+		else { print "GAME OVER: $name has WON this game of $game_type on $map_name\n"; }
+	    }
+		# sometimes this line happens on sd, when there are no players and round has ended
+		elsif ($line =~ /^W;([^;]*)/) {
+		$attacker_team = $1;
+		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have WON this game of $game_type on $map_name\n"; }
 	    }
 		else { print "WARNING: unrecognized syntax for Weapon/Round Win line:\n\t$line\n"; }
 	}
 	elsif ($first_char eq 'L') {
-	    # Round Losers
+	    # a "Round Lose" Event has happened
 	    if ($line =~ /^L;([^;]*);(\d+);([^;]*)/) {
 		($attacker_team,$guid,$name) = ($1,$2,$3);
+		# cache the guid and name
+		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
 		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on $map_name\n"; }
 		else { print "... apparently there are no losers\n"; }
+		}
+		# sometimes this line happens on sd, when there are no players and round has ended
+	    elsif ($line =~ /^L;([^;]*)/) {
+		$attacker_team = $1;
+		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on $map_name\n"; }
 		}
 	    else { print "WARNING: unrecognized syntax for Round Loss line:\n\t$line\n"; }
 	}
