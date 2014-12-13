@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 38';
+my $version = '3.3 RUS svn 39';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -621,10 +621,10 @@ while (1) {
 	    else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	}
 	elsif ($first_char eq 's') {
-	    # say / sayteam
+	    # a "SAY" event has happened
 	    if ($line =~ /^say;(\d+);(\d+);([^;]+);(.*)/) {
-		# a "SAY" event has happened
 		($guid,$slot,$name,$message) = ($1,$2,$3,$4);
+		# cache the guid and name
 		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
 		$last_activity_by_slot{$slot} = $time;
 		&update_name_by_slot($name, $slot);
@@ -632,9 +632,22 @@ while (1) {
 		$message =~ s/^\x15//;
 		&chat($chatmode = 'global');
 	    }
-		elsif ($line =~ /^sayteam;(\d+);(\d+);([^;]+);(.*)/) {
+		# a "SAY" with only ANSI characters in name event has happened
+	    elsif ($line =~ /^say;(\d+);(\d+);;(.*)/) {
+		($guid,$slot,$message) = ($1,$2,$3);
+		$name = '';
+		# cache the guid and name
+		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+		$last_activity_by_slot{$slot} = $time;
+		&update_name_by_slot($name, $slot);
+		$guid_by_slot{$slot} = $guid;
+		$message =~ s/^\x15//;
+		&chat($chatmode = 'global');
+	    }
 		# a "SAYTEAM" event has happened
+		elsif ($line =~ /^sayteam;(\d+);(\d+);([^;]+);(.*)/) {
 		($guid,$slot,$name,$message) = ($1,$2,$3,$4);
+		# cache the guid and name
 		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
 		$last_activity_by_slot{$slot} = $time;
 		&update_name_by_slot($name, $slot);
@@ -642,25 +655,61 @@ while (1) {
 		$message =~ s/^\x15//;
 		&chat($chatmode = 'team');
         }
-	    # else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
+		# a "SAYTEAM" with only ANSI characters in name event has happened
+		elsif ($line =~ /^sayteam;(\d+);(\d+);;(.*)/) {
+		($guid,$slot,$message) = ($1,$2,$3);
+		$name = '';
+		# cache the guid and name
+		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+		$last_activity_by_slot{$slot} = $time;
+		&update_name_by_slot($name, $slot);
+		$guid_by_slot{$slot} = $guid;
+		$message =~ s/^\x15//;
+		&chat($chatmode = 'team');
+        }
+	    else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
 	}
 	elsif ($first_char eq 't') {
-            # say / sayteam
-            if ($line =~ /^tell;(\d+);(\d+);([^;]+);\d+;\d+;[^;]+;(.*)/) {
-                # a "tell" (private message) event has happened
-                ($guid,$slot,$name,$message) = ($1,$2,$3,$4);
-                if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
-                $last_activity_by_slot{$slot} = $time;
-                &update_name_by_slot($name, $slot);
-                $guid_by_slot{$slot} = $guid;
-                $message =~ s/^\x15//;
-                &chat($chatmode = 'private');
-            }
-            # else { print "WARNING: unrecognized syntax for tell line:\n\t$line\n"; }
+        if ($line =~ /^tell;(\d+);(\d+);([^;]+);\d+;\d+;[^;]+;(.*)/) {
+        # a "tell" (private message) event has happened
+        ($guid,$slot,$name,$message) = ($1,$2,$3,$4);
+		# cache the guid and name
+        if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+        $last_activity_by_slot{$slot} = $time;
+        &update_name_by_slot($name, $slot);
+        $guid_by_slot{$slot} = $guid;
+        $message =~ s/^\x15//;
+        &chat($chatmode = 'private');
         }
+		elsif ($line =~ /^tell;(\d+);(\d+);;\d+;\d+;[^;]+;(.*)/) {
+        # a "tell" (private message) with only ANSI characters in name event has happened
+        ($guid,$slot,$message) = ($1,$2,$3);
+		$name = '';
+		# cache the guid and name
+        if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+        $last_activity_by_slot{$slot} = $time;
+        &update_name_by_slot($name, $slot);
+        $guid_by_slot{$slot} = $guid;
+        $message =~ s/^\x15//;
+        &chat($chatmode = 'private');
+        }
+		elsif ($line =~ /^tell;(\d+);(\d+);;\d+;\d+;;(.*)/) {
+        # a "tell" (private message) with only ANSI characters in name to name with only ANSI characters in name event has happened
+        ($guid,$slot,$message) = ($1,$2,$3);
+		$name = '';
+		# cache the guid and name
+        if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+        $last_activity_by_slot{$slot} = $time;
+        &update_name_by_slot($name, $slot);
+        $guid_by_slot{$slot} = $guid;
+        $message =~ s/^\x15//;
+        &chat($chatmode = 'private');
+        }
+        else { print "WARNING: unrecognized syntax for tell line:\n\t$line\n"; }
+    }
 	elsif ($first_char eq 'W') {
+	    # a "WEAPON" Event has happened
 	    if ($line =~ /^Weapon;(\d+);(\d+);([^;]*);(\w+)$/) {
-		# a "WEAPON" Event has happened
 		($guid,$slot,$name,$weapon) = ($1,$2,$3,$4);
 		$name =~ s/$problematic_characters//g;
 		# cache the guid and name
@@ -669,8 +718,8 @@ while (1) {
 		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 	    }
-		elsif ($line =~ /^W;([^;]*);(\d+);([^;]*)/) {
 		# a "Round Win" Event has happened
+		elsif ($line =~ /^W;([^;]*);(\d+);([^;]*)/) {
 		($attacker_team,$guid,$name) = ($1,$2,$3);
 		$name =~ s/$problematic_characters//g;
 		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have WON this game of $game_type on $map_name\n"; }
@@ -678,7 +727,7 @@ while (1) {
 		# cache the guid and name
 		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
 	    }
-		# else { print "WARNING: unrecognized syntax for Weapon/Round Win line:\n\t$line\n"; }
+		else { print "WARNING: unrecognized syntax for Weapon/Round Win line:\n\t$line\n"; }
 	}
 	elsif ($first_char eq 'L') {
 	    # Round Losers
@@ -687,7 +736,7 @@ while (1) {
 		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on $map_name\n"; }
 		else { print "... apparently there are no losers\n"; }
 		}
-	    # else { print "WARNING: unrecognized syntax for Round Loss line:\n\t$line\n"; }
+	    else { print "WARNING: unrecognized syntax for Round Loss line:\n\t$line\n"; }
 	}
 	elsif ($first_char eq 'I') {
 	    # Init Level
