@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 40';
+my $version = '3.3 RUS svn 41';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -741,7 +741,6 @@ while (1) {
 		# cache the guid and name
 		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
 		if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have LOST this game of $game_type on $map_name\n"; }
-		else { print "... apparently there are no losers\n"; }
 		}
 		# sometimes this line happens on sd, when there are no players and round has ended
 	    elsif ($line =~ /^L;([^;]*)/) {
@@ -770,7 +769,7 @@ while (1) {
 		# anti-vote-rush
 		# first, look up the game-type so we can exempt S&D
 		if (($voting) and ($config->{'anti_vote_rush'}) and ($game_type ne 'sd')) {
-		    print "ANTI-VOTE-RUSH:  Turned off voting for 25 seconds...\n";
+		    print "ANTI-VOTE-RUSH: Turned off voting for 25 seconds...\n";
 		    &rcon_command("g_allowVote 0");
 		    $reactivate_voting = $time + 25;
 		}
@@ -1661,6 +1660,13 @@ sub chat {
     elsif ($message =~ /^!stats\s*$/i) {
 		if (&check_access('stats')) { &stats($name,''); }
 	}
+	# !lastkill
+    elsif ($message =~ /^!(last\s*kill|killedby|whokilledme|whowasthat)\s*(.*)/i) {
+        if (&check_access('lastkill')) { &lastkill($name,$2); }
+    }
+    elsif ($message =~ /^!(last\s*kill|killedby|whokilledme|whowasthat)\s*$/i) {
+		if (&check_access('lastkill')) { &lastkill($name,''); }
+	}
 	# !best
 	elsif ($message =~ /^!best\b/i) {
 	    if (&check_access('best')) { &best; }
@@ -2149,6 +2155,10 @@ sub chat {
 	if ($message =~ /^!(big\s+red\s+button|nuke)/i) {
 	    if (&check_access('nuke')) { &nuke; }
 	}
+	# !announce
+	if ($message =~ /^!announce/i) {
+	    if (&check_access('announce')) { &make_announcement; }
+	}
 	# Map Commands
 	# !beltot or !farmhouse command
 	elsif ($message =~ /^!beltot\b|!farmhouse\b/i) {
@@ -2274,104 +2284,73 @@ sub chat {
 	    }
 		}
 	}
-	# End of map !commands
+	# End of Map Commands
 	# !time
 	elsif ($message =~ /^!time\b/i) {
-    if (&check_access('time')) {
-	if (&flood_protection('time', 30, $slot)) { }
-	&rcon_command("say " . '"^2Московское время^7:^3"' . "$time{'h:mm'} ^7|^3 $time{'dd.mm.yyyy'}");
-	}
+        if (&check_access('time')) {
+	    if (&flood_protection('time', 30, $slot)) { }
+	        &rcon_command("say " . '"^2Московское время^7:^3"' . "$time{'hh:mm'} ^7|^3 $time{'dd.mm.yyyy'}");
+	    }
     }
 	# !ragequit
 	elsif ($message =~ /^!rage|rq|ragequit\b/i) {
-	if (&flood_protection('rage', 30, $slot)) { }
+	    if (&flood_protection('rage', 30, $slot)) { }
         &rcon_command("say " . "^1$name_by_slot{$slot}" . '"^7покрыл всех матом, обиделся и вышел из игры."');
 		sleep 1;
 		&rcon_command("clientkick $slot");
     }
-	 # !forcerespawn
-			elsif ($message =~ /^!forcerespawn on\b/i) {
-			if (&flood_protection('forcerespawn', 30, $slot)) { }
-			if (&check_access('forcerespawn'))
-            {
-                &rcon_command("scr_forcerespawn 1");
-				&rcon_command("say " . '"Быстрое возрождение ^2Включено"');
-            }
+	# !forcerespawn
+	elsif ($message =~ /^!forcerespawn on\b/i) {
+		if (&flood_protection('forcerespawn', 30, $slot)) { }
+		if (&check_access('forcerespawn')) {
+            &rcon_command("scr_forcerespawn 1");
+			&rcon_command("say " . '"Быстрое возрождение ^2Включено"');
         }
-			elsif ($message =~ /^!forcerespawn off\b/i) {
-			if (&flood_protection('forcerespawn', 30, $slot)) { }
-			if (&check_access('forcerespawn'))
-            {
-                &rcon_command("scr_forcerespawn 0");
-				&rcon_command("say " . '"Быстрое возрождение ^1Выключено"');
-            }
+    }
+	elsif ($message =~ /^!forcerespawn off\b/i) {
+		if (&flood_protection('forcerespawn', 30, $slot)) { }
+		if (&check_access('forcerespawn')) {
+            &rcon_command("scr_forcerespawn 0");
+			&rcon_command("say " . '"Быстрое возрождение ^1Выключено"');
         }
-	 # !teambalance command
-			elsif ($message =~ /^!teambalance on\b/i) {
-			if (&flood_protection('teambalance', 30, $slot)) { }
-			if (&check_access('teambalance'))
-            {
-                &rcon_command("scr_teambalance 1");
-				&rcon_command("say " . '"Автобаланс команд ^2Включен"');
-            }
+    }
+	# !teambalance command
+	elsif ($message =~ /^!teambalance on\b/i) {
+		if (&flood_protection('teambalance', 30, $slot)) { }
+		if (&check_access('teambalance')) {
+            &rcon_command("scr_teambalance 1");
+		    &rcon_command("say " . '"Автобаланс команд ^2Включен"');
         }
-			elsif ($message =~ /^!teambalance off\b/i) {
-			if (&flood_protection('teambalance', 30, $slot)) { }
-			if (&check_access('teambalance'))
-            {
-                &rcon_command("scr_teambalance 0");
-				&rcon_command("say " . '"Автобаланс команд ^1Выключен"');
-            }
+    }
+	elsif ($message =~ /^!teambalance off\b/i) {
+		if (&flood_protection('teambalance', 30, $slot)) { }
+		if (&check_access('teambalance')) {
+            &rcon_command("scr_teambalance 0");
+		    &rcon_command("say " . '"Автобаланс команд ^1Выключен"');
         }
-	 # !spectatefree command
-			elsif ($message =~ /^!spectatefree on\b/i) {
-			if (&flood_protection('spectatefree', 30, $slot)) { }
-			if (&check_access('spectatefree'))
-            {
-                &rcon_command("scr_spectatefree 1");
-				&rcon_command("say " . '"Свободный режим наблюдения ^2Включен"');
-            }
+    }
+	# !spectatefree command
+	elsif ($message =~ /^!spectatefree on\b/i) {
+		if (&flood_protection('spectatefree', 30, $slot)) { }
+		if (&check_access('spectatefree')) {
+            &rcon_command("scr_spectatefree 1");
+			&rcon_command("say " . '"Свободный режим наблюдения ^2Включен"');
         }
-			elsif ($message =~ /^!spectatefree off\b/i) {
-			if (&flood_protection('spectatefree', 30, $slot)) { }
-			if (&check_access('spectatefree'))
-            {
-                &rcon_command("scr_spectatefree 0");
-				&rcon_command("say " . '"Свободный режим наблюдения ^1Выключен"');
-            }
+    }
+	elsif ($message =~ /^!spectatefree off\b/i) {
+		if (&flood_protection('spectatefree', 30, $slot)) { }
+		if (&check_access('spectatefree')) {
+            &rcon_command("scr_spectatefree 0");
+			&rcon_command("say " . '"Свободный режим наблюдения ^1Выключен"');
         }
+    }
 	# !lastbans
 	elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)\s+(\d+)/i) {
             if (&check_access('lastbans')) { &last_bans($2); }
-        }
+    }
 		elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)/i) {
             if (&check_access('lastbans')) { &last_bans(10); }
-        }
-	# !lastkill
-        elsif ($message =~ /^!(last\s*kill|killedby|whokilledme|whowasthat)\s*(.*)/i) {
-	    my $lastkill_search = $2;
-	    if ((!defined($lastkill_search)) or ($lastkill_search eq '')) { $lastkill_search = ''; }
-            if (&check_access('lastkill')) {
-		if (&flood_protection('lastkill', 30, $slot)) { }
-		else {
-		    if (($lastkill_search ne '') and (&check_access('peek'))) {
-			my @matches = &matching_users($lastkill_search);
-			if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$lastkill_search"); }
-			elsif ($#matches == 0) {
-			    if ((defined( $last_killed_by{$matches[0]} )) and ($last_killed_by{$matches[0]} ne 'none')) {
-				&rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^3 ^7был убит игроком ^1"' . $last_killed_by{$matches[0]} );
-			    }
-			}
-			elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$lastkill_search"); }
-		    }
-			else {
-			if ((defined( $last_killed_by{$slot} )) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) {
-			    &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком ^1"' . $last_killed_by{$slot} );
-			}
-		    }
-		}
-            }
-        }
+    }
     }
 }
 # END of !commands 
@@ -2846,6 +2825,27 @@ sub log_to_file {
 }
 # END: log_to_file
 
+# BEGIN: lastkill($search_string)
+sub lastkill {
+    if (&flood_protection('lastkill', 30, $slot)) { return 1; }
+    my $name = shift;
+    my $lastkill_search = shift;
+	if ($lastkill_search ne '') {
+	my @matches = &matching_users($lastkill_search);
+	if (($#matches == 0) and (defined($last_killed_by{$matches[0]})) and ($last_killed_by{$matches[0]} ne 'none')) { &rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^7был убит игроком^1"' . $last_killed_by{$matches[0]}); }
+	elsif ($#matches > 0) {
+	    &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$lastkill_search");
+	    return 1;
+	}
+	elsif ($#matches == -1) {
+	    &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$lastkill_search");
+	    return 1;
+	}
+    }
+	elsif ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) { &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком^1"' . $last_killed_by{$slot}); }
+}
+# END: lastkill
+
 # BEGIN: stats($search_string)
 sub stats {
     if (&flood_protection('stats', 30)) { return 1; }
@@ -2863,8 +2863,10 @@ sub stats {
 		return 1;
 	}
     }
-    if (($name eq 'Unknown Soldier') or ($name eq 'UnnamedPlayer')) { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
-	else {
+    if (($name eq 'Unknown Soldier') or ($name eq 'UnnamedPlayer') or ($name eq '')) {
+	    &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."');
+	    return 1;
+	}
     my $stats_msg = '"Статистика^2"' . "$name^7:";
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE name=?");
     $stats_sth->execute($name) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
@@ -2947,6 +2949,7 @@ sub stats {
 	    &rcon_command("say $stats_msg");
 	    sleep 1;
 	}
+	}
 	if ($game_type eq 'sd') {
 	# bomb_plants
 	my $bomb_plants = $row[16];
@@ -2966,13 +2969,11 @@ sub stats {
 	}
 	}
 	}
-	}
     else {
 	&rcon_command("say " . '"Не найдено статистики для:"' . "$name");
 	$stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
 	$stats_sth->execute($name, 0, 0, 0) or &die_nice("Unable to do insert\n");
     }
-	}
 }
 # END: stats
 
@@ -3718,7 +3719,7 @@ sub best {
     &rcon_command("say " . '"^2Лучшие ^7игроки сервера:"');
     sleep 1;
     # Most Kills
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 0 ORDER BY kills DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and kills > 0 ORDER BY kills DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество убийств^7:"');
     sleep 1;
@@ -3729,7 +3730,7 @@ sub best {
     # Best Kill to Death ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 100 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and kills > 100 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Игроки с лучшим к/д соотношением^7:"');
     sleep 1;
@@ -3740,7 +3741,7 @@ sub best {
     # Best Headshot Percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and kills > 100 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and kills > 100 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучший процент хедшотов^7:"');
     sleep 1;
@@ -3752,7 +3753,7 @@ sub best {
     # Best Kill Spree
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and best_killspree > 0 ORDER BY best_killspree DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and best_killspree > 0 ORDER BY best_killspree DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Лучшие серии убийств^7:"');
     sleep 1;
@@ -3765,7 +3766,7 @@ sub best {
 	# Best Bomb Plants
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество заложенной взрывчатки^7:"');
     sleep 1;
@@ -3776,7 +3777,7 @@ sub best {
 	# Best Bomb Defuses
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Наибольшее количество обезвреженной взрывчатки^7:"');
     sleep 1;
@@ -3938,7 +3939,7 @@ sub worst {
     my $counter = 1;
     sleep 1;
     # Most deaths
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and deaths > 0 ORDER BY deaths DESC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and deaths > 0 ORDER BY deaths DESC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say" . '"^1Наибольшее количество смертей^7:"');
     sleep 1;
@@ -3949,7 +3950,7 @@ sub worst {
     # Worst k2d ratio
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 100) and (deaths > 50)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and ((kills > 100) and (deaths > 50)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Игроки с худшим к/д соотношением^7:"');
     sleep 1;
@@ -3960,7 +3961,7 @@ sub worst {
     # Worst headshot percentages
     $counter = 1;
     sleep 1;
-    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and ((kills > 100) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
+    $sth = $stats_dbh->prepare('SELECT * FROM stats WHERE name != "Unknown Soldier" and name != "UnnamedPlayer" and name != "" and ((kills > 100) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
     $sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1Худший процент хедшотов^7:"');
     sleep 1;
