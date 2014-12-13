@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 37';
+my $version = '3.3 RUS svn 38';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -159,6 +159,7 @@ my %best_spree;
 my $next_announcement;
 my $voting = 1;
 my $reactivate_voting = 0;
+my $fly_timer = 0;
 my %location_spoof;
 my $game_type;
 my $game_name;
@@ -801,6 +802,12 @@ while (1) {
 		print "ANTI-VOTE-RUSH: Reactivated Voting...\n";
 	    }
 	}
+	# Check to see if its time to turn off !fly command
+	if (($fly_timer) and ($time >= $fly_timer)) {
+	    $fly_timer = 0;
+        &rcon_command("g_gravity 800");
+		&rcon_command("say " . '"Думаю стоит продолжить нормальную игру"');
+	}
 	# Check to see if it's time to audit a GUID 0 person
 	if (($config->{'audit_guid0_players'}) and (($time - $last_guid0_audit) >= ($guid0_audit_interval))) {
             $last_guid0_audit = $time;
@@ -1011,7 +1018,7 @@ sub die_nice {
 	&ftp_connect;
 	$ftpfail = 0;
 	}
-	elsif (!$ftpfail) {
+	else {
 	print "Press <ENTER> to close this program\n";
 	my $who_cares = <STDIN>;
     -e $ftp_tmpFileName and unlink($ftp_tmpFileName);
@@ -1558,21 +1565,21 @@ sub chat {
 		 elsif ($message =~ /^!report\s*$/i) {
             if (&check_access('report')) { &rcon_command("say " . '"!report кого?"'); }
 		}
-       # !define (word)
-        elsif ($message =~ /^!(define|dictionary|dict)\s+(.+)/i) {
+    # !define (word)
+    elsif ($message =~ /^!(define|dictionary|dict)\s+(.+)/i) {
             if (&check_access('define')) {
 		if (&flood_protection('define', 30, $slot)) { }
 		else { &dictionary($2); }
             }
-        }
-		elsif ($message =~ /^!(define|dictionary|dict)\s*$/i) {
+    }
+	elsif ($message =~ /^!(define|dictionary|dict)\s*$/i) {
             if (&check_access('define')) {
 		if (&flood_protection('dictionary-miss', 10, $slot)) { }
 		else { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7Что нужно добавить в словарь?"'); }
 		    }
-		}
+	}
 	# !undefine (word)
-        elsif ($message =~ /^!undefine\s+(.+)/i) {
+    elsif ($message =~ /^!undefine\s+(.+)/i) {
 		if (&check_access('undefine')) {
 		if (&flood_protection('undefine', 30, $slot)) { }
 	    my $undefine = $1;
@@ -1585,24 +1592,22 @@ sub chat {
 		elsif ($row[0] > 1) { &rcon_command("say " . '"^2Удалено"' . "^3$row[0]^2" . '"определений для:"' . '"' . "^1$undefine"); }
 		else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undefine");}
 		}
-		}
+    }
 	# !stats
-	elsif ($message =~ /^!stats\s*(.*)/i) {
-	    my $stats_search = $1;
-	    if (!defined($stats_search)) { $stats_search = ''; }
-	    if (&check_access('stats')) {
-		if (&check_access('peek')) { &stats($name,$stats_search); }
-		else { &stats($name,''); }
-		}
+    elsif ($message =~ /^!stats\s+(.+)/i) {
+        if ((&check_access('stats')) and (&check_access('peek'))) { &stats($name,$1); }
+    }
+    elsif ($message =~ /^!stats\s*$/i) {
+		if (&check_access('stats')) { &stats($name,''); }
 	}
 	# !best
 	elsif ($message =~ /^!best\b/i) {
 	    if (&check_access('best')) { &best; }
 	}
 	# !worst
-        elsif ($message =~ /^!worst\b/i) {
-            if (&check_access('worst')) { &worst; }
-        }
+    elsif ($message =~ /^!worst\b/i) {
+        if (&check_access('worst')) { &worst; }
+    }
 	# !tdm
 	elsif ($message =~ /^!tdm\b/i) {
 	    if (&check_access('map_control')) { &change_gametype('tdm'); }
@@ -1916,7 +1921,7 @@ sub chat {
 	        }
     }
 	# !help
-	elsif ($message =~ /^!help|помощь\b/i) {
+	elsif ($message =~ /^!help\b/i) {
 	    if (&flood_protection('help', 120)) { }
 	    else {
 		if (&check_access('stats')) {
@@ -1956,7 +1961,7 @@ sub chat {
 		    sleep 1;
 		    &rcon_command("say $name^7:" . '"^7Вы можете ^1!unban ^5игрок ^7или ^1!unban ^5banID# ^7чтобы снять бан"');
 		    sleep 1;
-		    &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!lastbans ^5номер ^7чтобы посмотреть список последних забаненных игроков"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!lastbans ^5номер ^7чтобы посмотреть список последних забаненных игроков"');
             sleep 1;
 		}
 		if (&check_access('voting')) {
@@ -2000,11 +2005,11 @@ sub chat {
 		    sleep 1;
 		}
 		if (&check_access('uptime')) {
-		    &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!uptime ^7чтобы посмотреть сколько времени сервер работает"');
+		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!uptime ^7чтобы посмотреть сколько времени сервер работает"');
 		    sleep 1;
 		}
         if (&check_access('define')) {
-            &rcon_command("say $name^7:" . '"^7Вы можете^1!define ^5слово ^7чтобы добавить его в словарь"');
+            &rcon_command("say $name^7:" . '"^7Вы можете ^1!define ^5слово ^7чтобы добавить его в словарь"');
             sleep 1;
         }
 		if (&check_access('version')) {
@@ -2012,11 +2017,11 @@ sub chat {
 		    sleep 1;
 		}
 		if (&check_access('reset')) {
-            &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!reset ^7чтобы сбросить параметры"');
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!reset ^7чтобы сбросить параметры"');
             sleep 1;
             }
 		if (&check_access('reboot')) {
-            &rcon_command("say $name^7:" . '"^7Вы можете использовать  ^1!reboot ^7чтобы перезапустить программу"');
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!reboot ^7чтобы перезапустить программу"');
             sleep 1;
             }
 		if (&check_access('ignore')) {
@@ -2041,12 +2046,9 @@ sub chat {
 	elsif ($message =~ /^!(fly|ufo)\b/i) {
 	    if (&check_access('fly')) {
 		if (&flood_protection('fly', 30, $slot)) { }
-		else {
-		    &rcon_command("say " . '"Летите как птицы!!!"');
-		    &rcon_command("g_gravity 10");
-		    sleep 20;
-		    &rcon_command("g_gravity 800");
-		    &rcon_command("say " . '"Думаю стоит продолжить нормальную игру"'); }
+		&rcon_command("say " . '"Летите как птицы!!!"');
+		&rcon_command("g_gravity 10");
+		$fly_timer = $time + 20;
 	    }
 	}
         # !gravity (number)
@@ -2055,9 +2057,8 @@ sub chat {
         }
         # !calc (expression)
         if ($message =~ /^!(calculater?|calc|calculator)\s+(.+)/i) {
-	    my $expression = $2;
-	    if  ($expression =~ /[^\d\.\+\-\/\* \(\)]/) {}
-	    else { &rcon_command("say ^2$expression ^7=^1 " . eval($expression)); }
+	    if  ($2 =~ /[^\d\.\+\-\/\* \(\)]/) { }
+	    else { &rcon_command("say ^2$2 ^7=^1 " . eval($2)); }
         }
 		# !sin (value)
         if ($message =~ /^!sin\s+(\d+)/i) {
@@ -2080,11 +2081,11 @@ sub chat {
 	    &rcon_command("say $^O");
 		}
     # !speed (number)
-        if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
-            if (&check_access('speed')) { &speed_command($2); }
-        }
+    if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
+        if (&check_access('speed')) { &speed_command($2); }
+    }
 	# !nuke
-	if ($message =~ /^!(big red button|nuke)/i) {
+	if ($message =~ /^!(big\s+red\s+button|nuke)/i) {
 	    if (&check_access('nuke')) { &nuke; }
 	}
 	# Map Commands
@@ -2450,7 +2451,7 @@ sub status {
 			&rcon_command("say " . &strip_color($name) . '"^7был выкинут за слишком высокий пинг"' . "($ping_by_slot{$slot} | $config->{'max_ping'})");
 			sleep 1;
 			&rcon_command("clientkick $slot");
-			&log_to_file('logs/kick.log', "$name was kicked for having too high ping. ($ping_by_slot{$slot} | $config->{'max_ping'})");
+			&log_to_file('logs/kick.log', "$name was kicked for having too high ping ($ping_by_slot{$slot} | $config->{'max_ping'})");
 			}
 		}
 		# we need to remember this for the next ping we check.
@@ -2795,6 +2796,10 @@ sub stats {
 	elsif ($#matches > 0) {
 	    &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
 	    return 1;
+	}
+	elsif ($#matches == -1) {
+	    &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+		return 1;
 	}
     }
     if (($name eq 'Unknown Soldier') or ($name eq 'UnnamedPlayer')) { &rcon_command("say $name:" . '"Прости, но я не веду статистику для неизвестных! Смени свой ник если хочешь чтобы я записывала твою статистику."'); }
@@ -4121,7 +4126,6 @@ sub dictionary {
 	    &rcon_command("say " . '"Словарь WordNet в настоящее время недоступен, попробуйте позже"');
 	    return 1;
 	}
-	else {
 	@lines = split(/\n+/,$content);
 	foreach (@lines) {
 	    if (/<\s*b>$word<\/b>[^\(]+\(([^\)]*)\)/) {
@@ -4142,7 +4146,6 @@ sub dictionary {
 	    sleep 1;
         }
     }
-	}
 }
 
 sub check_guid_zero_players {
@@ -4380,143 +4383,143 @@ sub toggle_weapon {
     my ($description, $requested_state) = (@_);
     if ($description eq '"Дымовые гранаты"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_smokegrenades 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_smokegrenades 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}
 	elsif ($description eq '"Осколочные гранаты"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_fraggrenades 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_fraggrenades 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}
 	elsif ($description eq '"Дробовики"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_shotgun 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_shotgun 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}
 	elsif ($description eq '"Винтовки"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_kar98k 1");
     &rcon_command("set scr_allow_enfield 1");
     &rcon_command("set scr_allow_nagant 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_kar98k 0");
     &rcon_command("set scr_allow_enfield 0");
     &rcon_command("set scr_allow_nagant 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}
 	elsif ($description eq '"Полуавтоматические винтовки"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_m1carbine 1");
     &rcon_command("set scr_allow_m1garand 1");
     &rcon_command("set scr_allow_g43 1");
 	&rcon_command("set scr_allow_svt40 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_m1carbine 0");
     &rcon_command("set scr_allow_m1garand 0");
     &rcon_command("set scr_allow_g43 0");
 	&rcon_command("set scr_allow_svt40 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}
 	elsif ($description eq '"Снайперские винтовки"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_kar98ksniper 1");
     &rcon_command("set scr_allow_enfieldsniper 1");
     &rcon_command("set scr_allow_nagantsniper 1");
 	&rcon_command("set scr_allow_springfield 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_kar98ksniper 0");
     &rcon_command("set scr_allow_enfieldsniper 0");
     &rcon_command("set scr_allow_nagantsniper 0");
 	&rcon_command("set scr_allow_springfield 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}
 	elsif ($description eq '"Пулеметы"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_bar 1");
     &rcon_command("set scr_allow_bren 1");
     &rcon_command("set scr_allow_mp44 1");
 	&rcon_command("set scr_allow_ppsh 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_bar 0");
     &rcon_command("set scr_allow_bren 0");
     &rcon_command("set scr_allow_mp44 0");
 	&rcon_command("set scr_allow_ppsh 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}
 	elsif ($description eq '"Автоматы"') {
 	if ($requested_state =~ /yes|1|on|enable/i) {
-	&rcon_command("say " . '"Включаю"' . "$description");
+	&rcon_command("say " . '"Включаю"' . "^3$description");
 	&rcon_command("set scr_allow_sten 1");
     &rcon_command("set scr_allow_mp40 1");
     &rcon_command("set scr_allow_thompson 1");
 	&rcon_command("set scr_allow_pps42 1");
 	&rcon_command("set scr_allow_greasegun 1");
-	&rcon_command("say $description" . '"были включены админом."');
+	&rcon_command("say ^3$description^7" . '"были включены админом."');
 	&log_to_file('logs/admin.log', "$description was enabled by:  $name - GUID $guid");
 	}
 	elsif ($requested_state =~ /no|0|off|disable/i) {
-	&rcon_command("say " . '"Выключаю"' . "$description");
+	&rcon_command("say " . '"Выключаю"' . "^3$description");
 	&rcon_command("set scr_allow_sten 0");
     &rcon_command("set scr_allow_mp40 0");
     &rcon_command("set scr_allow_thompson 0");
 	&rcon_command("set scr_allow_pps42 0");
 	&rcon_command("set scr_allow_greasegun 0");
-	&rcon_command("say $description" . '"были выключены админом."');
+	&rcon_command("say ^3$description^7" . '"были выключены админом."');
 	&log_to_file('logs/admin.log', "$description was disabled by:  $name - GUID $guid");
 	}
 	}

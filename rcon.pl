@@ -25,7 +25,7 @@ while (1) {
 		    exit(0);
 		}
 	    chomp($command);
-	    if ( $command =~ /^\s*$/ ) { next; }
+	    if ($command =~ /^\s*$/) { next; }
         if ($command eq "q" or $command eq "quit") { exit(0); }
         $result = &execute($command);
         exit($result) unless ($interactive);
@@ -39,10 +39,6 @@ sub load_config_file {
     my $line;
     my $config_name;
     my $config_val;
-    my $command_name;
-    my $temp;
-    my $rule_name = 'undefined';
-    my $response_count = 1;
     print "\nParsing config file: $config_file...\n\n";
     while (defined($line = <CONFIG>)) {
         $line =~ s/\s+$//;
