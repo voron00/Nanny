@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 41';
+my $version = '3.3 RUS svn 42';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -403,7 +403,7 @@ while (1) {
 			&rcon_command("say ^1" . $attacker_name . ":^1 " . $config->{'glitch_kill_kick_message'});
 			sleep 1;
 			&rcon_command("clientkick $attacker_slot");
-			&log_to_file('logs/kick.log', "GLITCH_KILL: Murderer!  Kicking $attacker_name for killing other people");
+			&log_to_file('logs/kick.log', "GLITCH_KILL: Murderer! Kicking $attacker_name for killing other people");
 		}
 		# Track the kill stats for the killer
 		if ($attacker_slot ne $victim_slot) {
@@ -1421,7 +1421,7 @@ sub chat {
     # End of Nice Shot
 
     # Auto-define questions (my most successful if statement evar?)
-    if ((!$ignore{$slot}) and ($message =~ /(.*)\?$/) or ($message =~ /^!(.*)/)){
+    if ((!$ignore{$slot}) and ($message =~ /^(.*)\?$/) or ($message =~ /^!(.*)/)){
 	my $question = $1;
 	my $counter = 0;
 	my $sth;
@@ -1461,26 +1461,26 @@ sub chat {
         else { &rcon_command("say " . '"!locate кого?"'); }
 	    }
 	}
-        # !ignore (search_string)
-        if ($message =~ /^!ignore\s+(.+)/i) {
-            if (&check_access('ignore')) { &ignore($1); }
+    # !ignore (search_string)
+    if ($message =~ /^!ignore\s+(.+)/i) {
+        if (&check_access('ignore')) { &ignore($1); }
+    }
+    elsif ($message =~ /^!ignore\s*$/i) {
+        if (&check_access('ignore')) {
+            if (&flood_protection('ignore', 30, $slot)) { }
+            else { &rcon_command("say " . '"!ignore кого?"'); }
         }
-        elsif ($message =~ /^!ignore\s*$/i) {
-            if (&check_access('ignore')) {
-                if (&flood_protection('ignore', 30, $slot)) { }
-                else { &rcon_command("say " . '"!ignore кого?"'); }
-            }
+    }
+    # !forgive (search_string)
+    if ($message =~ /^!forgive\s+(.+)/i) {
+        if (&check_access('forgive')) { &forgive($1); }
+    }
+    elsif ($message =~ /^!forgive\s*$/i) {
+        if (&check_access('forgive')) {
+            if (&flood_protection('forgive', 30, $slot)) { }
+            else { &rcon_command("say " . '"!forgive кого?"'); }
         }
-        # !forgive (search_string)
-        if ($message =~ /^!forgive\s+(.+)/i) {
-            if (&check_access('forgive')) { &forgive($1); }
-        }
-        elsif ($message =~ /^!forgive\s*$/i) {
-            if (&check_access('forgive')) {
-                if (&flood_protection('forgive', 30, $slot)) { }
-                else { &rcon_command("say " . '"!forgive кого?"'); }
-            }
-        }
+    }
 	# !seen (search_string)
 	elsif ($message =~ /^!seen\s+(.+)/i) { 
 	    if (&check_access('seen')) { &seen($1); }
@@ -1717,10 +1717,10 @@ sub chat {
             if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
         }
 	# !rifles
-  	    elsif ($message =~ /^!(rifles?|bolt?)\s+(.+)/i) {
+  	    elsif ($message =~ /^!(rifles?|bolt)\s+(.+)/i) {
             if (&check_access('weapon_control')) { &toggle_weapon('"Винтовки"', $2); }
         }
-        elsif ($message =~ /^!(rifles?|bolt?)\s*$/i) {
+        elsif ($message =~ /^!(rifles?|bolt)\s*$/i) {
             if (&check_access('weapon_control')) { &rcon_command("say " . "^1$name:" . '"^7Вы можете включить^1"' . "!$1 on" . '"^7или выключить^1"' . "!$1 off"); }
         }
 	# !semirifles
@@ -1771,7 +1771,7 @@ sub chat {
             if (&check_access('tell')) { &tell($1,$2); }
         }
 	# !hostname
-        elsif ($message =~ /^!(host ?name|server ?name)\s+(.+)/i) {
+        elsif ($message =~ /^!(host\s?name|server\s?name)\s+(.+)/i) {
             if (&check_access('hostname')) {
 			if (&flood_protection('hostname', 30, $slot)) { }
 		    $server_name = $2;
@@ -1781,7 +1781,7 @@ sub chat {
 		    &rcon_command("say ^2OK^7. " . '"Название сервера изменено на: "' . "$server_name");
             }
         }
-		elsif ($message =~ /^!(host ?name|server ?name)\s*$/i) {
+		elsif ($message =~ /^!(host\s?name|server\s?name)\s*$/i) {
             if (&check_access('hostname')) {
 			if (&flood_protection('hostname', 30, $slot)) { }
 			$temporary = &rcon_query("sv_hostname");
@@ -1875,28 +1875,28 @@ sub chat {
 	    }
 	}
     # !nextmap  (not to be confused with !rotate)
-        elsif ($message =~ /^!(nextmap|next|nextlevel|next_map|next_level)\b/i) {
-            if (&check_access('nextmap')) {
-		if (&flood_protection('nextmap', 30, $slot)) { }
-		elsif ($next_map and $next_gametype) { &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" . $description{$next_gametype} . "^7)"); }
-            }
+    elsif ($message =~ /^!(nextmap|next|nextlevel|next_map|next_level)\b/i) {
+        if (&check_access('nextmap')) {
+		    if (&flood_protection('nextmap', 30, $slot)) { }
+		    elsif ($next_map and $next_gametype) { &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" . $description{$next_gametype} . "^7)"); }
         }
+    }
 	# !rotate
 	elsif ($message =~ /^!rotate\b/i) {
 	    if (&check_access('map_control')) {
-		if ($next_map and $next_gametype) {
-		&rcon_command("say " . '"^2Смена карты^7..."');
-		sleep 1;
-		&rcon_command('map_rotate');
+		    if ($next_map and $next_gametype) {
+		        &rcon_command("say " . '"^2Смена карты^7..."');
+		        sleep 1;
+		        &rcon_command('map_rotate');
+	        }
 	    }
-	}
 	}
 	# !restart
 	elsif ($message =~ /^!restart\b/i) {
 	    if (&check_access('map_control')) {
-		&rcon_command("say " . '"^2Перезагрузка карты^7..."');
-		sleep 1;
-		&rcon_command('map_restart');
+		    &rcon_command("say " . '"^2Перезагрузка карты^7..."');
+		    sleep 1;
+		    &rcon_command('map_restart');
 	    }
 	}
 	# !fastrestart
@@ -1929,10 +1929,10 @@ sub chat {
 	    if (&check_access('killcam')) { &rcon_command("say  " . '"!killcam on  ... или !killcam off ... ?"'); }
 	}
     # !friendlyfire
-        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i)) {
+        elsif (($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i)) {
             if (&check_access('friendlyfire')) { &friendlyfire_command($1); }
         }
-        elsif ( ($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) or ($message =~ /^!team[ _\-]?kill\s*$/i)) {
+        elsif (($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) or ($message =~ /^!team[ _\-]?kill\s*$/i)) {
         if (&check_access('friendlyfire')) {
 		&rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^50 ^7чтобы ВЫКЛЮЧИТЬ огонь по союзникам"');
 		sleep 1;
@@ -1962,7 +1962,7 @@ sub chat {
 	    if (&check_access('forcerespawn')) { &rcon_command("say !forcerespawn on" . '" или !forcerespawn off?"'); }
 	}
 	# !teambalance
-		elsif ($message =~ /^!teambalance|autobalance\s*$/i) {
+		elsif ($message =~ /^!teambalance\s*$/i) {
 	    if (&check_access('teambalance')) { &rcon_command("say !teambalance on" . '" или !teambalance off?"'); }
 	}
 	# !spectatefree
@@ -1982,7 +1982,7 @@ sub chat {
 		if (&flood_protection('uptime', 30, $slot)) { }
 		else {
 		    if ($uptime =~ /(\d+):(\d+)/) {
-			my $duration = &duration( ( $1 * 60 ) + $2 );
+			my $duration = &duration(($1 * 60) + $2);
 			&rcon_command("say " . '"Этот сервер запущен и работает уже"' . "$duration"); }
 		}
 	        }
@@ -1990,7 +1990,6 @@ sub chat {
 	# !help
 	elsif ($message =~ /^!help\b/i) {
 	    if (&flood_protection('help', 120)) { }
-	    else {
 		if (&check_access('stats')) {
 		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробную статистику"');
 		    sleep 1;
@@ -2107,7 +2106,6 @@ sub chat {
             &rcon_command("say $name^7:" . '"^7Вы можете ^1!forgive ^5игрок ^7чтобы простить игроку его выходки"');
             sleep 1;
             }
-	    }
 	}
 	# !fly
 	elsif ($message =~ /^!(fly|ufo)\b/i) {
@@ -2300,14 +2298,14 @@ sub chat {
 		&rcon_command("clientkick $slot");
     }
 	# !forcerespawn
-	elsif ($message =~ /^!forcerespawn on\b/i) {
+	elsif ($message =~ /^!forcerespawn\s+on\b/i) {
 		if (&flood_protection('forcerespawn', 30, $slot)) { }
 		if (&check_access('forcerespawn')) {
             &rcon_command("scr_forcerespawn 1");
 			&rcon_command("say " . '"Быстрое возрождение ^2Включено"');
         }
     }
-	elsif ($message =~ /^!forcerespawn off\b/i) {
+	elsif ($message =~ /^!forcerespawn\s+off\b/i) {
 		if (&flood_protection('forcerespawn', 30, $slot)) { }
 		if (&check_access('forcerespawn')) {
             &rcon_command("scr_forcerespawn 0");
@@ -2315,14 +2313,14 @@ sub chat {
         }
     }
 	# !teambalance command
-	elsif ($message =~ /^!teambalance on\b/i) {
+	elsif ($message =~ /^!teambalance\s+on\b/i) {
 		if (&flood_protection('teambalance', 30, $slot)) { }
 		if (&check_access('teambalance')) {
             &rcon_command("scr_teambalance 1");
 		    &rcon_command("say " . '"Автобаланс команд ^2Включен"');
         }
     }
-	elsif ($message =~ /^!teambalance off\b/i) {
+	elsif ($message =~ /^!teambalance\s+off\b/i) {
 		if (&flood_protection('teambalance', 30, $slot)) { }
 		if (&check_access('teambalance')) {
             &rcon_command("scr_teambalance 0");
@@ -2330,14 +2328,14 @@ sub chat {
         }
     }
 	# !spectatefree command
-	elsif ($message =~ /^!spectatefree on\b/i) {
+	elsif ($message =~ /^!spectatefree\s+on\b/i) {
 		if (&flood_protection('spectatefree', 30, $slot)) { }
 		if (&check_access('spectatefree')) {
             &rcon_command("scr_spectatefree 1");
 			&rcon_command("say " . '"Свободный режим наблюдения ^2Включен"');
         }
     }
-	elsif ($message =~ /^!spectatefree off\b/i) {
+	elsif ($message =~ /^!spectatefree\s+off\b/i) {
 		if (&flood_protection('spectatefree', 30, $slot)) { }
 		if (&check_access('spectatefree')) {
             &rcon_command("scr_spectatefree 0");
