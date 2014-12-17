@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 42';
+my $version = '3.3 RUS svn 43';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -174,7 +174,7 @@ my $private_clients = 0;
 my $pure = 1;
 my $chatmode;
 my $voice = 0;
-my $last_guid0_audit = time;
+my $last_guid0_audit;
 my $guid0_audit_interval = 295;
 my %ignore;
 my $ftp_lines = 0;
@@ -187,7 +187,7 @@ my $ftp_tmpFileName = '';
 my $ftp_currentEnd;
 my $ftp_lastEnd;
 my $ftp_type; 
-my $logfile_mode = 'local'; # local cod server logfile is the default vs. remote ftp logfile
+my $logfile_mode = 'local';
 my @ftp_buffer;
 my $ftp;
 my $next_map;
@@ -198,11 +198,11 @@ my %description;
 my $now_upmins = 0;
 my $last_upmins = 0;
 my @affiliate_servers;
-my @affiliate_server_prenouncements;
 my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
 my $ftpfail = 0;
+my $maximum_length = 512;
 
 # turn on auto-flush for STDOUT
 $| = 1;
@@ -255,10 +255,13 @@ $time = time;
 $last_idlecheck = $time;
 $last_rconstatus = 0;
 $last_namecheck = $time;
+$last_guid0_audit = $time;
 $last_guid_sanity_check = $time;
 $timestring = scalar(localtime($time));
 $next_announcement = $time + 120;
-$next_affiliate_announcement = $time;
+
+# do not announce affiliate server announcement at the start of nanny, use delay that defined in config
+if ($config->{'affiliate_server_announcements'}) { $next_affiliate_announcement = $time + $config->{'affiliate_server_announcement_interval'}; }
 
 # create the rcon control object - this is how we send commands to the console
 my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
@@ -922,7 +925,6 @@ sub load_config_file {
 
     open (CONFIG, $config_file) or &die_nice("$config_file file exists, but i couldnt open it.\n");
 
-    my $line;
     my $config_name;
     my $config_val;
     my $command_name;
@@ -1027,10 +1029,6 @@ sub load_config_file {
                 push @affiliate_servers, $config_val;
                 print "Affiliate Server: $config_val\n";
             }
-            elsif ($config_name eq 'affiliate_server_prenouncement') {
-                push @affiliate_server_prenouncements, $config_val;
-                print "Affiliate Server Prenouncement: $config_val\n";
-            }
             elsif ($config_name eq 'remote_server') {
                 push @remote_servers, $config_val;
                 print "Remote Server: $config_val\n";
@@ -1081,7 +1079,7 @@ sub die_nice {
 	else {
 	print "Press <ENTER> to close this program\n";
 	my $who_cares = <STDIN>;
-    -e $ftp_tmpFileName and unlink($ftp_tmpFileName);
+    -e $ftp_tmpFileName and unlink ($ftp_tmpFileName);
     exit 1; 
 	}
 }
@@ -1331,10 +1329,7 @@ sub chat {
     }
     # end of seen data population
 
-    # ##################################
-    # Server Response / Penalty System #
-    # ##################################
-
+    # Server Response / Penalty System
     my $rule_name;
     my $penalty = 0;
     my $response = 'undefined';
@@ -1445,10 +1440,7 @@ sub chat {
 	}
     }
 
-    # #####################
-    # Check for !commands #
-    # #####################
-
+    # Check for !commands
     if ((!$ignore{$slot}) and ($message =~ /^!/)) {
 
 	# !locate (search_string)
@@ -1518,10 +1510,10 @@ sub chat {
 	    if (&check_access('ban')) { &rcon_command("say " . '"!ban кого?"'); }
 	}
 		# !exchange
-        elsif ($message =~ /^!(exchange?|курс?)\s+(.+)/i) {
+        elsif ($message =~ /^!(exchange|курс)\s+(.+)/i) {
             if (&check_access('exchange')) { &exchange($2); }
         }
-		elsif ($message =~ /^!(exchange?|курс?)\s*$/i) {
+		elsif ($message =~ /^!(exchange|курс)\s*$/i) {
             if (&check_access('exchange')) { &rcon_command("say " . '"' . "!$1" . '"' . '"*валюта*"'); }
         }
         # !unban (search_string)
@@ -1878,7 +1870,7 @@ sub chat {
     elsif ($message =~ /^!(nextmap|next|nextlevel|next_map|next_level)\b/i) {
         if (&check_access('nextmap')) {
 		    if (&flood_protection('nextmap', 30, $slot)) { }
-		    elsif ($next_map and $next_gametype) { &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" . $description{$next_gametype} . "^7)"); }
+		    if ($next_map and $next_gametype) { &rcon_command("say " . " ^2$name^7:" . '"Следующая карта будет:^3"' . $description{$next_map} .  " ^7(^2" . $description{$next_gametype} . "^7)"); }
         }
     }
 	# !rotate
@@ -1900,7 +1892,7 @@ sub chat {
 	    }
 	}
 	# !fastrestart
-	elsif ($message =~ /^!quickrestart|fastrestart\b/i) {
+	elsif ($message =~ /^!(quick|fast)\s?restart\b/i) {
 	    if (&check_access('map_control')) {
 		&rcon_command("say " . '"^2Быстрая перезагрузка карты^7..."');
 		sleep 1;
@@ -1926,13 +1918,13 @@ sub chat {
 	    if (&check_access('killcam')) { &killcam_command($1); }
 	}
 	elsif ($message =~ /^!killcam\s*$/i) {
-	    if (&check_access('killcam')) { &rcon_command("say  " . '"!killcam on  ... или !killcam off ... ?"'); }
+	    if (&check_access('killcam')) { &rcon_command("say  " . '"!killcam on или !killcam off ?"'); }
 	}
     # !friendlyfire
-        elsif (($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i)) {
+    elsif (($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i)) {
             if (&check_access('friendlyfire')) { &friendlyfire_command($1); }
-        }
-        elsif (($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) or ($message =~ /^!team[ _\-]?kill\s*$/i)) {
+    }
+    elsif (($message =~ /^!fr[ie]{1,2}ndly.?fire\s*$/i) or ($message =~ /^!team[ _\-]?kill\s*$/i)) {
         if (&check_access('friendlyfire')) {
 		&rcon_command("say ^1$name: " . '"^7Вы можете ^1!friendlyfire ^50 ^7чтобы ВЫКЛЮЧИТЬ огонь по союзникам"');
 		sleep 1;
@@ -1949,46 +1941,47 @@ sub chat {
 		elsif ($friendly_fire == 3) { $state_string = '"Огонь по союзникам в настоящий момент СОВМЕСТНЫЙ УРОН"'; }
 		if ($state_string ne 'unknown') { &rcon_command("say ^1$name: ^7 $state_string"); }
         }
-        }
+    }
 	# !glitch
 	elsif ($message =~ /^!glitch\s+(.+)/i) {
 	    if (&check_access('glitch')) { &glitch_command($1); }
 	}
 	elsif ($message =~ /^!glitch\s*$/i) {
-	    if (&check_access('glitch')) { &rcon_command("say !glitch on" . '" или !glitch off ... ?"'); }
+	    if (&check_access('glitch')) { &rcon_command("say !glitch on" . '" или !glitch off ?"'); }
 	}
 	# !forcerespawn
-		elsif ($message =~ /^!forcerespawn\s*$/i) {
+	elsif ($message =~ /^!forcerespawn\s*$/i) {
 	    if (&check_access('forcerespawn')) { &rcon_command("say !forcerespawn on" . '" или !forcerespawn off?"'); }
 	}
 	# !teambalance
-		elsif ($message =~ /^!teambalance\s*$/i) {
+    elsif ($message =~ /^!teambalance\s*$/i) {
 	    if (&check_access('teambalance')) { &rcon_command("say !teambalance on" . '" или !teambalance off?"'); }
 	}
 	# !spectatefree
 		elsif ($message =~ /^!spectatefree\s*$/i) {
 	    if (&check_access('spectatefree')) { &rcon_command("say !spectatefree on" . '" или !spectatefree off?"'); }
 	}
-        # !names (search_string)
-        elsif ($message =~ /^!names\s+(.+)/i) {
+    # !names (search_string)
+    elsif ($message =~ /^!names\s+(.+)/i) {
             if (&check_access('names')) { &names($1); }
-        }
-        elsif ($message =~ /^!(names)\s*$/i) {
+    }
+    elsif ($message =~ /^!(names)\s*$/i) {
             if (&check_access('names')) { &rcon_command("say " . '"!names для кого?"'); }
-        }
-        # !uptime
-        elsif ($message =~ /^!uptime\b/i) {
+    }
+    # !uptime
+    elsif ($message =~ /^!uptime\b/i) {
             if (&check_access('uptime')) {
 		if (&flood_protection('uptime', 30, $slot)) { }
 		else {
 		    if ($uptime =~ /(\d+):(\d+)/) {
 			my $duration = &duration(($1 * 60) + $2);
-			&rcon_command("say " . '"Этот сервер запущен и работает уже"' . "$duration"); }
+			&rcon_command("say " . '"Этот сервер запущен и работает уже"' . "$duration");
+			}
 		}
 	        }
     }
 	# !help
-	elsif ($message =~ /^!help\b/i) {
+	elsif ($message =~ /^!(help|помощь)/i) {
 	    if (&flood_protection('help', 120)) { }
 		if (&check_access('stats')) {
 		    &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!stats ^7чтобы узнать свою подробную статистику"');
@@ -2117,7 +2110,7 @@ sub chat {
 	    }
 	}
         # !gravity (number)
-        if ($message =~ /^!(g_gravity|gravity)\s*(.*)/i) {
+        if ($message =~ /^!(g_)?gravity\s*(.*)/i) {
             if (&check_access('gravity')) { &gravity_command($2); }
         }
         # !calc (expression)
@@ -2138,15 +2131,15 @@ sub chat {
 	    &rcon_command("say ^2tan $1 ^7=^1 " . &tan($1));
 		}
 	    # !perl -v
-        if ($message =~ /^!perl -v\b/i) {
+        if ($message =~ /^!perl\s+-v\b/i) {
 	    &rcon_command("say $^V");
 		}
 		# !osinfo
-        if ($message =~ /^!osinfo|osname\b/i) {
+        if ($message =~ /^!os(info|name)\b/i) {
 	    &rcon_command("say $^O");
 		}
     # !speed (number)
-    if ($message =~ /^!(g_speed|speed)\s*(.*)/i) {
+    if ($message =~ /^!(g_)?speed\s*(.*)/i) {
         if (&check_access('speed')) { &speed_command($2); }
     }
 	# !nuke
@@ -2156,6 +2149,10 @@ sub chat {
 	# !announce
 	if ($message =~ /^!announce/i) {
 	    if (&check_access('announce')) { &make_announcement; }
+	}
+	# !affiliate
+	if ($message =~ /^!affiliate/i) {
+	    if (&check_access('affiliate')) { &make_affiliate_server_announcement; }
 	}
 	# Map Commands
 	# !beltot or !farmhouse command
@@ -2264,7 +2261,7 @@ sub chat {
 	}
     # !rostov  !harbor
 	elsif ($message =~ /^!(harbor|rostov)\b/i) {
-	    if($cod_version eq '1.3') {
+	    if ($cod_version eq '1.3') {
 	    if (&check_access('map_control')) {
 		&rcon_command("say " . '"^2Смена на: "' . "^3Rostov, Russia      ^7(mp_harbor)");
 		sleep 1;
@@ -2274,7 +2271,7 @@ sub chat {
 	}
 	# !rhine  !wallendar
 	elsif ($message =~ /^!(rhine|wallendar)\b/i) {
-	    if($cod_version eq '1.3') {
+	    if ($cod_version eq '1.3') {
 	    if (&check_access('map_control')) {
 		&rcon_command("say " . '"^2Смена на: "' . "^3Wallendar, Germany      ^7(mp_rhine)");
 		sleep 1;
@@ -3991,9 +3988,7 @@ sub guid_sanity_check {
     my $current_try = 0;
     my $still_waiting = 1;
     my $got_response = 0;
-    my $maximum_lenth = 200;
     my $portaddr;
-    my ($session_id, $result, $reason, $guid);
     print "\nAsking $activision_master if $ip_address has provided a valid key recently.\n\n";
     socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
     my $random = int(rand(7654321));
@@ -4010,7 +4005,7 @@ sub guid_sanity_check {
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
-	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0) or &die_nice("Socket error: recv: $!");
+	    $portaddr = recv(SOCKET, $message, $maximum_length, 0) or &die_nice("Socket error: recv: $!");
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
@@ -4019,7 +4014,7 @@ sub guid_sanity_check {
     }
     if ($got_response) {
 	if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
-	    ($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
+	    my ($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
 	    print "RESULTS:\n";
 	    print "\tIP Address: $ip_address\n";
 	    print "\tAction: $result\n";
@@ -4232,9 +4227,7 @@ sub check_guid_zero_players {
     my $current_try = 0;
     my $still_waiting = 1;
     my $got_response = 0;
-    my $maximum_lenth = 200;
     my $portaddr;
-    my ($session_id, $result, $reason, $guid);
     my $random;
     my $send_message;
     my $selecta;
@@ -4261,7 +4254,7 @@ sub check_guid_zero_players {
 	    @ready = $selecta->can_read($read_timeout);
 	    if (defined($ready[0])) {
 		# Yes, the socket is ready.
-		$portaddr = recv(SOCKET, $message, $maximum_lenth, 0) or &die_nice("Socket error: recv: $!");
+		$portaddr = recv(SOCKET, $message, $maximum_length, 0) or &die_nice("Socket error: recv: $!");
 		# strip the 4 \xFF bytes at the begining.
 		$message =~ s/^.{4}//;
 		$got_response = 1;
@@ -4270,7 +4263,7 @@ sub check_guid_zero_players {
 	}
 	if ($got_response) {
 	    if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
-		($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
+		my ($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
 		print "RESULTS:\n";
 		print "\tIP Address: $ip_by_slot{$slot}\n";
 		print "\tAction: $result\n";
@@ -4371,10 +4364,9 @@ sub ftp_getNlines {
     my $length;
     do {
         my $actualBytes = &ftp_getNchars($bytes);
-        open(FILE,$ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
-        @data = <FILE>;
-        close(FILE);
-        unlink($ftp_tmpFileName);
+        open (TEMPFILE, $ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
+        @data = <TEMPFILE>;
+        close (TEMPFILE) and unlink ($ftp_tmpFileName);
         $length = $#data;
         $keepGoing = ($length<=$ftp_lines and $actualBytes==$bytes); #we want to download one extra line (to avoid truncation)
         $bytes = $bytes * 2; # get more bytes this time. TODO: could calculate average line length and use that
@@ -4410,7 +4402,6 @@ sub ftp_getNchars {
 }
 
 sub ftp_get_line {
-    my $line;
     if (!defined($ftp_buffer[0])) {
 	$ftp_type = $ftp->binary;
         $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $ftpfail = 1);
@@ -4419,13 +4410,13 @@ sub ftp_get_line {
             $ftp_verbose and warn "FTP: GET: $ftp_basename, $ftp_tmpFileName, $ftp_lastEnd\n";
             -e $ftp_tmpFileName and &die_nice("FTP: $ftp_tmpFileName exists");
 	    while (!-e $ftp_tmpFileName) { $ftp->get($ftp_basename,$ftp_tmpFileName,$ftp_lastEnd); }
-            open(FILE,$ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
+            open (TEMPFILE, $ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
             $ftp_inbandSignaling and print "#START: (This is a hack to signal start of data in pipe)\n";
-	    while ($line = <FILE>) { push @ftp_buffer, $line; }
-            close(FILE);
+	    while ($line = <TEMPFILE>) { push @ftp_buffer, $line; }
+            close (TEMPFILE);
             $ftp_inbandSignaling and print "#END: (This is a hack to signal end of data in pipe)\n";
             $ftp_inbandSignaling and &ftp_flushPipe;
-            unlink($ftp_tmpFileName);
+            unlink ($ftp_tmpFileName);
             $ftp_lastEnd = $ftp_currentEnd;
 	    # we reverse the order so that lines pop out in chronological order
 	    @ftp_buffer = reverse @ftp_buffer;
@@ -4675,9 +4666,8 @@ sub friendlyfire_command {
 }
 # END: &friendlyfire_command
 
-#BEGIN:  &make_affiliate_server_announcement
+#BEGIN: &make_affiliate_server_announcement
 sub make_affiliate_server_announcement {
-    my $line;
     my $server;
     my $hostname = 'undefined';
     my $clients = 0;
@@ -4686,6 +4676,8 @@ sub make_affiliate_server_announcement {
     my $mapname = 'undefined';
     my @results;
     my @info_lines;
+	my $players;
+	my $num_servers;
     foreach $server (@affiliate_servers) {
 	$hostname = 'undefined';
 	$clients = 0;
@@ -4693,37 +4685,41 @@ sub make_affiliate_server_announcement {
 	$maxclients = 0;
 	$mapname = 'undefined';
 	$line = &get_server_info($server);
+	$num_servers++;
 	@info_lines = split(/\n/, $line);
 	foreach $line (@info_lines) {
 	    $line =~ s/\s+$//;
-	    if ($line =~ /^hostname: (.*)/) {
+	    if ($line =~ /^hostname:\s+(.*)$/) {
 		$hostname = $1;
 		$servername_cache{$server} = $hostname;
 	    }
-	    if ($line =~ /^clients: (.*)/) { $clients = $1; }
-	    if ($line =~ /^gametype: (.*)/) {
+	    if ($line =~ /^clients:\s+(\d+)$/) { $clients = $1; }
+	    if ($line =~ /^gametype:\s+(\w+)$/) {
 		$gametype = $1;
 		if (defined($description{$gametype})) { $gametype = $description{$gametype}; }
 	    }
-	    if ($line =~ /^sv_maxclients: (.*)/) { $maxclients = $1; }
-	    if ($line =~ /^mapname: (.*)/) {
+	    if ($line =~ /^sv_maxclients:\s+(\d+)$/) { $maxclients = $1; }
+	    if ($line =~ /^mapname:\s+(\w+)$/) {
 		$mapname = $1;
 		if (defined($description{$mapname})) { $mapname = $description{$mapname}; }
 	    }
 	}
 	if ($clients) {
-	    if ($clients == 1 or $clients == 21 or $clients == 31)
-		{ $line = "^1$clients " . '"^7игрок на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
-		elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32)
-		{ $line = "^1$clients " . '"^7игрока на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
-	    else { $line = "^1$clients " . '"^7игроков на"' . " ^7$hostname  ^7(^3$mapname^7/^5$gametype^7)\n"; }
+	    if ($clients == 1 or $clients == 21 or $clients == 31) { $players = '"игрок на"'; }
+		elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32) { $players = '"игрока на"'; }
+	    else { $players = '"игроков на"'; }
+		$line = "^1$clients^7$players ^7$hostname^7 - ^2$mapname^7|^3$gametype^7\n";
 	    if ($clients < $maxclients) { push @results, $line; }
 	}
     }
     if (defined($results[0])) {
-	&rcon_command("say " . $affiliate_server_prenouncements[int(rand(7654321) * $#affiliate_server_prenouncements)]);
+	if ($num_servers == 1) { &rcon_command("say " . '"^7Пора узнать что происходит на другом сервере:"'); }
+	else { &rcon_command("say " . '"^7Пора узнать что происходит на других серверах:"'); }
 	sleep 1;
-	foreach $line (@results) { &rcon_command("say $line"); }
+	foreach $line (@results) {
+	&rcon_command("say $line");
+	if ($num_servers > 1) { sleep 1; }
+	}
     }
 }
 # END: &make_affiliate_server_announcement
@@ -4739,10 +4735,7 @@ sub get_server_info {
     my $current_try = 0;
     my $still_waiting = 1;
     my $got_response = 0;
-    my $maximum_lenth = 200;
     my $portaddr;
-    my ($session_id, $result, $reason, $guid);
-    my $pause_when_done;
     my %infohash;
     my $return_text = '';
     if ($ip_address =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\:(\d{1,5})$/) { ($ip_address,$port) = ($1,$2); }
@@ -4761,7 +4754,7 @@ sub get_server_info {
 	@ready = $selecta->can_read($read_timeout);
 	if (defined($ready[0])) {
 	    # Yes, the socket is ready.
-	    $portaddr = recv(SOCKET, $message, $maximum_lenth, 0) or &die_nice("Socket error: recv: $!");
+	    $portaddr = recv(SOCKET, $message, $maximum_length, 0) or &die_nice("Socket error: recv: $!");
 	    # strip the 4 \xFF bytes at the begining.
 	    $message =~ s/^.{4}//;
 	    $got_response = 1;
@@ -4800,11 +4793,11 @@ sub broadcast_message {
     my $rcon;
     $message = "say ^1[^7$name^2\@^3$server_name^1]^7: $message";
     foreach $config_val (@remote_servers) {
-	if ($config_val =~ /^([\d\.]+):(\d+):(.*)/) {
+	if ($config_val =~ /^([\d\.]+):(\d+):(.*)$/) {
 	    ($ip_address,$port,$password) = ($1,$2,$3);
 	    $num_servers++;
 	    $rcon = new KKrcon (Host => $ip_address, Port => $port, Password => $password, Type => 'old');
-	    print $rcon->execute($message); 
+	    print $rcon->execute($message);
 	}
 	else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
     }
@@ -4831,7 +4824,7 @@ my $dollar;
 my $euro;
 my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
 if (defined($content)) {
-	if ($content =~ /<ValCurs\s+Date="(\d+[\/.]\d+[\/.]\d+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
+	if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
 	if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $dollar = $1 }
 	if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $euro = $1 }
 	if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }

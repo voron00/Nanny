@@ -1,10 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Encoding
-*.pl encoding=cp1251
-*.cfg encoding=cp1251
-
 # Custom for Visual Studio
 *.cs     diff=csharp
 *.sln    merge=union

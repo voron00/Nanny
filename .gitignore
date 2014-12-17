@@ -213,7 +213,10 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-# Nanny
+#############
+## Nanny
+#############
+
 nanny.cfg
 databases/bans.db
 databases/guid_to_name.db
