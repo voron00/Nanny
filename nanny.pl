@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 44';
+my $version = '3.3 RUS svn 45';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1111,7 +1111,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE guid_to_name (id INTEGER PRIMARY KEY, guid INT(8), name VARCHAR(64));";
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code rows were inserted\n"; }
-	$cmd = "CREATE INDEX guid_index ON guid_to_name (id,guid,name)";
+	$cmd = "CREATE INDEX guid_to_name_index ON guid_to_name (id,guid,name)";
 	$result_code = $guid_to_name_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $guid_to_name_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code rows were inserted\n"; }
     }
@@ -1153,7 +1153,7 @@ sub initialize_databases {
 	$cmd = "CREATE TABLE seen (id INTEGER PRIMARY KEY, name VARCHAR(64), time INTEGER, saying VARCHAR(128));";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-	$cmd = "CREATE INDEX seen_time_saying ON seen (id,name,time,saying)";
+	$cmd = "CREATE INDEX seen_index ON seen (id,name,time,saying)";
 	$result_code = $seen_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $seen_dbh->errstr\n");
 	if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1195,7 +1195,7 @@ sub initialize_databases {
     $cmd = "CREATE TABLE bans (id INTEGER PRIMARY KEY, ban_time INTEGER, unban_time INTEGER, ip VARCHAR(15), guid INT(8), name VARCHAR(64));";
     $result_code = $bans_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $bans_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX bans_all ON bans (id,ban_time,unban_time,ip,guid,name)";
+    $cmd = "CREATE INDEX bans_index ON bans (id,ban_time,unban_time,ip,guid,name)";
     $result_code = $bans_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $bans_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
@@ -1209,7 +1209,7 @@ sub initialize_databases {
     $cmd = "CREATE TABLE definitions (id INTEGER PRIMARY KEY, term VARCHAR(32), definition VARCHAR(250));";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code tables were created\n"; }
-    $cmd = "CREATE INDEX definitions_all ON definitions (id,term,definition)";
+    $cmd = "CREATE INDEX definitions_index ON definitions (id,term,definition)";
     $result_code = $definitions_dbh->do($cmd) or &die_nice("Unable to prepare execute $cmd: $definitions_dbh->errstr\n");
     if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
