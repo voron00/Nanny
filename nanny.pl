@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 43';
+my $version = '3.3 RUS svn 44';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -201,7 +201,7 @@ my @affiliate_servers;
 my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
-my $ftpfail = 0;
+my $ftpfail;
 my $maximum_length = 512;
 
 # turn on auto-flush for STDOUT
@@ -271,44 +271,44 @@ my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Passw
 
 # Ask which version of CoD2 server is currently running
 $temporary = &rcon_query('shortversion');
-if ($temporary =~ /\"shortversion\" is: \"(\d+\.\d+)\^7\"/m) {
+if ($temporary =~ /\"shortversion\" is: \"([\d.]+)\^7\"/mi) {
    $cod_version = $1;
    if ($cod_version =~ /./) { print "CoD2 version is: $cod_version\n"; }
 }
-else { print "WARNING: unable to parse cod_version:  $temporary\n"; }
+else { print "WARNING: unable to parse cod_version: $temporary\n"; }
 
 # Ask the server what it's official name is
 $temporary = &rcon_query("sv_hostname");
-if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\^7\"/m) {
+if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\^7\"/mi) {
     $server_name = $1;
     if ($server_name =~ /./) { print "Server Name is: $server_name\n"; }
 }
-else { print "WARNING: cant parse the sv_hostname results.\n"; }
+else { print "WARNING: unable to parse sv_hostname: $temporary\n"; }
 
 # Ask the server if voting is currently turned on or off
 $temporary = &rcon_query("g_allowVote");
-if ($temporary =~ /\"g_allowVote\" is: \"(\d+)\^7\"/m) {
+if ($temporary =~ /\"g_allowVote\" is: \"(\d+)\^7\"/mi) {
     $voting = $1;
     if ($voting) { print "Voting is currently turned ON\n"; }
     else { print "Voting is currently turned OFF\n"; }
 }
-else { print "WARNING: unable to parse the g_allowVote results.\n"; }
+else { print "WARNING: unable to parse g_allowVote: $temporary\n"; }
 
 # Ask which map is now present
 $temporary = &rcon_query('mapname');
-if ($temporary =~ /\"mapname\" is: \"(\w+)\^7\"/m) {
+if ($temporary =~ /\"mapname\" is: \"(\w+)\^7\"/mi) {
    $map_name = $1;
    if ($map_name =~ /./) { print "Current map is: $map_name\n"; }
 }
-else { print "WARNING: unable to parse game_type:  $temporary\n"; }
+else { print "WARNING: unable to parse map_name: $temporary\n"; }
 
-# Ask which gametype is now present
+# Ask which game type is now present
 $temporary = &rcon_query('g_gametype');
-if ($temporary =~ /\"g_gametype\" is: \"(\w+)\^7\"/m) {
+if ($temporary =~ /\"g_gametype\" is: \"(\w+)\^7\"/mi) {
    $game_type = $1;
    if ($game_type =~ /./) { print "Gametype is: $game_type\n"; }
 }
-else { print "WARNING: unable to parse game_type:  $temporary\n"; }
+else { print "WARNING: unable to parse game_type: $temporary\n"; }
 
 # Main Loop
 while (1) {
@@ -879,7 +879,7 @@ while (1) {
 	# Check to see if we need to predict the next level
 	if ($freshen_next_map_prediction) {
 	    $temporary = &rcon_query('sv_mapRotationCurrent');
-	    if ($temporary =~ /\"sv_mapRotationCurrent\" is: \"\s*gametype\s+(\w+)\s+map\s+(\w+)/m) {
+	    if ($temporary =~ /\"sv_mapRotationCurrent\"\s+is:\s+\"\s*gametype\s+(\w+)\s+map\s+(\w+)/mi) {
 		($next_gametype,$next_map) = ($1,$2);
 		if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype }
 		if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
@@ -888,7 +888,7 @@ while (1) {
 	    }
 		else {
 		$temporary = &rcon_query('sv_mapRotation');
-		if ($temporary =~ /\"sv_mapRotation\" is: \"\s*gametype\s+(\w+)\s+map\s+(\w+)/m) {
+		if ($temporary =~ /\"sv_mapRotation\"\s+is:\s+\"\s*gametype\s+(\w+)\s+map\s+(\w+)/mi) {
 		    ($next_gametype,$next_map) = ($1,$2);
 		    if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype }
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
@@ -896,7 +896,7 @@ while (1) {
 		    $freshen_next_map_prediction = 0;
 		}
 		# If maprotation contatins only space(empty) character, next map and gametype will be current map and gametype
-		elsif ($temporary =~ /\"sv_mapRotation\" is: \"\s+/m) {
+		elsif ($temporary =~ /\"sv_mapRotation\"\s+is:\s+\"\s+/mi) {
 		    ($next_gametype,$next_map) = ($game_type,$map_name);
 	        if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype }
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map }
@@ -904,7 +904,7 @@ while (1) {
 		    $freshen_next_map_prediction = 0;
 		}
 		else {
-		print "WARNING: unable to predict next map:  $temporary\n";
+		print "WARNING: unable to predict next map: $temporary\n";
 		$freshen_next_map_prediction = 0;
 		}
 	    }
@@ -1068,13 +1068,13 @@ sub load_config_file {
 # BEGIN: die_nice(message)
 sub die_nice {
     my $message = shift;
+	my $ftpfail = shift;
     if ((!defined($message)) or ($message !~ /./)) { $message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
 	# dirty workaround, but sometimes server can drop a ftp connection or it can be lost on client side
 	if ($ftpfail) {
 	sleep 10;
 	&ftp_connect;
-	$ftpfail = 0;
 	}
 	else {
 	print "Press <ENTER> to close this program\n";
@@ -1459,7 +1459,7 @@ sub chat {
     }
     elsif ($message =~ /^!ignore\s*$/i) {
         if (&check_access('ignore')) {
-            if (&flood_protection('ignore', 30, $slot)) { }
+            if (&flood_protection('ignore-nomatch', 10, $slot)) { }
             else { &rcon_command("say " . '"!ignore кого?"'); }
         }
     }
@@ -1469,7 +1469,7 @@ sub chat {
     }
     elsif ($message =~ /^!forgive\s*$/i) {
         if (&check_access('forgive')) {
-            if (&flood_protection('forgive', 30, $slot)) { }
+            if (&flood_protection('forgive-nomatch', 10, $slot)) { }
             else { &rcon_command("say " . '"!forgive кого?"'); }
         }
     }
@@ -1479,7 +1479,7 @@ sub chat {
 	}
 	elsif ($message =~ /^!seen\s*$/i) {
 	    if (&check_access('seen')) {
-		if (&flood_protection('seen-miss', 10, $slot)) { }
+		if (&flood_protection('seen-nomatch', 10, $slot)) { }
 		else { &rcon_command("say " . '"!seen кого?"'); }
 	    }
 	}
@@ -1646,10 +1646,10 @@ sub chat {
 		}
     }
 	# !stats
-    elsif ($message =~ /^!stats\s+(.+)/i) {
-        if ((&check_access('stats')) and (&check_access('peek'))) { &stats($name,$1); }
+    elsif ($message =~ /^!(xlr)?stats\s+(.+)/i) {
+        if ((&check_access('stats')) and (&check_access('peek'))) { &stats($name,$2); }
     }
-    elsif ($message =~ /^!stats\s*$/i) {
+    elsif ($message =~ /^!(xlr)?stats\s*$/i) {
 		if (&check_access('stats')) { &stats($name,''); }
 	}
 	# !lastkill
@@ -1811,8 +1811,7 @@ sub chat {
 	elsif ($message =~ /^!reboot/i) {
 	    if (&check_access('reboot')) {
 		&rcon_command("say " . '"Хорошо"' . "$name^7," . '" перезапускаю себя..."');
-		my $restart = 'perl nanny.pl';
-        exec $restart;
+        exec 'perl nanny.pl';
 	    }
 	}
 	# !fixnames
@@ -2370,7 +2369,7 @@ sub locate {
     my $spoof_match;
 	if (($#matches == -1) and ($search_string !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/) and ($search_string !~ /^console|nanny|server\b/i)) {
         if (&flood_protection('locate-nomatch', 10, $slot)) { return 1; }
-        &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
     }
 	else {
 	if (($search_string =~ /^\.$|^\*$|^all$|^.$/i) and (&flood_protection('locate-all', 120))) { return 1; }
@@ -2800,10 +2799,10 @@ sub cache_ip_to_name {
 
 # BEGIN: seen($search_string)
 sub seen {
+    if (&flood_protection('seen', 30, $slot)) { return 1; }
     my $search_string = shift;
     $sth = $seen_dbh->prepare("SELECT name,time,saying FROM seen WHERE name LIKE ? ORDER BY time DESC LIMIT 5");
     $sth->execute("\%$search_string\%") or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-    if (&flood_protection('seen', (10 + ($sth->rows * 5)), $slot)) { return 1; }
     while (@row = $sth->fetchrow_array) {
 	&rcon_command("say $row[0]" . '"^7был замечен на сервере"' . duration($time - $row[1]) . '"назад и сказал:"' . '"' . "$row[2]");
 	sleep 1;
@@ -2829,11 +2828,11 @@ sub lastkill {
 	my @matches = &matching_users($lastkill_search);
 	if (($#matches == 0) and (defined($last_killed_by{$matches[0]})) and ($last_killed_by{$matches[0]} ne 'none')) { &rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^7был убит игроком^1"' . $last_killed_by{$matches[0]}); }
 	elsif ($#matches > 0) {
-	    &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$lastkill_search");
+	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$lastkill_search");
 	    return 1;
 	}
 	elsif ($#matches == -1) {
-	    &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$lastkill_search");
+	    &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$lastkill_search");
 	    return 1;
 	}
     }
@@ -2850,11 +2849,11 @@ sub stats {
 	my @matches = &matching_users($search_string);
 	if ($#matches == 0) { $name = $name_by_slot{$matches[0]}; }
 	elsif ($#matches > 0) {
-	    &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
+	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	    return 1;
 	}
 	elsif ($#matches == -1) {
-	    &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+	    &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 		return 1;
 	}
     }
@@ -3149,6 +3148,7 @@ sub matching_users {
 
 # BEGIN: !ignore($search_string)
 sub ignore {
+    if (&flood_protection('ignore', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $key;
     if ($search_string =~ /^\#(\d+)$/) {
@@ -3159,17 +3159,18 @@ sub ignore {
     return 0;
 	}
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
     &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7теперь будет игнорироватся."');
     $ignore{$matches[0]} = 1;
     &log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$matches[0]} was ignored by $name - GUID $guid - (Search: $search_string)");
 	}
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !forgive($search_string)
 sub forgive {
+    if (&flood_protection('forgive', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $key;
     if ($search_string =~ /^\#(\d+)$/) {
@@ -3183,7 +3184,7 @@ sub forgive {
     return 0;
 	}
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
     &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7пообещал вести себя хорошо и был прощен админом"');
     $ignore{$matches[0]} = 0;
@@ -3192,16 +3193,16 @@ sub forgive {
     $penalty_points{$matches[0]} = 0;
     &log_to_file('logs/admin.log', "!FORGIVE: $name_by_slot{$matches[0]} was forgiven by $name - GUID $guid - (Search: $search_string)");
 	}
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !clearstats($search_string)
 sub clear_stats {
-if (&flood_protection('clearstats', 30, $slot)) { return 1; }
+    if (&flood_protection('clearstats', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $victim;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$victim = $name_by_slot{$matches[0]};
 	$sth = $stats_dbh->prepare('DELETE FROM stats where name=?;');
@@ -3209,18 +3210,18 @@ if (&flood_protection('clearstats', 30, $slot)) { return 1; }
 	$sth->execute(&strip_color($victim)) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	&rcon_command("say " . '"Удалена статистика для:"' . "$victim");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !clearnames($search_string)
 sub clear_names {
-if (&flood_protection('clearnames', 30, $slot)) { return 1; }
+    if (&flood_protection('clearnames', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $victim_guid;
 	my $victim_name;
 	my $victim_ip;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$victim_guid = $guid_by_slot{$matches[0]};
 	$victim_name = $name_by_slot{$matches[0]};
@@ -3233,83 +3234,83 @@ if (&flood_protection('clearnames', 30, $slot)) { return 1; }
     $sth->execute($victim_ip) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	&rcon_command("say " . '"Удалены имена для:"' . "$victim_name");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !report($search_string)
 sub report_player {
-    if (&flood_protection('report_player', 30)) { return 1; }
+    if (&flood_protection('report', 30)) { return 1; }
     my $search_string = shift;
     my $target_player;
 	my $target_player_guid;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$target_player = $name_by_slot{$matches[0]};
 	$target_player_guid = $guid_by_slot{$matches[0]};
 	&rcon_command("say " . '"Жалоба на игрока"' . "$target_player" . '"^7отправлена."');
     &log_to_file('logs/report.log', "!report: $name_by_slot{$slot} - GUID $guid reported player $target_player - GUID $target_player_guid  via the !report command. (Search: $search_string)");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !ip($search_string)
 sub ip_player {
-    if (&flood_protection('ip_command', 30, $slot)) { return 1; }
+    if (&flood_protection('ip', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $slot;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
 	&rcon_command("say " . '"IP-Адрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !id($search_string)
 sub id_player {
-    if (&flood_protection('id_command', 30, $slot)) { return 1; }
+    if (&flood_protection('id', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $slot;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
 	&rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !guid($search_string)
 sub guid_player {
-    if (&flood_protection('guid_command', 30, $slot)) { return 1; }
+    if (&flood_protection('guid', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $slot;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
 	&rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !age($search_string)
 sub age_player {
-    if (&flood_protection('age_command', 30, $slot)) { return 1; }
+    if (&flood_protection('age', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $age = 10 + int(rand(25 - 5));
 	my $slot;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
 	if ($age >= 10 and $age <= 20 or $age >= 25 and $age <= 30) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7лет"'); }
 	elsif ($age == 21 or $age == 31) { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7год"'); }
 	else { &rcon_command("say " . '"Возраст игрока"' . "^2$name_by_slot{$slot}^7 - ^3$age" . '"^7года"'); }
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !addname($name)
@@ -3382,7 +3383,7 @@ sub name_player {
     my $search_string = shift;
 	my $slot;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	$slot = $matches[0];
 	if (!defined($fake_name_by_slot{$slot})) {
@@ -3394,7 +3395,7 @@ sub name_player {
 	}
 	&rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$fake_name_by_slot{$slot}");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 sub database_info {
@@ -3476,7 +3477,7 @@ sub database_info {
 
 # BEGIN: !kick($search_string)
 sub kick_command {
-if (&flood_protection('kick', 30, $slot)) { return 1; }
+    if (&flood_protection('kick', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $key;
     if ($search_string =~ /^\#(\d+)$/) {
@@ -3488,14 +3489,14 @@ if (&flood_protection('kick', 30, $slot)) { return 1; }
 	return 0;
 	}
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string"); }
+    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
 	&rcon_command("say ^1$name_by_slot{$matches[0]}" . '"^7был выкинут админом"');
 	sleep 1;
 	&rcon_command("clientkick $matches[0]");
 	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
 	}
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !tempban($search_string)
@@ -3513,12 +3514,12 @@ sub tempban_command {
 	else {
 	my @matches = &matching_users($search_string);
 	if ($#matches == -1) {
-	&rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+	&rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 	return 0;
 	}
 	elsif ($#matches == 0) { $slot = $matches[0]; }
 	elsif ($#matches > 0) {
-	&rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
+	&rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	return 0;
 	}
 	}
@@ -3546,12 +3547,12 @@ sub ban_command {
 	else {
     my @matches = &matching_users($search_string);
     if ($#matches == -1) {
-	&rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+	&rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 	return 0;
 	}
     elsif ($#matches == 0) { $slot = $matches[0]; }
     elsif ($#matches > 0) {
-	&rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string");
+	&rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	return 0;
 	}
 	}
@@ -3572,7 +3573,7 @@ sub ban_command {
 # BEGIN: !unban($target);
 #  where $target = a ban ID # or a partial string match for names. 
 sub unban_command {
-if (&flood_protection('unban', 30, $slot)) { return 1; }
+    if (&flood_protection('unban', 30, $slot)) { return 1; }
     my $unban = shift;
     my $delete_sth; 
     my $key;
@@ -3656,6 +3657,7 @@ sub killcam_command {
 
 # BEGIN: !speed($speed)
 sub speed_command {
+    if (&flood_protection('speed', 30, $slot)) { return 1; }
     my $speed = shift;
     if ($speed =~ /^\d+$/) {
     &rcon_command("g_speed $speed");
@@ -3674,6 +3676,7 @@ sub speed_command {
 
 # BEGIN: !gravity($gravity)
 sub gravity_command {
+    if (&flood_protection('gravity', 30, $slot)) { return 1; }
     my $gravity = shift;
     if ($gravity =~ /^\d+$/) {
     &rcon_command("g_gravity $gravity");
@@ -3743,7 +3746,7 @@ sub best {
     while (@row = $sth->fetchrow_array) {
         &rcon_command("say ^3" . ($counter++) . '"^7место:"' . "^2$row[1]" . '"^7с^3"' . ( int($row[4] / $row[2] * 10000) / 100 ) . '"^7процентами хедшотов"');
         sleep 1;
-   }
+    }
     if ($config->{'killing_sprees'}) {
     # Best Kill Spree
     $counter = 1;
@@ -3857,7 +3860,7 @@ sub names {
     my $guessed = 0;
     if ($#matches == -1) {
 	if (&flood_protection('names-nomatch', 10, $slot)) { return 1; }
-	&rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+	&rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
     }
     elsif ($#matches == 0) {
         &log_to_file('logs/commands.log', "$name executed an !names search for $name_by_slot{$matches[0]}");
@@ -3924,7 +3927,7 @@ sub names {
 	    if ($found_none) { &rcon_command("say " . '"Не найдено имен для"' . " $name_by_slot{$matches[0]}"); }
         }
     }
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с: "' . '"' . "$search_string"); }
+    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
 
 # BEGIN: !worst
@@ -3972,7 +3975,7 @@ sub guid_sanity_check {
     my $ip = shift;
     $last_guid_sanity_check = $time;
     # make sure that the GUID sanity check is enabled before proceeding.
-    if ($config->{'guid_sanity_check'}) {}
+    if ($config->{'guid_sanity_check'}) { }
     else { return 0; }
     print "Running GUID sanity check\n";
     # check to make sure that IP -> GUID = last guid
@@ -4105,7 +4108,7 @@ sub tell {
     my @matches = &matching_users($search_string);
     if ($#matches == -1) {
         if (&flood_protection('tell-nomatch', 10, $slot)) { return 1; }
-        &rcon_command("say " . '"Нет совпадений с: "' . '"' . "$search_string");
+        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
     }
     else {
 	if (&flood_protection('tell', 30, $slot)) { return 1; }
@@ -4355,6 +4358,8 @@ sub random_pwd {
     $ftp_type = $ftp->binary;
     $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
     $ftp_verbose and warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n\n";
+	# FTP connection were successful
+	$ftpfail = 0;
 }
 
 sub ftp_getNlines {
@@ -4636,8 +4641,8 @@ sub update_name_by_slot {
 # /rcon scr_friendlyfire <0/1/2/3>  0 = friendly fire off, 1=friendly fire on, 2=reflect damage, 3=shared.
 # BEGIN: !friendlyfire_command($state)
 sub friendlyfire_command {
-    my $state = shift;
     if (&flood_protection('friendlyfire', 30, $slot)) { return 1; }
+    my $state = shift;
     if ($state =~ /^(yes|1|on|enabled?)$/i) {
         &rcon_command("scr_friendlyfire 1");
 	    $friendly_fire = 1;
@@ -4825,8 +4830,8 @@ my $euro;
 my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
 if (defined($content)) {
 	if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
-	if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $dollar = $1 }
-	if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>(\d+\,\d+)<\/Value>/) { $euro = $1 }
+	if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
+	if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1 }
 	if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
 	if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
 }
