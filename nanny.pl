@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 46';
+my $version = '3.3 RUS svn 47';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -96,13 +96,21 @@ my $last_namecheck;
 my $tempbantime = 30;
 my $rconstatus_interval = 30;
 my $guid_sanity_check_interval = 597;
-my $problematic_characters = "\[^\x00-\x7F]+";
+my $problematic_characters = "\[^\x00-\x99]+";
 my $config;
 my $line;
 my $first_char;
 my $slot;
+my $ip;
 my $guid;
 my $name;
+my $colorless;
+my $ping;
+my $score;
+my $lastmsg;
+my $port;
+my $qport;
+my $rate;
 my $weapon;
 my $attacker_guid;
 my $attacker_name;
@@ -202,6 +210,8 @@ my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
 my $ftpfail;
+my $fail_count = 0;
+my $fail_limit = 10;
 my $maximum_length = 512;
 
 # turn on auto-flush for STDOUT
@@ -637,12 +647,8 @@ while (1) {
 	    }
 		# a "SAY" with only ANSI characters in name event has happened
 	    elsif ($line =~ /^say;(\d+);(\d+);;(.*)/) {
-		($guid,$slot,$message) = ($1,$2,$3);
-		$name = '';
-		# cache the guid and name
-		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+		($guid,$slot,$name,$message) = ($1,$2,'',$3);
 		$last_activity_by_slot{$slot} = $time;
-		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
 		&chat($chatmode = 'global');
@@ -660,12 +666,8 @@ while (1) {
         }
 		# a "SAYTEAM" with only ANSI characters in name event has happened
 		elsif ($line =~ /^sayteam;(\d+);(\d+);;(.*)/) {
-		($guid,$slot,$message) = ($1,$2,$3);
-		$name = '';
-		# cache the guid and name
-		if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+		($guid,$slot,$name,$message) = ($1,$2,'',$3);
 		$last_activity_by_slot{$slot} = $time;
-		&update_name_by_slot($name, $slot);
 		$guid_by_slot{$slot} = $guid;
 		$message =~ s/^\x15//;
 		&chat($chatmode = 'team');
@@ -673,8 +675,8 @@ while (1) {
 	    else { print "WARNING: unrecognized syntax for say line:\n\t$line\n"; }   
 	}
 	elsif ($first_char eq 't') {
+	    # a "tell" (private message) event has happened
         if ($line =~ /^tell;(\d+);(\d+);([^;]+);\d+;\d+;[^;]+;(.*)/) {
-        # a "tell" (private message) event has happened
         ($guid,$slot,$name,$message) = ($1,$2,$3,$4);
 		# cache the guid and name
         if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
@@ -684,26 +686,18 @@ while (1) {
         $message =~ s/^\x15//;
         &chat($chatmode = 'private');
         }
+		# a "tell" (private message) with only ANSI characters in name event has happened
 		elsif ($line =~ /^tell;(\d+);(\d+);;\d+;\d+;[^;]+;(.*)/) {
-        # a "tell" (private message) with only ANSI characters in name event has happened
-        ($guid,$slot,$message) = ($1,$2,$3);
-		$name = '';
-		# cache the guid and name
-        if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+        ($guid,$slot,$name,$message) = ($1,$2,'',$3);
         $last_activity_by_slot{$slot} = $time;
-        &update_name_by_slot($name, $slot);
         $guid_by_slot{$slot} = $guid;
         $message =~ s/^\x15//;
         &chat($chatmode = 'private');
         }
+		# a "tell" (private message) with only ANSI characters in name to name with only ANSI characters in name event has happened
 		elsif ($line =~ /^tell;(\d+);(\d+);;\d+;\d+;;(.*)/) {
-        # a "tell" (private message) with only ANSI characters in name to name with only ANSI characters in name event has happened
-        ($guid,$slot,$message) = ($1,$2,$3);
-		$name = '';
-		# cache the guid and name
-        if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+        ($guid,$slot,$name,$message) = ($1,$2,'',$3);
         $last_activity_by_slot{$slot} = $time;
-        &update_name_by_slot($name, $slot);
         $guid_by_slot{$slot} = $guid;
         $message =~ s/^\x15//;
         &chat($chatmode = 'private');
@@ -1031,7 +1025,10 @@ sub load_config_file {
             }
             elsif ($config_name eq 'remote_server') {
                 push @remote_servers, $config_val;
-                print "Remote Server: $config_val\n";
+				if ($config_val =~ /^([\d\.]+):(\d+):(.*)$/) {
+	            my ($ip_address,$port,$password) = ($1,$2,$3);
+                print "Remote Server: $1:$2:" . '*'x length($3) . "\n";
+				}
             }
 	    elsif ($config_name =~ /^(audit_guid0_players|antispam|antiidle|glitch_server_mode|ping_enforcement|999_quick_kick|flood_protection|killing_sprees|bad_shots|nice_shots|first_blood|anti_vote_rush|ban_name_thieves|affiliate_server_announcements|use_passive_ftp|guid_sanity_check|use_announcements|use_responses)$/) {
 		if ($config_val =~ /yes|1|on|enable/i) { $config->{$config_name} = 1; }
@@ -1072,8 +1069,9 @@ sub die_nice {
     if ((!defined($message)) or ($message !~ /./)) { $message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
 	# dirty workaround, but sometimes server can drop a ftp connection or it can be lost on client side
-	if ($ftpfail) {
-	sleep 10;
+	if (($ftpfail) and ($fail_count < $fail_limit)) {
+	$fail_count++;
+	sleep 30;
 	&ftp_connect;
 	}
 	else {
@@ -1273,6 +1271,7 @@ sub chat {
     #   $slot 
     #   $message
     #   $guid
+	#   $ip
     my $chatmode = shift;
     if (!defined($ignore{$slot})) { $ignore{$slot} = 0; }
     # print the message to the console
@@ -1302,7 +1301,7 @@ sub chat {
 			&log_to_file('logs/kick.log', "SPAM: $name_by_slot{$slot} was kicked for spamming: $message");
 		    }
         }
-		print "Spam:  $name said $message repeated $spam_count{$slot} times\n";
+		print "Spam: $name said $message repeated $spam_count{$slot} times\n";
 	    }
 		else {
 		$spam_last_said{$slot} = $message;
@@ -1384,7 +1383,7 @@ sub chat {
 		else {
 		    # update the Bad Shot counter.
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE name=?");
-		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats\n");	
+		    $stats_sth->execute(&strip_color($last_killed_by{$slot})) or &die_nice("Unable to update stats\n");	
 		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7не понравилось то как его убил^1"' . &strip_color($last_killed_by{$slot}));
 		}
 	    }  
@@ -1407,7 +1406,7 @@ sub chat {
 		else {
 		    # update the Nice Shot counter.
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE name=?");
-		    $stats_sth->execute(&strip_color( $last_killed_by{$slot})) or &die_nice("Unable to update stats\n");
+		    $stats_sth->execute(&strip_color($last_killed_by{$slot})) or &die_nice("Unable to update stats\n");
 		    &rcon_command("say " . '"Игроку"' . "^2$name" . '"^7понравилось ^7то как его убил^1"' . &strip_color($last_killed_by{$slot}));
 		}
 	    }  
@@ -1543,7 +1542,7 @@ sub chat {
         }
         elsif ($message =~ /^!ip\s*$/i) {
 		if (&flood_protection('ip-self', 30, $slot)) { }
-		else { &rcon_command("say " . '"IP-Адрес:"' . "^2$name^7 - ^3$ip_by_slot{$slot}"); }
+		else { &rcon_command("say " . '"IP-Адрес:"' . "^2$name^7 - ^3$ip"); }
 		}
 		# !id (search_string)
         elsif ($message =~ /^!id\s+(.+)/i) {
@@ -2376,7 +2375,7 @@ sub locate {
 	if (&flood_protection('locate', 30, $slot)) { return 1; }
     foreach $slot (@matches) {
 	if ($ip_by_slot{$slot}) {
-	    print "MATCH: " . &strip_color($name_by_slot{$slot}) . ", IP = $ip_by_slot{$slot}\n";
+	    print "MATCH: " . $name_by_slot{$slot} . ", IP = $ip_by_slot{$slot}\n";
 	    $ip = $ip_by_slot{$slot};
 	    if ($ip =~ /\?$/) {
 		$guessed = 1;
@@ -2394,7 +2393,7 @@ sub locate {
 		}
 		# location spoofing
 		foreach $spoof_match (keys(%location_spoof)) {
-		if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . '^7' . $location_spoof{$spoof_match}; }
+		if ($name_by_slot{$slot} =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . '^7' . $location_spoof{$spoof_match}; }
 		}
 		&rcon_command("say " . "$location");
 		sleep 1;
@@ -2428,14 +2427,15 @@ sub status {
     foreach (@lines) {
 	if (/^map:\s+(\w+)$/) { $map_name = $1; }
 	if (/^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
-	my ($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
+	($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
 		# strip trailing spaces.
 		$name =~ s/\s+$//;
+		# strip ANSI crap
 		$name =~ s/$problematic_characters//g;
 		# cache ping
 	    $ping_by_slot{$slot} = $ping;
-	    # cache the name
-	    &update_name_by_slot($name, $slot);
+	    # update name by slot
+		&update_name_by_slot($name, $slot);
 	    # cache the guid
 	    $guid_by_slot{$slot} = $guid;
         # cache slot to IP mappings
@@ -2447,7 +2447,7 @@ sub status {
 	    # cache the ip_to_name mapping
 	    if (($ip) and ($name)) { &cache_ip_to_name($ip,$name); }
 	    # cache names without color codes, too.
-	    my $colorless = &strip_color($name);
+		$colorless = &strip_color($name);
 	    if ($colorless ne $name) {
 		if (($ip) and ($colorless)) { &cache_ip_to_name($ip,$colorless); }
 		if (($guid) and ($colorless)) { &cache_guid_to_name($guid,$colorless); }
@@ -3400,63 +3400,63 @@ sub name_player {
 sub database_info {
     if (&flood_protection('dbinfo', 30, $slot)) { return 1; }
     my $message = shift;
-    if ($message =~ /^(bans|bans.db)$/i) {
+    if ($message =~ /^bans(.db)?$/i) {
     $sth = $bans_dbh->prepare("SELECT count(*) FROM bans");
     $sth->execute() or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2bans.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2bans.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(definitions|definitions.db)$/i) {
+    elsif ($message =~ /^definitions(.db)?$/i) {
     $sth = $definitions_dbh->prepare("SELECT count(*) FROM definitions");
     $sth->execute() or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2definitions.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2definitions.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(guid_to_name|guid_to_name.db)$/i) {
+    elsif ($message =~ /^guid_to_name(.db)?$/i) {
     $sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name");
     $sth->execute() or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2guid_to_name.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2guid_to_name.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(ip_to_guid|ip_to_guid.db)$/i) {
+    elsif ($message =~ /^ip_to_guid(.db)?$/i) {
     $sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid");
     $sth->execute() or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_guid.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2ip_to_guid.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(ip_to_name|ip_to_name.db)$/i) {
+    elsif ($message =~ /^ip_to_name(.db)?$/i) {
     $sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name");
     $sth->execute() or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_name.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2ip_to_name.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(names|names.db)$/i) {
+    elsif ($message =~ /^names(.db)?$/i) {
     $sth = $names_dbh->prepare("SELECT count(*) FROM names");
     $sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2names.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2names.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(ranks|ranks.db)$/i) {
+    elsif ($message =~ /^ranks(.db)?$/i) {
     $sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks");
     $sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ranks.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2ranks.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(seen|seen.db)$/i) {
+    elsif ($message =~ /^seen(.db)?$/i) {
     $sth = $seen_dbh->prepare("SELECT count(*) FROM seen");
     $sth->execute() or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     @row = $sth->fetchrow_array;
     if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2seen.db"'); }
     else { &rcon_command("say " . '"В базе данных ^2seen.db ^7нет записей"'); }
     }
-    elsif ($message =~ /^(stats|stats.db)$/i) {
+    elsif ($message =~ /^stats(.db)?$/i) {
     $sth = $stats_dbh->prepare("SELECT count(*) FROM stats");
     $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     @row = $sth->fetchrow_array;
@@ -3504,7 +3504,7 @@ sub tempban_command {
     my $search_string = shift;
 	my $tempbantime = shift;
     my $key;
-    my $slot = 'undefined';
+    my $slot;
 	my $minutes;
 	if ($tempbantime == 1) { $minutes = '"минуту"'; }
 	elsif ($tempbantime == 2 or $tempbantime == 3 or $tempbantime == 4) { $minutes = '"минуты"'; }
@@ -3541,7 +3541,7 @@ sub ban_command {
     if (&flood_protection('ban', 30, $slot)) { return 1; }
     my $search_string = shift;
     my $key;
-    my $slot = 'undefined';
+    my $slot;
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
     my @matches = &matching_users($search_string);
@@ -3873,7 +3873,7 @@ sub names {
 	    $ip =~ s/\?$//;
 	    $guessed = 1;
 	}
-        if ($ip =~ /\d+\.\d+\.\d+\.\d+/) {
+        if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
             $sth = $ip_to_name_dbh->prepare("SELECT name FROM ip_to_name WHERE ip=? ORDER BY id DESC LIMIT 10;");
             $sth->execute($ip) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
             while (@row = $sth->fetchrow_array) { push @names, $row[0]; }
@@ -4359,6 +4359,7 @@ sub random_pwd {
     $ftp_verbose and warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n\n";
 	# FTP connection were successful
 	$ftpfail = 0;
+	$fail_count = 0;
 }
 
 sub ftp_getNlines {
@@ -4712,7 +4713,7 @@ sub make_affiliate_server_announcement {
 	    if ($clients == 1 or $clients == 21 or $clients == 31) { $players = '"игрок на"'; }
 		elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32) { $players = '"игрока на"'; }
 	    else { $players = '"игроков на"'; }
-		$line = "^1$clients^7$players ^7$hostname^7 - ^2$mapname^7|^3$gametype^7\n";
+		$line = "^1$clients^7$players ^7$hostname^7 -^2$mapname^7|^3$gametype^7\n";
 	    if ($clients < $maxclients) { push @results, $line; }
 	}
     }
@@ -4791,14 +4792,11 @@ sub broadcast_message {
     if ((!defined($message)) or ($message !~ /./)) { return; }
     my $num_servers = 0;
     my $config_val;
-    my $ip_address;
-    my $port;
-    my $password;
     my $rcon;
-    $message = "say ^1[^7$name^2\@^3$server_name^1]^7: $message";
+    $message = "say ^1(^2$name^7|^3$server_name^1)^7:" . '"' . "$message";
     foreach $config_val (@remote_servers) {
 	if ($config_val =~ /^([\d\.]+):(\d+):(.*)$/) {
-	    ($ip_address,$port,$password) = ($1,$2,$3);
+	    my ($ip_address,$port,$password) = ($1,$2,$3);
 	    $num_servers++;
 	    $rcon = new KKrcon (Host => $ip_address, Port => $port, Password => $password, Type => 'old');
 	    print $rcon->execute($message);
