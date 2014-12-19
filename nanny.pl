@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 45';
+my $version = '3.3 RUS svn 46';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1543,7 +1543,7 @@ sub chat {
         }
         elsif ($message =~ /^!ip\s*$/i) {
 		if (&flood_protection('ip-self', 30, $slot)) { }
-		else { &rcon_command("say " . '"IP-Адрес:"' . "^2$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}"); }
+		else { &rcon_command("say " . '"IP-Адрес:"' . "^2$name^7 - ^3$ip_by_slot{$slot}"); }
 		}
 		# !id (search_string)
         elsif ($message =~ /^!id\s+(.+)/i) {
@@ -1551,7 +1551,7 @@ sub chat {
         }
         elsif ($message =~ /^!id\s*$/i) {
 		if (&flood_protection('id-self', 30, $slot)) { }
-		else { &rcon_command("say " . '"ClientID:"' . "^2$name_by_slot{$slot}^7 - ^3$slot"); }
+		else { &rcon_command("say " . '"ClientID:"' . "^2$name^7 - ^3$slot"); }
 		}
 		# !guid (search_string)
         elsif ($message =~ /^!guid\s+(.+)/i) {
@@ -1559,7 +1559,7 @@ sub chat {
         }
         elsif ($message =~ /^!guid\s*$/i) {
 		if (&flood_protection('guid-self', 30, $slot)) { }
-		else { &rcon_command("say " . '"GUID:"' . "^2$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}"); }
+		else { &rcon_command("say " . '"GUID:"' . "^2$name^7 - ^3$guid"); }
 		}
 		# !age (search_string)
         elsif ($message =~ /^!age\s+(.+)/i) {
@@ -1627,7 +1627,7 @@ sub chat {
 	elsif ($message =~ /^!(define|dictionary|dict)\s*$/i) {
             if (&check_access('define')) {
 		if (&flood_protection('dictionary-miss', 10, $slot)) { }
-		else { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7Что нужно добавить в словарь?"'); }
+		else { &rcon_command("say ^2$name^7:" . '"^7Что нужно добавить в словарь?"'); }
 		    }
 	}
 	# !undefine (word)
@@ -1843,7 +1843,7 @@ sub chat {
             $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
             @row = $ranks_sth->fetchrow_array;
 	        if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено рангов в базе данных"'); }
-	        else { &rcon_command("say ^2$name_by_slot{$slot}^7:" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
+	        else { &rcon_command("say ^2$name^7:" . '"Твой ранг:"' . '"' . "^3$row[1]"); }
 			}
     }
 	# !version
@@ -2289,7 +2289,7 @@ sub chat {
 	# !ragequit
 	elsif ($message =~ /^!rage|rq|ragequit\b/i) {
 	    if (&flood_protection('rage', 30, $slot)) { }
-        &rcon_command("say " . "^1$name_by_slot{$slot}" . '"^7покрыл всех матом, обиделся и вышел из игры."');
+        &rcon_command("say " . "^1$name^7" . '"покрыл всех матом, обиделся и вышел из игры."');
 		sleep 1;
 		&rcon_command("clientkick $slot");
     }
@@ -2449,7 +2449,6 @@ sub status {
 	    # cache names without color codes, too.
 	    my $colorless = &strip_color($name);
 	    if ($colorless ne $name) {
-		&update_name_by_slot($colorless, $slot);
 		if (($ip) and ($colorless)) { &cache_ip_to_name($ip,$colorless); }
 		if (($guid) and ($colorless)) { &cache_guid_to_name($guid,$colorless); }
 	    }
