@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 48';
+my $version = '3.3 RUS svn 49';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4599,8 +4599,8 @@ sub update_name_by_slot {
     if ($slot == -1) { return; }
     # strip trailing spaces from the name.
     $name =~ s/\s+$//;
+	if ($name =~ /\^\^\d\d/) { $name = &strip_color($name); }
     if (!defined($name_by_slot{$slot})) { $name_by_slot{$slot} = $name; }
-	if ($name =~ /\^\^\d\d/) { $name_by_slot{$slot} = &strip_color($name); }
     if ($name_by_slot{$slot} ne $name) {
 	if (($name_by_slot{$slot} ne 'SLOT_EMPTY') and ($name ne 'SLOT_EMPTY')) {
 	    if (($name_by_slot{$slot} ne &strip_color($name)) and ((&strip_color($name_by_slot{$slot}) ne $name))) {
