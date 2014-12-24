@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 50';
+my $version = '3.3 RUS svn 51';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -780,9 +780,8 @@ while (1) {
 		    $reactivate_voting = $time + 25;
 		}
 		# Buy some time so we don't do an rcon status during a level change
-		if ($game_type ne 'sd') { $last_rconstatus = $time; }
-		# Do rcon status if sd gametype
 		if ($game_type eq 'sd') { $last_rconstatus = 0; }
+		else { $last_rconstatus = $time; }
 		# Update next map prediction
 	    $freshen_next_map_prediction = 1;
 	}
@@ -1419,7 +1418,7 @@ sub chat {
     # End of Nice Shot
 
     # Auto-define questions (my most successful if statement evar?)
-    if ((!$ignore{$slot}) and ($message =~ /^(.*)\?$/) or ($message =~ /^!(.*)/)){
+    if ((!$ignore{$slot}) and ($message =~ /^(.*)\?$/) or ($message =~ /^!(.*)$/)) {
 	my $question = $1;
 	my $counter = 0;
 	my $sth;
@@ -1589,7 +1588,7 @@ sub chat {
         elsif ($message =~ /^!addrank\s*$/i) {
             if (&check_access('addrank')) { &rcon_command("say " . '"!addrank *Ранг*"'); }
         }
-		# !clearname (name))
+		# !clearname (name)
         elsif ($message =~ /^!clearname\s+(.+)/i) {
             if (&check_access('clearname')) { &clear_name($1); }
         }
@@ -1619,21 +1618,22 @@ sub chat {
 		}
     # !define (word)
     elsif ($message =~ /^!(define|dictionary|dict)\s+(.+)/i) {
-            if (&check_access('define')) {
-		if (&flood_protection('define', 30, $slot)) { }
-		else { &dictionary($2); }
-            }
+        if (&check_access('define')) {
+		    if (&flood_protection('define', 30, $slot)) { }
+		    else { &dictionary($2); }
+        }
     }
 	elsif ($message =~ /^!(define|dictionary|dict)\s*$/i) {
-            if (&check_access('define')) {
-		if (&flood_protection('dictionary-miss', 10, $slot)) { }
-		else { &rcon_command("say ^2$name^7:" . '"^7Что нужно добавить в словарь?"'); }
-		    }
+        if (&check_access('define')) {
+		    if (&flood_protection('dictionary-miss', 10, $slot)) { }
+		    else { &rcon_command("say ^2$name^7:" . '"^7Что нужно добавить в словарь?"'); }
+		}
 	}
 	# !undefine (word)
     elsif ($message =~ /^!undefine\s+(.+)/i) {
 		if (&check_access('undefine')) {
 		if (&flood_protection('undefine', 30, $slot)) { }
+		else {
 	    my $undefine = $1;
 		$sth = $definitions_dbh->prepare('SELECT count(*) FROM definitions WHERE term=?;');
 		$sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
@@ -1643,6 +1643,7 @@ sub chat {
 		if ($row[0] == 1) { &rcon_command("say " . '"^2Удалено одно определение для:"' . '"' . "^1$undefine"); }
 		elsif ($row[0] > 1) { &rcon_command("say " . '"^2Удалено"' . "^3$row[0]^2" . '"определений для:"' . '"' . "^1$undefine"); }
 		else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undefine");}
+		}
 		}
     }
 	# !stats
@@ -1978,20 +1979,20 @@ sub chat {
 	}
     # !names (search_string)
     elsif ($message =~ /^!names\s+(.+)/i) {
-            if (&check_access('names')) { &names($1); }
+        if (&check_access('names')) { &names($1); }
     }
     elsif ($message =~ /^!(names)\s*$/i) {
-            if (&check_access('names')) { &rcon_command("say " . '"!names для кого?"'); }
+        if (&check_access('names')) { &rcon_command("say " . '"!names для кого?"'); }
     }
     # !uptime
     elsif ($message =~ /^!uptime\b/i) {
-            if (&check_access('uptime')) {
-		if (&flood_protection('uptime', 30, $slot)) { }
-		elsif ($uptime =~ /(\d+):(\d+)/) {
-			my $duration = &duration(($1 * 60) + $2);
-			&rcon_command("say " . '"Этот сервер запущен и работает уже"' . "$duration");
-		}
-	        }
+        if (&check_access('uptime')) {
+		    if (&flood_protection('uptime', 30, $slot)) { }
+		    elsif ($uptime =~ /(\d+):(\d+)/) {
+			    my $duration = &duration(($1 * 60) + $2);
+			    &rcon_command("say " . '"Этот сервер запущен и работает уже"' . "$duration");
+		    }
+	    }
     }
 	# !help
 	elsif ($message =~ /^!(help|помощь)/i) {
@@ -2330,10 +2331,10 @@ sub chat {
     }
 	# !lastbans
 	elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)\s+(\d+)/i) {
-            if (&check_access('lastbans')) { &last_bans($2); }
+        if (&check_access('lastbans')) { &last_bans($2); }
     }
-		elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)/i) {
-            if (&check_access('lastbans')) { &last_bans(10); }
+    elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)/i) {
+        if (&check_access('lastbans')) { &last_bans(10); }
     }
     }
 }
