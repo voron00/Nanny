@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 49';
+my $version = '3.3 RUS svn 50';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -173,6 +173,7 @@ my %location_spoof;
 my $game_type;
 my $game_name;
 my $map_name;
+my $log_sync;
 my $friendly_fire = 0;
 my $kill_cam = 1;
 my $cod_version;
@@ -269,16 +270,25 @@ $last_namecheck = $time;
 $last_guid0_audit = $time;
 $last_guid_sanity_check = $time;
 $timestring = scalar(localtime($time));
-$next_announcement = $time + 120;
-
-# do not announce affiliate server announcement at the start of nanny, use delay that defined in config
+# use interval for first announcement that defined in config
+if ($config->{'use_announcements'}) { $next_announcement = $time + (60*($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1)))); }
 if ($config->{'affiliate_server_announcements'}) { $next_affiliate_announcement = $time + $config->{'affiliate_server_announcement_interval'}; }
 
 # create the rcon control object - this is how we send commands to the console
 my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
 
 # tell the server that we want the game logfiles flushed to disk after every line.
-&rcon_command("g_logSync 1");
+$temporary = &rcon_query('g_logSync');
+if ($temporary =~ /\"g_logSync\" is: \"(\d+)\^7\"/mi) {
+   $log_sync = $1;
+   if ($log_sync) { print "logSync is currently turned ON\n"; }
+   else {
+   print "WARNING: logSync is currently turned OFF, turning it ON and restarting the map\n";
+   &rcon_command('g_logSync 1');
+   &rcon_command('map_restart');
+   }
+}
+else { print "WARNING: unable to parse g_logSync: $temporary\n"; }
 
 # Ask which version of CoD2 server is currently running
 $temporary = &rcon_query('shortversion');
@@ -286,13 +296,13 @@ if ($temporary =~ /\"shortversion\" is: \"([\d.]+)\^7\"/mi) {
    $cod_version = $1;
    if ($cod_version =~ /./) { print "CoD2 version is: $cod_version\n"; }
 }
-else { print "WARNING: unable to parse cod_version: $temporary\n"; }
+else { print "WARNING: unable to parse shortversion: $temporary\n"; }
 
 # Ask the server what it's official name is
 $temporary = &rcon_query("sv_hostname");
 if ($temporary =~ /\"sv_hostname\" is: \"([^\"]+)\^7\"/mi) {
     $server_name = $1;
-    if ($server_name =~ /./) { print "Server Name is: $server_name\n"; }
+    if ($server_name =~ /./) { print "Server name is: $server_name\n"; }
 }
 else { print "WARNING: unable to parse sv_hostname: $temporary\n"; }
 
@@ -311,15 +321,15 @@ if ($temporary =~ /\"mapname\" is: \"(\w+)\^7\"/mi) {
    $map_name = $1;
    if ($map_name =~ /./) { print "Current map is: $map_name\n"; }
 }
-else { print "WARNING: unable to parse map_name: $temporary\n"; }
+else { print "WARNING: unable to parse mapname: $temporary\n"; }
 
 # Ask which game type is now present
 $temporary = &rcon_query('g_gametype');
 if ($temporary =~ /\"g_gametype\" is: \"(\w+)\^7\"/mi) {
    $game_type = $1;
-   if ($game_type =~ /./) { print "Gametype is: $game_type\n"; }
+   if ($game_type =~ /./) { print "Current gametype is: $game_type\n"; }
 }
-else { print "WARNING: unable to parse game_type: $temporary\n"; }
+else { print "WARNING: unable to parse g_gametype: $temporary\n"; }
 
 # Main Loop
 while (1) {
@@ -372,7 +382,6 @@ while (1) {
 			$fake_name_by_slot{$reset_slot} = undef;
 			}
 	        print "SERVER CRASH/RESTART DETECTED, RESETTING...\n";
-		    &rcon_command("say " , '"^1*** ^7Похоже что сервер упал, перезапускаю себя... ^1***"');
 		}
 		$last_upmins = $now_upmins;
 	    }
@@ -1331,8 +1340,7 @@ sub chat {
     my $index;
     my $flooded = 0;
 
-	if ($config->{'use_responses'})
-	{
+	if ($config->{'use_responses'}) {
     # loop through all the rule regex looking for matches
     foreach $rule_name (keys %rule_regex) {
         if ($message =~ /$rule_regex{$rule_name}/i) {
@@ -1916,7 +1924,28 @@ sub chat {
 	    if (&check_access('killcam')) { &killcam_command($1); }
 	}
 	elsif ($message =~ /^!killcam\s*$/i) {
-	    if (&check_access('killcam')) { &rcon_command("say  " . '"!killcam on или !killcam off ?"'); }
+	    if (&check_access('killcam')) { &rcon_command("say " . '"!killcam on или !killcam off ?"'); }
+	}
+	# !forcerespawn
+	elsif ($message =~ /^!forcerespawn\s+(.+)/i) {
+		if (&check_access('forcerespawn')) { &forcerespawn_command($1); }
+	}
+	elsif ($message =~ /^!forcerespawn\s*$/i) {
+	    if (&check_access('forcerespawn')) { &rcon_command("say " . '"!forcerespawn on или !forcerespawn off ?"'); }
+	}
+	# !teambalance
+	elsif ($message =~ /^!teambalance\s+(.+)/i) {
+		if (&check_access('teambalance')) { &teambalance_command($1); }
+	}
+	elsif ($message =~ /^!teambalance\s*$/i) {
+	    if (&check_access('teambalance')) { &rcon_command("say " . '"!teambalance on или !teambalance off ?"'); }
+	}
+	# !spectatefree
+	elsif ($message =~ /^!spectatefree\s+(.+)/i) {
+		if (&check_access('spectatefree')) { &spectatefree_command($1); }
+	}
+	elsif ($message =~ /^!spectatefree\s*$/i) {
+	    if (&check_access('spectatefree')) { &rcon_command("say " . '"!spectatefree on или !spectatefree off ?"'); }
 	}
     # !friendlyfire
     elsif (($message =~ /^!fr[ie]{1,2}ndly.?fire\s+(.+)/i) or ($message =~ /^!team[ _\-]?kill\s+(.+)/i)) {
@@ -1946,18 +1975,6 @@ sub chat {
 	}
 	elsif ($message =~ /^!glitch\s*$/i) {
 	    if (&check_access('glitch')) { &rcon_command("say !glitch on" . '" или !glitch off ?"'); }
-	}
-	# !forcerespawn
-	elsif ($message =~ /^!forcerespawn\s*$/i) {
-	    if (&check_access('forcerespawn')) { &rcon_command("say !forcerespawn on" . '" или !forcerespawn off?"'); }
-	}
-	# !teambalance
-    elsif ($message =~ /^!teambalance\s*$/i) {
-	    if (&check_access('teambalance')) { &rcon_command("say !teambalance on" . '" или !teambalance off?"'); }
-	}
-	# !spectatefree
-		elsif ($message =~ /^!spectatefree\s*$/i) {
-	    if (&check_access('spectatefree')) { &rcon_command("say !spectatefree on" . '" или !spectatefree off?"'); }
 	}
     # !names (search_string)
     elsif ($message =~ /^!names\s+(.+)/i) {
@@ -2310,63 +2327,6 @@ sub chat {
 		sleep 1;
 		&rcon_command("clientkick $slot");
 		}
-    }
-	# !forcerespawn
-	elsif ($message =~ /^!forcerespawn\s+on\b/i) {
-		if (&check_access('forcerespawn')) {
-		if (&flood_protection('forcerespawn', 30, $slot)) { }
-		else {
-            &rcon_command("scr_forcerespawn 1");
-			&rcon_command("say " . '"Быстрое возрождение ^2Включено"');
-		}
-        }
-    }
-	elsif ($message =~ /^!forcerespawn\s+off\b/i) {
-		if (&check_access('forcerespawn')) {
-		if (&flood_protection('forcerespawn', 30, $slot)) { }
-		else {
-            &rcon_command("scr_forcerespawn 0");
-			&rcon_command("say " . '"Быстрое возрождение ^1Выключено"');
-		}
-        }
-    }
-	# !teambalance command
-	elsif ($message =~ /^!teambalance\s+on\b/i) {
-		if (&check_access('teambalance')) {
-		if (&flood_protection('teambalance', 30, $slot)) { }
-		else {
-            &rcon_command("scr_teambalance 1");
-		    &rcon_command("say " . '"Автобаланс команд ^2Включен"');
-		}
-        }
-    }
-	elsif ($message =~ /^!teambalance\s+off\b/i) {
-		if (&check_access('teambalance')) {
-		if (&flood_protection('teambalance', 30, $slot)) { }
-		else {
-            &rcon_command("scr_teambalance 0");
-		    &rcon_command("say " . '"Автобаланс команд ^1Выключен"');
-		}
-        }
-    }
-	# !spectatefree command
-	elsif ($message =~ /^!spectatefree\s+on\b/i) {
-		if (&check_access('spectatefree')) {
-		if (&flood_protection('spectatefree', 30, $slot)) { }
-		else {
-            &rcon_command("scr_spectatefree 1");
-			&rcon_command("say " . '"Свободный режим наблюдения ^2Включен"');
-		}
-        }
-    }
-	elsif ($message =~ /^!spectatefree\s+off\b/i) {
-		if (&check_access('spectatefree')) {
-		if (&flood_protection('spectatefree', 30, $slot)) { }
-		else {
-            &rcon_command("scr_spectatefree 0");
-			&rcon_command("say " . '"Свободный режим наблюдения ^1Выключен"');
-		}
-        }
     }
 	# !lastbans
 	elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)\s+(\d+)/i) {
@@ -3639,13 +3599,13 @@ sub voice_command {
 	&rcon_command("sv_voice 1");
 	&rcon_command("say " . '"Голосовой чат включен."');
 	$voice = 1;
-    &log_to_file('logs/admin.log', "!voice: voice chat was enabled by:  $name - GUID $guid");
+    &log_to_file('logs/admin.log', "!VOICE: voice chat was enabled by:  $name - GUID $guid");
 	}
 	elsif ($state =~ /^(off|0|no|disabled?)$/i) {
     &rcon_command("sv_voice 0");
     &rcon_command("say " . '"Голосовой чат выключен."');
 	$voice = 0;
-    &log_to_file('logs/admin.log', "!voice: voice chat was disabled by:  $name - GUID $guid");
+    &log_to_file('logs/admin.log', "!VOICE: voice chat was disabled by:  $name - GUID $guid");
 	}
 	else { &rcon_command("say " . '"Неверное значение:"' . "$state" . '"... Используйте: on или off"'); }
 }
@@ -3667,6 +3627,57 @@ sub killcam_command {
 	else { &rcon_command("say " . '"Неизвстное значение команды !killcam:"' . "  $state  " . '" Используйте: on или off"'); }
 }
 
+# BEGIN: !forcerespawn($state)
+sub forcerespawn_command {
+    if (&flood_protection('forcerespawn', 30, $slot)) { return 1; }
+    my $state = shift;
+    if ($state =~ /^(yes|1|on|enabled?)$/i) {
+    &rcon_command("scr_forcerespawn 1");
+    &rcon_command("say " . '"Быстрое возрождение было ^2ВКЛЮЧЕНО ^7админом"');
+    &log_to_file('logs/admin.log', "!FORCERESPAWN: the quick respawn was enabled by:  $name - GUID $guid");
+	}
+	elsif ($state =~ /^(off|0|no|disabled?)$/i) {
+    &rcon_command("scr_forcerespawn 0");
+    &rcon_command("say " . '"Быстрое возрождение было ^1ВЫКЛЮЧЕНО ^7админом"');
+    &log_to_file('logs/admin.log', "!FORCERESPAWN: the quick respawn was disabled by:  $name - GUID $guid");
+	}
+	else { &rcon_command("say " . '"Неизвстное значение команды !forcerespawn:"' . "  $state  " . '" Используйте: on или off"'); }
+}
+
+# BEGIN: !teambalance($state)
+sub teambalance_command {
+    if (&flood_protection('teambalance', 30, $slot)) { return 1; }
+    my $state = shift;
+    if ($state =~ /^(yes|1|on|enabled?)$/i) {
+    &rcon_command("scr_teambalance 1");
+    &rcon_command("say " . '"Автобаланс команд был ^2ВКЛЮЧЕН ^7админом"');
+    &log_to_file('logs/admin.log', "!TEAMBALANCE: the team auto-balance was enabled by:  $name - GUID $guid");
+	}
+	elsif ($state =~ /^(off|0|no|disabled?)$/i) {
+    &rcon_command("scr_teambalance 0");
+    &rcon_command("say " . '"Автобаланс команд был ^1ВЫКЛЮЧЕН ^7админом"');
+    &log_to_file('logs/admin.log', "!TEAMBALANCE: the team auto-balance was disabled by:  $name - GUID $guid");
+	}
+	else { &rcon_command("say " . '"Неизвстное значение команды !teambalance:"' . "  $state  " . '" Используйте: on или off"'); }
+}
+
+# BEGIN: !spectatefree($state)
+sub spectatefree_command {
+    if (&flood_protection('spectatefree', 30, $slot)) { return 1; }
+    my $state = shift;
+    if ($state =~ /^(yes|1|on|enabled?)$/i) {
+    &rcon_command("scr_spectatefree 1");
+    &rcon_command("say " . '"Свободный режим наблюдения был ^2ВКЛЮЧЕН ^7админом"');
+    &log_to_file('logs/admin.log', "!SPECTATEFREE: the specate-free mode was enabled by:  $name - GUID $guid");
+	}
+	elsif ($state =~ /^(off|0|no|disabled?)$/i) {
+    &rcon_command("scr_spectatefree 0");
+    &rcon_command("say " . '"Свободный режим наблюдения был ^1ВЫКЛЮЧЕН ^7админом"');
+    &log_to_file('logs/admin.log', "!SPECTATEFREE: the specate-free mode was disabled by:  $name - GUID $guid");
+	}
+	else { &rcon_command("say " . '"Неизвстное значение команды !spectatefree:"' . "  $state  " . '" Используйте: on или off"'); }
+}
+
 # BEGIN: !speed($speed)
 sub speed_command {
     if (&flood_protection('speed', 30, $slot)) { return 1; }
@@ -3674,7 +3685,7 @@ sub speed_command {
     if ($speed =~ /^\d+$/) {
     &rcon_command("g_speed $speed");
     &rcon_command("say " . '"Скорость установлена на значение:"' . "^2$speed");
-    &log_to_file('logs/admin.log', "!speed: speed was set to $speed by:  $name - GUID $guid");
+    &log_to_file('logs/admin.log', "!SPEED: speed was set to $speed by:  $name - GUID $guid");
 	}
 	else {
     my $query = &rcon_query("g_speed");
@@ -3693,7 +3704,7 @@ sub gravity_command {
     if ($gravity =~ /^\d+$/) {
     &rcon_command("g_gravity $gravity");
     &rcon_command("say " . '"Гравитация установлена на значение:"' . "^1$gravity");
-    &log_to_file('logs/admin.log', "!gravity: gravity was set to $gravity by:  $name - GUID $guid");
+    &log_to_file('logs/admin.log', "!GRAVITY: gravity was set to $gravity by:  $name - GUID $guid");
 	}
 	else {
     my $query = &rcon_query("g_gravity");
@@ -4637,7 +4648,7 @@ sub update_name_by_slot {
 			if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 			if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
 			&rcon_command("clientkick $slot");
-			&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip / $guid_by_slot{$slot} was permanently for being a name thief:  $name / $name_by_slot{$slot} ");
+			&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip | $guid_by_slot{$slot} was permanently for being a name thief: $name | $name_by_slot{$slot}");
 			$bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
 			$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");					
 		    }  
