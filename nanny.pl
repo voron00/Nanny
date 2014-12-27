@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 54';
+my $version = '3.3 RUS svn 55';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1627,7 +1627,7 @@ sub chat {
             if (&check_access('report')) { &report_player($1,$2); }
 		}
 		 elsif ($message =~ /^!report\s*$/i) {
-            if (&check_access('report')) { &rcon_command("say " . '"!report кого? прчина?"'); }
+            if (&check_access('report')) { &rcon_command("say " . '"!report *Игрок* *Причина*"'); }
 		}
     # !define (word)
     elsif ($message =~ /^!(define|dictionary|dict)\s+(.+)/i) {
@@ -4933,8 +4933,8 @@ sub vote {
     if ($#matches == 0) {
         if (&flood_protection('vote', 120)) { return 1; }
         $vote_target = $name_by_slot{$matches[0]};
-	    if ($vote_type eq 'kick') { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Выкинуть игрока"' . "^1$vote_target"); }
-	    else { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Временно забанить игрока"' . "^1$vote_target"); }
+	    if ($vote_type eq 'kick') { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Выкинуть"' . "^1$vote_target"); }
+	    else { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Временно забанить"' . "^1$vote_target"); }
 	    $voting_players = $players_count;
 	    if (!$voting_players) {
 	        &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
@@ -4944,10 +4944,10 @@ sub vote {
 	    $required_yes = ($voting_players/2)+1;
 	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
 	    sleep 1;
-	    &rcon_command("say " . '"Голосование началось: всего голосующих:"' . "^3$voting_players^7," . '"необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
+	    &rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
 	    $vote_started = 1;
 	    sleep 1;
-	    &rcon_command("say " . '"Используйте !yes или !no для голосования"');
+	    &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
     }
     elsif ($#matches > 0) {
 	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$vote_target");
@@ -4971,12 +4971,12 @@ sub vote {
     elsif ($vote_target =~ /^matmata\b/i) { $vote_target = 'mp_matmata'; }
     elsif ($vote_target =~ /^(st[ao]l[ie]ngrad|railyard)\b/i) { $vote_target = 'mp_railyard'; }
     elsif ($vote_target =~ /^toujane\b/i) { $vote_target = 'mp_toujane'; }
-    elsif ($vote_target =~ /^(caen|train.?station)\b/i) { $vote_target = 'mp_toujane'; }
+    elsif ($vote_target =~ /^(caen|train.?station)\b/i) { $vote_target = 'mp_trainstation'; }
     elsif ($vote_target =~ /^(harbor|rostov)\b/i) { $vote_target = 'mp_harbor'; }
     elsif ($vote_target =~ /^(rhine|wallendar)\b/i) { $vote_target = 'mp_rhine'; }
     else { $vote_target = 'unknown'; }
     if (($cod_version eq '1.0') and ($vote_target =~ /^mp_(harbor|rhine)/)) { return 1; }
-    elsif ($vote_target =~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|harbor|rhine)$/) {
+    elsif ($vote_target =~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|trainstation|harbor|rhine)$/) {
         if (&flood_protection('vote', 120)) { return 1; }
 	    &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Смена карты на"' . "^3$description{$vote_target}");
 	    $voting_players = $players_count;
@@ -4988,12 +4988,11 @@ sub vote {
 	    $required_yes = ($voting_players/2)+1;
 	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
 	    sleep 1;
-	    &rcon_command("say " . '"Голосование началось: всего голосующих:"' . "^3$voting_players^7," . '"необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
+	    &rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
 	    $vote_started = 1;
 	    sleep 1;
-	    &rcon_command("say " . '"Используйте !yes или !no для голосования"');
+	    &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
         }
-    else { return 1; }
     }
 }
 
@@ -5024,12 +5023,12 @@ sub vote_check {
     if ($vote_started) {
     # Vote TIMEOUT
     if (($vote_time) and ($time >= $vote_time)) {
-        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
         &vote_cleanup;
     }
     # Vote PASS, required YES reached
     elsif ($voted_yes >= $required_yes) {
-        &rcon_command("say " . '"Голосование ^2УДАЛОСЬ^7: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+        &rcon_command("say " . '"Голосование ^2ЗАВЕРШЕНО^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
 	    sleep 1;
         if ($vote_type eq 'kick') { &kick_command($vote_target); }
         elsif ($vote_type eq 'ban') { &tempban_command($vote_target); }
@@ -5042,12 +5041,12 @@ sub vote_check {
     }
     # Vote FAIL, too many NO
     elsif ($voted_no >= $required_yes) {
-        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
         &vote_cleanup;
     }
 	# Half-time check
-	elsif ($time == $vote_time-($vote_timelimit/2)) { &rcon_command("say " . '"Голосование: осталось^8"' . ($vote_timelimit/2) . '"^7секунд: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no"); }
-    }
+	elsif ($time == $vote_time-($vote_timelimit/2)) { &rcon_command("say " . '"Голосование: Осталось^8"' . ($vote_timelimit/2) . '"^7секунд: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no"); }
+	}
 }
 
 sub vote_cleanup {
