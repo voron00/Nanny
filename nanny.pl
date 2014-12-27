@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 55';
+my $version = '3.3 RUS svn 56';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2635,6 +2635,7 @@ sub rcon_command {
 	&log_to_file('logs/rcon.log', "RCON: executed command: $command");
     if ($config->{'show_rcon'}) {
 	$command =~ s/\^\d//g;
+	$command =~ s/\"/ /g;
 	print "RCON: $command\n";
 	}
     sleep 1;
@@ -2663,6 +2664,7 @@ sub rcon_query {
 	&log_to_file('logs/rcon.log', "RCON: executed command: $command");
     if ($config->{'show_rcon'}) {
 	$command =~ s/\^\d//g;
+	$command =~ s/\"/ /g;
 	print "RCON: $command\n"; 
 	}
     sleep 1; 
@@ -3564,7 +3566,7 @@ sub tempban_command {
     my $ban_ip = 'unknown';
 	my $ban_guid = '12345678';
     my $unban_time = $time + $tempbantime*60;
-    &rcon_command("say ^1$name_by_slot{$slot}" . '"^7был временно забанен админом на"' . "^1$tempbantime^7" . $minutes);
+    &rcon_command("say ^1$name_by_slot{$slot}" . '"^7был временно забанен админом на"' . "^3$tempbantime^7" . $minutes);
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
@@ -4940,6 +4942,8 @@ sub vote {
 	        &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
 	        return 1;
 	    }
+		if ($vote_type eq 'kick') { &log_to_file('logs/voting.log', "!VOTEKICK: $vote_initiator has started a vote: kick $vote_target"); }
+		else { &log_to_file('logs/voting.log', "!VOTEBAN: $vote_initiator has started a vote: temporary ban $vote_target"); }
 	    $vote_time = $time + $vote_timelimit;
 	    $required_yes = ($voting_players/2)+1;
 	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
@@ -4984,6 +4988,7 @@ sub vote {
 	        &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
 	        return 1;
 	    }
+		&log_to_file('logs/voting.log', "!VOTEMAP: $vote_initiator has started a vote: change map to $description{$vote_target}");
 	    $vote_time = $time + $vote_timelimit;
 	    $required_yes = ($voting_players/2)+1;
 	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
@@ -5024,24 +5029,33 @@ sub vote_check {
     # Vote TIMEOUT
     if (($vote_time) and ($time >= $vote_time)) {
         &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: TIMEOUT, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
         &vote_cleanup;
     }
     # Vote PASS, required YES reached
     elsif ($voted_yes >= $required_yes) {
         &rcon_command("say " . '"Голосование ^2ЗАВЕРШЕНО^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
 	    sleep 1;
-        if ($vote_type eq 'kick') { &kick_command($vote_target); }
-        elsif ($vote_type eq 'ban') { &tempban_command($vote_target); }
+        if ($vote_type eq 'kick') {
+		    &kick_command($vote_target);
+		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: Action: Kicking $vote_target, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		}
+        elsif ($vote_type eq 'ban') {
+		    &tempban_command($vote_target);
+		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: Action: Temporary banning $vote_target, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		}
 		elsif ($vote_type eq 'map') {
 		    &rcon_command("say " . '"^2Смена на:"' . "^3$description{$vote_target}");
 			sleep 1;
 			&rcon_command("map $vote_target");
+			&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: Action: Changing map to $description{$vote_target}, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 		}
         &vote_cleanup;
     }
     # Vote FAIL, too many NO
     elsif ($voted_no >= $required_yes) {
         &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
         &vote_cleanup;
     }
 	# Half-time check
