@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 56';
+my $version = '3.3 RUS svn 57';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -2521,21 +2521,21 @@ sub status {
 		if ($ping eq '999') {
 		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
 		    if (($last_ping{$slot} eq '999') and ($config->{'ping_enforcement'}) and ($config->{'999_quick_kick'})) {
-			print "PING ENFORCEMENT: 999 ping for $name\n";
-			&rcon_command("say " . &strip_color($name) . '"^7был выкинут за 999 пинг"');
-			sleep 1;
-			&rcon_command("clientkick $slot");
-			&log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long");
+			    print "PING ENFORCEMENT: 999 ping for $name\n";
+			    &rcon_command("say " . &strip_color($name) . '"^7был выкинут за 999 пинг"');
+			    sleep 1;
+			    &rcon_command("clientkick $slot");
+			    &log_to_file('logs/kick.log', "PING: $name was kicked for having a 999 ping for too long");
 			}
 		}
 		elsif ($ping > $config->{'max_ping'}) {
 		    if (!defined($last_ping{$slot})) { $last_ping{$slot} = 0; }
 		    if ($last_ping{$slot} > ($config->{'max_ping'}) and ($config->{'ping_enforcement'})) {
-			print "PING ENFORCEMENT: too high ping for $name\n";
-			&rcon_command("say " . &strip_color($name) . '"^7был выкинут за слишком высокий пинг"' . "($ping_by_slot{$slot} | $config->{'max_ping'})");
-			sleep 1;
-			&rcon_command("clientkick $slot");
-			&log_to_file('logs/kick.log', "$name was kicked for having too high ping ($ping_by_slot{$slot} | $config->{'max_ping'})");
+			    print "PING ENFORCEMENT: too high ping for $name\n";
+			    &rcon_command("say " . &strip_color($name) . '"^7был выкинут за слишком высокий пинг"' . "($ping_by_slot{$slot} | $config->{'max_ping'})");
+			    sleep 1;
+			    &rcon_command("clientkick $slot");
+			    &log_to_file('logs/kick.log', "$name was kicked for having too high ping ($ping_by_slot{$slot} | $config->{'max_ping'})");
 			}
 		}
 		# we need to remember this for the next ping we check.
@@ -2546,32 +2546,20 @@ sub status {
     }
 	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
     foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
-	if ($slot >= 0) {
-	    if ($guid_by_slot{$slot}) {
-		$sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
-	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
-		$ip_by_slot{$slot} = 'unknown';
-		$sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-		while (@row = $sth->fetchrow_array) {
-		$ip_by_slot{$slot} = $row[0] . '?';
-		print "Guessed an IP by GUID for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
-		}
+	    if ($slot >= 0) {
+	        if ($guid_by_slot{$slot}) { $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1"); }
+	        else { $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1"); }
+	        if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
+		        $ip_by_slot{$slot} = 'unknown';
+		        $sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+		        while (@row = $sth->fetchrow_array) {
+		            $ip_by_slot{$slot} = $row[0] . '?';
+		            print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
+	            }
+	        }
 	    }
-		}
-		else {
-		$sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
-	    if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
-		$ip_by_slot{$slot} = 'unknown';
-		$sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-		while (@row = $sth->fetchrow_array) {
-		$ip_by_slot{$slot} = $row[0] . '?';
-		print "Guessed an IP by NAME for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
-		}
-	    }
-		}
 	}
-    }
-    # END:  IP Guessing from cache
+    # END: IP Guessing from cache
 }
 # END: status
 
