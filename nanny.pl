@@ -87,13 +87,12 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 51';
+my $version = '3.3 RUS svn 54';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
 my %name_warn_level;
 my $last_namecheck;
-my $tempbantime = 30;
 my $rconstatus_interval = 30;
 my $guid_sanity_check_interval = 597;
 my $problematic_characters = "\[^\x00-\x99]+";
@@ -132,6 +131,7 @@ my $last_idlecheck;
 my $last_rconstatus;
 my %name_by_slot;
 my %fake_name_by_slot;
+my %voted_by_slot;
 my %ip_by_slot;
 my %guid_by_slot;
 my %ping_by_slot;
@@ -215,6 +215,17 @@ my $ftpfail;
 my $fail_count = 0;
 my $fail_limit = 10;
 my $maximum_length = 512;
+my $players_count;
+my $vote_initiator;
+my $vote_type;
+my $vote_target;
+my $vote_timelimit = 60;
+my $vote_started = 0;
+my $voted_yes = 0;
+my $voted_no = 0;
+my $voting_players = 0;
+my $required_yes = 0;
+my $vote_time = 0;
 
 # turn on auto-flush for STDOUT
 $| = 1;
@@ -871,8 +882,10 @@ while (1) {
 	if (($fly_timer) and ($time >= $fly_timer)) {
 	    $fly_timer = 0;
         &rcon_command("g_gravity 800");
-		&rcon_command("say " . '"Думаю стоит продолжить нормальную игру"');
+        &rcon_command("say " . '"Думаю стоит продолжить нормальную игру"');
 	}
+	# Check vote status
+	&vote_check;
 	# Check to see if it's time to audit a GUID 0 person
 	if (($config->{'audit_guid0_players'}) and (($time - $last_guid0_audit) >= ($guid0_audit_interval))) {
             $last_guid0_audit = $time;
@@ -1498,7 +1511,7 @@ sub chat {
 	}
 	elsif ($message =~ /^!tempban\s+(.+)/i) {
 	    if (&check_access('tempban')) {
-		&tempban_command($1,$tempbantime);
+		&tempban_command($1);
 		}
 	}
 	elsif ($message =~ /^!tempban\s*$/i) {
@@ -1610,11 +1623,11 @@ sub chat {
             if (&check_access('dbinfo')) { &rcon_command("say " . '"!dbinfo *База данных*"'); }
         }
 		# !report (search_string)
-        elsif ($message =~ /^!report\s+(.+)/i) {
-            if (&check_access('report')) { &report_player($1); }
+        elsif ($message =~ /^!report\s+(.+)\s+(.+)/i) {
+            if (&check_access('report')) { &report_player($1,$2); }
 		}
 		 elsif ($message =~ /^!report\s*$/i) {
-            if (&check_access('report')) { &rcon_command("say " . '"!report кого?"'); }
+            if (&check_access('report')) { &rcon_command("say " . '"!report кого? прчина?"'); }
 		}
     # !define (word)
     elsif ($message =~ /^!(define|dictionary|dict)\s+(.+)/i) {
@@ -1746,7 +1759,8 @@ sub chat {
         }
 	# !say
         elsif ($message =~ /^!say\s+(.+)/i) {
-            if (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
+		    if (&flood_protection('say', 30, $slot)) { }
+            elsif (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
         }
 	# !rcon
         elsif ($message =~ /^!rcon\s+(.+)/i) {
@@ -1761,7 +1775,8 @@ sub chat {
         }
     # !tell
         elsif ($message =~ /^!tell\s+([^\s]+)\s+(.*)/i) {
-            if (&check_access('tell')) { &tell($1,$2); }
+		    if (&flood_protection('tell', 30, $slot)) { }
+            elsif (&check_access('tell')) { &tell($1,$2); }
         }
 	# !hostname
         elsif ($message =~ /^!(host\s?name|server\s?name)\s+(.+)/i) {
@@ -1919,6 +1934,29 @@ sub chat {
 	}
 	elsif ($message =~ /^!(voice|voicechat|sv_voice)\s*$/i) {
 	    if (&check_access('voice')) { &rcon_command("say " . '"!voice on или !voice off ?"'); }
+	}
+	# !vote (kick, ban, map)
+	elsif ($message =~ /^!vote(kick|ban|map)\s+(.+)/i) {
+	    if (&flood_protection('vote-spam', 10, $slot)) { }
+		elsif ($vote_started) { }
+	    elsif ((&check_access('vote_kick') and ($1 eq 'kick'))) { &vote($name,$1,$2); }
+		elsif ((&check_access('vote_ban') and ($1 eq 'ban'))) { &vote($name,$1,$2); }
+		elsif ((&check_access('vote_map') and ($1 eq 'map'))) { &vote($name,$1,$2); }
+	}
+	elsif ($message =~ /^!vote(kick|ban|map)\s*$/i) {
+	    if (&flood_protection('vote-nomatch', 10, $slot)) { }
+		elsif ($vote_started) { }
+	    elsif ((&check_access('vote_kick') and ($1 eq 'kick'))) { &rcon_command("say !vote$1" . '"кого?"'); }
+		elsif ((&check_access('vote_ban') and ($1 eq 'ban'))) { &rcon_command("say !vote$1" . '"кого?"'); }
+		elsif ((&check_access('vote_map') and ($1 eq 'map'))) { &rcon_command("say !vote$1" . '"какую карту?"'); }
+	}
+	# !voteyes
+	elsif ($message =~ /^!(vote)?yes\s*$/i) {
+	    if (&check_access('vote')) { &vote_yes($slot,$name); }
+	}
+	# !voteno
+	elsif ($message =~ /^!(vote)?no\s*$/i) {
+	    if (&check_access('vote')) { &vote_no($slot,$name); }
 	}
 	# !killcam
 	elsif ($message =~ /^!killcam\s+(.+)/i) {
@@ -2112,6 +2150,26 @@ sub chat {
             }
 		if (&check_access('forgive')) {
             &rcon_command("say $name^7:" . '"^7Вы можете ^1!forgive ^5игрок ^7чтобы простить игроку его выходки"');
+            sleep 1;
+            }
+		if (&check_access('vote_kick')) {
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!votekick ^5игрок ^7чтобы начать голосование за выкидывание игрока"');
+            sleep 1;
+            }
+		if (&check_access('vote_ban')) {
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!voteban ^5игрок ^7чтобы начать голосование за временный бан игркока"');
+            sleep 1;
+            }
+		if (&check_access('vote_map')) {
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!votemap ^5карта ^7чтобы начать голосование за смену карты"');
+            sleep 1;
+            }
+		if (&check_access('report')) {
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!report ^5игрок ^2причина ^7чтобы отправить жалобу на игрока"');
+            sleep 1;
+            }
+		if (&check_access('exchange')) {
+            &rcon_command("say $name^7:" . '"^7Вы можете использовать ^1!exchange ^5USD/EUR ^7чтобы узнать текущий курс валюты"');
             sleep 1;
             }
 		}
@@ -2414,10 +2472,13 @@ sub status {
     my $status = &rcon_query('status');
     print "$status\n";
     my @lines = split(/\n/,$status);
+	$players_count = 0;
     foreach (@lines) {
 	if (/^map:\s+(\w+)$/) { $map_name = $1; }
 	if (/^[\sX]+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
 	($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
+	    # update player count
+		$players_count++;
 		# strip trailing spaces.
 		$name =~ s/\s+$//;
 		# strip ANSI crap
@@ -3221,6 +3282,7 @@ sub clear_names {
 sub report_player {
     if (&flood_protection('report', 30)) { return 1; }
     my $search_string = shift;
+	my $reason = shift;
     my $target_player;
 	my $target_player_guid;
     my @matches = &matching_users($search_string);
@@ -3229,7 +3291,7 @@ sub report_player {
 	$target_player = $name_by_slot{$matches[0]};
 	$target_player_guid = $guid_by_slot{$matches[0]};
 	&rcon_command("say " . '"Жалоба на игрока"' . "$target_player" . '"^7отправлена."');
-    &log_to_file('logs/report.log', "!report: $name_by_slot{$slot} - GUID $guid reported player $target_player - GUID $target_player_guid  via the !report command. (Search: $search_string)");
+    &log_to_file('logs/report.log', "!report: $name_by_slot{$slot} - GUID $guid reported player $target_player - GUID $target_player_guid - reason $reason via the !report command. (Search: $search_string)");
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
@@ -3481,6 +3543,7 @@ sub tempban_command {
 	my $tempbantime = shift;
     my $key;
 	my $minutes;
+	if (!defined($tempbantime)) { $tempbantime = 30; }
 	if ($tempbantime == 1) { $minutes = '"минуту"'; }
 	elsif ($tempbantime == 2 or $tempbantime == 3 or $tempbantime == 4) { $minutes = '"минуты"'; }
 	else { $minutes = '"минут"'; }
@@ -4842,19 +4905,163 @@ sub nuke {
 
 # BEGIN: exchange
 sub exchange {
-if (&flood_protection('exchange', 30, $slot)) { return 1; }
-my $currency = shift;
-my $today = $time{'dd.mm.yyyy'};
-my $date;
-my $dollar;
-my $euro;
-my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
-if (defined($content)) {
-	if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
-	if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
-	if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1 }
-	if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
-	if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
+    if (&flood_protection('exchange', 30, $slot)) { return 1; }
+    my $currency = shift;
+    my $today = $time{'dd.mm.yyyy'};
+    my $date;
+    my $dollar;
+    my $euro;
+    my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
+    if (defined($content)) {
+	    if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
+	    if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
+	    if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1 }
+	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
+	    if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
+    }
+    else { &rcon_command("say " . '"Сайт ЦБ РФ в настоящее время недоступен, повторите попытку позже"'); }
 }
-else { &rcon_command("say " . '"Сайт ЦБ РФ в настоящее время недоступен, повторите попытку позже"'); }
+
+# BEGIN: Voting
+sub vote {
+    $vote_initiator = shift;
+    $vote_type = shift;
+    $vote_target = shift;
+    if ($vote_started) { return 1; }
+    elsif ($vote_type eq 'kick' or $vote_type eq 'ban') {
+    my @matches = &matching_users($vote_target);
+    if ($#matches == 0) {
+        if (&flood_protection('vote', 120)) { return 1; }
+        $vote_target = $name_by_slot{$matches[0]};
+	    if ($vote_type eq 'kick') { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Выкинуть игрока"' . "^1$vote_target"); }
+	    else { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Временно забанить игрока"' . "^1$vote_target"); }
+	    $voting_players = $players_count;
+	    if (!$voting_players) {
+	        &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
+	        return 1;
+	    }
+	    $vote_time = $time + $vote_timelimit;
+	    $required_yes = ($voting_players/2)+1;
+	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
+	    sleep 1;
+	    &rcon_command("say " . '"Голосование началось: всего голосующих:"' . "^3$voting_players^7," . '"необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
+	    $vote_started = 1;
+	    sleep 1;
+	    &rcon_command("say " . '"Используйте !yes или !no для голосования"');
+    }
+    elsif ($#matches > 0) {
+	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$vote_target");
+	    return 1;
+    }
+    elsif ($#matches == -1) {
+	    &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$vote_target");
+        return 1;
+    }
+    }
+    elsif ($vote_type eq 'map') {
+    if ($vote_target =~ /^beltot\b|!farmhouse\b/i) { $vote_target = 'mp_farmhouse'; }
+    elsif ($vote_target =~ /^villers\b|^!breakout\b|^!vb\b|^!bocage\b|^!villers-bocage\b/i) { $vote_target = 'mp_breakout'; }
+    elsif ($vote_target =~ /^brecourt\b/i) { $vote_target = 'mp_brecourt'; }
+    elsif ($vote_target =~ /^b[ieu]rg[aeiou]?ndy\b/i) { $vote_target = 'mp_burgundy'; }
+    elsif ($vote_target =~ /^car[ie]nt[ao]n\b/i) { $vote_target = 'mp_carentan'; }
+    elsif ($vote_target =~ /^(st\.?mere|dawnville|egli[sc]e|st\.?mere.?egli[sc]e)\b/i) { $vote_target = 'mp_dawnville'; }
+    elsif ($vote_target =~ /^(el.?alamein|egypt|decoy)\b/i) { $vote_target = 'mp_decoy'; }
+    elsif ($vote_target =~ /^(moscow|downtown)\b/i) { $vote_target = 'mp_downtown'; }
+    elsif ($vote_target =~ /^len+[aeio]ngrad\b/i) { $vote_target = 'mp_leningrad'; }
+    elsif ($vote_target =~ /^matmata\b/i) { $vote_target = 'mp_matmata'; }
+    elsif ($vote_target =~ /^(st[ao]l[ie]ngrad|railyard)\b/i) { $vote_target = 'mp_railyard'; }
+    elsif ($vote_target =~ /^toujane\b/i) { $vote_target = 'mp_toujane'; }
+    elsif ($vote_target =~ /^(caen|train.?station)\b/i) { $vote_target = 'mp_toujane'; }
+    elsif ($vote_target =~ /^(harbor|rostov)\b/i) { $vote_target = 'mp_harbor'; }
+    elsif ($vote_target =~ /^(rhine|wallendar)\b/i) { $vote_target = 'mp_rhine'; }
+    else { $vote_target = 'unknown'; }
+    if (($cod_version eq '1.0') and ($vote_target =~ /^mp_(harbor|rhine)/)) { return 1; }
+    elsif ($vote_target =~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|harbor|rhine)$/) {
+        if (&flood_protection('vote', 120)) { return 1; }
+	    &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Смена карты на"' . "^3$description{$vote_target}");
+	    $voting_players = $players_count;
+	    if (!$voting_players) {
+	        &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
+	        return 1;
+	    }
+	    $vote_time = $time + $vote_timelimit;
+	    $required_yes = ($voting_players/2)+1;
+	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
+	    sleep 1;
+	    &rcon_command("say " . '"Голосование началось: всего голосующих:"' . "^3$voting_players^7," . '"необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
+	    $vote_started = 1;
+	    sleep 1;
+	    &rcon_command("say " . '"Используйте !yes или !no для голосования"');
+        }
+    else { return 1; }
+    }
 }
+
+sub vote_yes {
+    if (&flood_protection('voter', 30, $slot)) { return 1; }
+    my $slot = shift;
+    my $name = shift;
+    if (($vote_started) and (!$voted_by_slot{$slot})) {
+        $voted_by_slot{$slot} = 1;
+	    $voted_yes++;
+	    if (($required_yes - $voted_yes) != 0) { &rcon_command("say ^2$name^7" . '"проголосовал ^2ЗА ^7необходимо еще голосов ^2ЗА^7:^2"' . ($required_yes - $voted_yes)); }
+    }
+}
+
+
+sub vote_no {
+    if (&flood_protection('voter', 30, $slot)) { return 1; }
+    my $slot = shift;
+    my $name = shift;
+    if (($vote_started) and (!$voted_by_slot{$slot})) {
+        $voted_by_slot{$slot} = 1;
+	    $voted_no++;
+	    &rcon_command("say ^1$name^7" . '"проголосовал ^1ПРОТИВ"');
+    }
+}
+
+sub vote_check {
+    if ($vote_started) {
+    # Vote TIMEOUT
+    if (($vote_time) and ($time >= $vote_time)) {
+        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+        &vote_cleanup;
+    }
+    # Vote PASS, required YES reached
+    elsif ($voted_yes >= $required_yes) {
+        &rcon_command("say " . '"Голосование ^2УДАЛОСЬ^7: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+	    sleep 1;
+        if ($vote_type eq 'kick') { &kick_command($vote_target); }
+        elsif ($vote_type eq 'ban') { &tempban_command($vote_target); }
+		elsif ($vote_type eq 'map') {
+		    &rcon_command("say " . '"^2Смена на:"' . "^3$description{$vote_target}");
+			sleep 1;
+			&rcon_command("map $vote_target");
+		}
+        &vote_cleanup;
+    }
+    # Vote FAIL, too many NO
+    elsif ($voted_no >= $required_yes) {
+        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+        &vote_cleanup;
+    }
+	# Half-time check
+	elsif ($time == $vote_time-($vote_timelimit/2)) { &rcon_command("say " . '"Голосование: осталось^8"' . ($vote_timelimit/2) . '"^7секунд: всего голосующих:"' . "^3$voting_players^7," . '"голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no"); }
+    }
+}
+
+sub vote_cleanup {
+    $vote_started = 0;
+    $voted_yes = 0;
+    $voted_no = 0;
+    $voting_players = 0;
+    $required_yes = 0;
+    $vote_time = 0;
+    $vote_type = undef;
+    $vote_initiator = undef;
+    $vote_target = undef;
+    foreach $reset_slot (keys %voted_by_slot) {
+        $voted_by_slot{$reset_slot} = 0;
+    }
+}
+# END: Voting
