@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 57';
+my $version = '3.3 RUS svn 58';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -292,7 +292,7 @@ my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Passw
 $temporary = &rcon_query('g_logSync');
 if ($temporary =~ /\"g_logSync\" is: \"(\d+)\^7\"/mi) {
    $log_sync = $1;
-   if ($log_sync) { print "logSync is currently turned ON\n"; }
+   if ($log_sync == 1) { print "logSync is currently turned ON\n"; }
    else {
    print "WARNING: logSync is currently turned OFF, turning it ON and restarting the map\n";
    &rcon_command('g_logSync 1');
@@ -1365,7 +1365,7 @@ sub chat {
                 $response = $rule_response->{$rule_name}->{$index};
                 $penalty = $rule_penalty{$rule_name};
 		if ((!$flooded) and (!$ignore{$slot})) {
-		    &rcon_command("say ^1$name^7: $response");
+		    &rcon_command("say ^1$name^7:" . '"' . "$response" . '"');
 		    &log_to_file('logs/response.log', "Rule: $rule_name  Match Text: $message");
 		}
             }
@@ -1833,29 +1833,6 @@ sub chat {
         exec 'perl nanny.pl';
 	    }
 	}
-	# !fixnames
-    elsif ($message =~ /^!fixnames/i) {
-            if (&check_access('fixnames')) {
-			if (&flood_protection('fixnames', 30)) { }
-			    else {
-                $sth = $guid_to_name_dbh->prepare('SELECT count(*) FROM guid_to_name;');
-                $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-                @row = $sth->fetchrow_array;
-                $sth = $guid_to_name_dbh->prepare('DELETE FROM guid_to_name;');
-                $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-                if ($row[0] == 1) { &rcon_command("say " . '"^7Удалена одна запись из базы ^2GUID <-> NAME"'); }
-                elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2GUID <-> NAME"'); }
-				else { &rcon_command("say " . '"^7В базе данных не найдено нужных записей для удаления"'); }
-                $sth = $ip_to_name_dbh->prepare('SELECT count(*) FROM ip_to_name WHERE length(name) > 31;');
-                $sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-                @row = $sth->fetchrow_array;
-                $sth = $ip_to_name_dbh->prepare('DELETE FROM ip_to_name WHERE length(name) > 31;');
-                $sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-                if ($row[0] == 1) { &rcon_command("say " . '"^7Удалена одна запись из базы ^2IP <-> NAME"'); }
-				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^1$row[0]^7" . '"записей из базы ^2IP <-> NAME^7 которые имели слишком длинный формат"'); }
-				}
-            }
-    }
     # !rank
     elsif ($message =~ /^!rank\s*$/i) {
             if (&check_access('rank')) {
@@ -2026,10 +2003,7 @@ sub chat {
     elsif ($message =~ /^!uptime\b/i) {
         if (&check_access('uptime')) {
 		    if (&flood_protection('uptime', 30, $slot)) { }
-		    elsif ($uptime =~ /(\d+):(\d+)/) {
-			    my $duration = &duration(($1 * 60) + $2);
-			    &rcon_command("say " . '"Этот сервер запущен и работает уже"' . "$duration");
-		    }
+		    elsif ($uptime =~ /(\d+):(\d+)/) { &rcon_command("say " . '"Этот сервер запущен и работает уже"' . &duration(($1 * 60) + $2)); }
 	    }
     }
 	# !help
@@ -2198,17 +2172,17 @@ sub chat {
         }
 		# !sin (value)
         if ($message =~ /^!sin\s+(\d+)/i) {
-		if (&flood_protection('trigonometry', 30, $slot)) { }
+		if (&flood_protection('trigonometry-sin', 30, $slot)) { }
 	    else { &rcon_command("say ^2sin $1 ^7=^1 " . sin($1)); }
 		}
 		# !cos (value)
         if ($message =~ /^!cos\s+(\d+)/i) {
-		if (&flood_protection('trigonometry', 30, $slot)) { }
+		if (&flood_protection('trigonometry-cos', 30, $slot)) { }
 	    else { &rcon_command("say ^2cos $1 ^7=^1 " . cos($1)); }
 		}
 	    # !tan (value)
         if ($message =~ /^!tan\s+(\d+)/i) {
-		if (&flood_protection('trigonometry', 30, $slot)) { }
+		if (&flood_protection('trigonometry-tan', 30, $slot)) { }
 	    else { &rcon_command("say ^2tan $1 ^7=^1 " . &tan($1)); }
 		}
 	    # !perl -v
@@ -2554,7 +2528,7 @@ sub status {
 		        $sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 		        while (@row = $sth->fetchrow_array) {
 		            $ip_by_slot{$slot} = $row[0] . '?';
-		            print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot} \n";
+		            print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n";
 	            }
 	        }
 	    }
@@ -2621,11 +2595,7 @@ sub rcon_command {
     $command =~ s/\/\/+/\//g;
 	$rcon->execute($command);
 	&log_to_file('logs/rcon.log', "RCON: executed command: $command");
-    if ($config->{'show_rcon'}) {
-	$command =~ s/\^\d//g;
-	$command =~ s/\"/ /g;
-	print "RCON: $command\n";
-	}
+    if ($config->{'show_rcon'}) { print "RCON: $command\n"; }
     sleep 1;
     if ($error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
@@ -2650,11 +2620,7 @@ sub rcon_query {
     $command =~ s/\/\/+/\//g;
 	$result = $rcon->execute($command);
 	&log_to_file('logs/rcon.log', "RCON: executed command: $command");
-    if ($config->{'show_rcon'}) {
-	$command =~ s/\^\d//g;
-	$command =~ s/\"/ /g;
-	print "RCON: $command\n"; 
-	}
+    if ($config->{'show_rcon'}) { print "RCON: $command\n"; }
     sleep 1; 
     if ($error = $rcon->error) {
 	# rcon timeout happens after the object has been in use for a long while.
@@ -2681,7 +2647,6 @@ sub geolocate_ip {
     my $record = $gi->record_by_addr($ip);
 	my $geo_ip_info;
 	if (!$record) { return '"ниоткуда..."'; }
-	# debugging
     if (defined($record->country_code)) { print "\n\tCountry Code: " . $record->country_code . "\n"; }
     if (defined($record->country_code3)) { print "\tCountry Code 3: " . $record->country_code3 . "\n"; }
     if (defined($record->country_name)) { print "\tCountry Name: " . $record->country_name . "\n"; }
@@ -2695,7 +2660,6 @@ sub geolocate_ip {
     if (defined($record->area_code)) { print "\tArea Code: " . $record->area_code . "\n"; }
 	if (defined($record->continent_code)) { print "\tContinent Code: " . $record->continent_code . "\n"; }
 	if (defined($record->metro_code)) { print "\tMetro Code " . $record->metro_code . "\n\n"; }
-	# end of debugging
     if ($record->city) {
         # we know the city
         if ($record->region_name) {
@@ -2745,12 +2709,12 @@ sub geolocate_ip {
 		my $dist = $obj->inverse($player_lat, $player_lon , $home_lat, $home_lon);
 		if ($ip ne $config->{'ip'}) {
 		if ($metric) {
-                    $dist = int($dist/1000);
-					$geo_ip_info .= "^7, ^1$dist^7" . '"километров до сервера"';
+            $dist = int($dist/1000);
+			$geo_ip_info .= "^7, ^1$dist^7" . '"километров до сервера"';
 		}
 		else {
-		            $dist = int($dist/1609.344);
-					$geo_ip_info .= "^7, ^1$dist^7" . '"миль до сервера"';
+		    $dist = int($dist/1609.344);
+			$geo_ip_info .= "^7, ^1$dist^7" . '"миль до сервера"';
 		}
 		}
 	    }
@@ -2766,7 +2730,7 @@ sub cache_guid_to_name {
     my $name = shift;
     # idiot gates
     if (!defined($guid)) { &die_nice("cache_guid_to_name was called without a guid number\n"); }
-	elsif ($guid !~ /^\d+$/) { &die_nice("cache_guid_to_name guid was not a number: |$guid|\n"); }
+	elsif ($guid !~ /^\d+$/) { &die_nice("cache_guid_to_name guid was not a number: $guid\n"); }
 	elsif (!defined($name)) { &die_nice("cache_guid_to_name was called without a name\n"); }  
     if ($guid) {
 	# only log this if the guid isn't zero
@@ -2775,8 +2739,8 @@ sub cache_guid_to_name {
 	@row = $sth->fetchrow_array;
 	if ($row[0]) { }
 	else {
-	    &log_to_file('logs/guid.log', "Caching GUID to NAME mapping: $guid - $name");
-	    print "Caching GUID to NAME mapping: $guid - $name\n";
+	    &log_to_file('logs/guid.log', "Caching GUID to NAME mapping: $guid <-> $name");
+	    print "Caching GUID to NAME mapping: $guid <-> $name\n";
 	    $sth = $guid_to_name_dbh->prepare("INSERT INTO guid_to_name VALUES (NULL, ?, ?)");
 	    $sth->execute($guid, $name) or &die_nice("Unable to do insert\n");
 	}
@@ -2790,7 +2754,7 @@ sub cache_ip_to_guid {
     my $guid = shift;
     # idiot gates
     if (!defined($guid)) { &die_nice("cache_ip_to_guid was called without a guid number\n"); }
-	elsif ($guid !~ /^\d+$/) { &die_nice("cache_ip_to_guid guid was not a number: |$guid|\n"); }
+	elsif ($guid !~ /^\d+$/) { &die_nice("cache_ip_to_guid guid was not a number: $guid\n"); }
 	elsif (!defined($ip)) { &die_nice("cache_ip_to_guid was called without an ip\n"); }
     if ($guid) {
 	# only log this if the guid isn't zero
@@ -2799,8 +2763,8 @@ sub cache_ip_to_guid {
 	@row = $sth->fetchrow_array;
 	if ($row[0]) { }
 	else {
-	    &log_to_file('logs/guid.log', "New IP to GUID mapping: $ip - $guid");
-	    print "New IP to GUID mapping: $ip - $guid\n";
+	    &log_to_file('logs/guid.log', "New IP to GUID mapping: $ip <-> $guid");
+	    print "New IP to GUID mapping: $ip <-> $guid\n";
 	    $sth = $ip_to_guid_dbh->prepare("INSERT INTO ip_to_guid VALUES (NULL, ?, ?)");
 	    $sth->execute($ip, $guid) or &die_nice("Unable to do insert\n");
 	}
@@ -2820,8 +2784,8 @@ sub cache_ip_to_name {
     @row = $sth->fetchrow_array;
     if ($row[0]) { }
     else {
-	&log_to_file('logs/guid.log', "Caching IP to NAME mapping: $ip - $name");
-	print "Caching IP to NAME mapping: $ip - $name\n"; 
+	&log_to_file('logs/guid.log', "Caching IP to NAME mapping: $ip <-> $name");
+	print "Caching IP to NAME mapping: $ip <-> $name\n"; 
 	$sth = $ip_to_name_dbh->prepare("INSERT INTO ip_to_name VALUES (NULL, ?, ?)");
 	$sth->execute($ip, $name) or &die_nice("Unable to do insert\n");
     }
@@ -2857,7 +2821,7 @@ sub lastkill {
     my $lastkill_search = shift;
 	if ($lastkill_search ne '') {
 	my @matches = &matching_users($lastkill_search);
-	if (($#matches == 0) and (defined($last_killed_by{$matches[0]})) and ($last_killed_by{$matches[0]} ne 'none')) { &rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^7был убит игроком^1"' . $last_killed_by{$matches[0]}); }
+	if (($#matches == 0) and (defined($last_killed_by{$matches[0]})) and ($last_killed_by{$matches[0]} ne 'none')) { &rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^7был убит игроком^1"' .  &strip_color($last_killed_by{$matches[0]})); }
 	elsif ($#matches > 0) {
 	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$lastkill_search");
 	    return 1;
@@ -2867,7 +2831,7 @@ sub lastkill {
 	    return 1;
 	}
     }
-	elsif ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) { &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком^1"' . $last_killed_by{$slot}); }
+	elsif ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) { &rcon_command("say ^2$name^3:" . '"^7Вы были убиты игроком^1"' . &strip_color($last_killed_by{$slot})); }
 }
 # END: lastkill
 
@@ -3922,8 +3886,8 @@ sub check_player_names {
 sub make_announcement {
     my $total = $#announcements;
     my $announce = $announcements[int(rand($total))];
-    print "Making Announcement: $announce\n";
-    &rcon_command("say $announce");
+    print "Making Announcement: " . '"' . "$announce" . '"' . "\n";
+    &rcon_command("say " . '"' . "$announce" . '"');
 }
 # END: make_announcement
 
@@ -3992,7 +3956,7 @@ sub names {
             # finally, announce the list.
 	    my $found_none = 1;
 	    my @announce_list = keys %name_hash;
-	    if (&flood_protection('names', (10 + (5 * $#announce_list)), $slot)) { return 1; }
+	    if (&flood_protection('names', 30, $slot)) { return 1; }
             foreach $key (@announce_list) {
                 if ($name_by_slot{$matches[0]} ne $key) {
 		    if ($guessed) { &rcon_command("say $name_by_slot{$matches[0]}" . '"^7вероятно еще играл как:"' . '"' . "$key"); }
