@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.3 RUS svn 58';
+my $version = '3.3 RUS svn 59';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -4981,7 +4981,7 @@ sub vote_check {
     # Vote TIMEOUT
     if (($vote_time) and ($time >= $vote_time)) {
         &rcon_command("say " . '"Ãîëîñîâàíèå ^1ÍÅ ÓÄÀËÎÑÜ^7: Ãîëîñîâ ^2ÇÀ^7:"' . "^2$voted_yes^7," . '"^1ÏÐÎÒÈÂ^7:"' . "^1$voted_no");
-		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: TIMEOUT, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: TIMEOUT, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
         &vote_cleanup;
     }
     # Vote PASS, required YES reached
@@ -4990,24 +4990,30 @@ sub vote_check {
 	    sleep 1;
         if ($vote_type eq 'kick') {
 		    &kick_command($vote_target);
-		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: Action: Kicking $vote_target, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 		}
         elsif ($vote_type eq 'ban') {
 		    &tempban_command($vote_target);
-		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: Action: Temporary banning $vote_target, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 		}
 		elsif ($vote_type eq 'map') {
 		    &rcon_command("say " . '"^2Ñìåíà íà:"' . "^3$description{$vote_target}");
 			sleep 1;
 			&rcon_command("map $vote_target");
-			&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: Action: Changing map to $description{$vote_target}, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+			&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Changing map to $description{$vote_target}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 		}
         &vote_cleanup;
     }
     # Vote FAIL, too many NO
     elsif ($voted_no >= $required_yes) {
         &rcon_command("say " . '"Ãîëîñîâàíèå ^1ÍÅ ÓÄÀËÎÑÜ^7: Ãîëîñîâ ^2ÇÀ^7:"' . "^2$voted_yes^7," . '"^1ÏÐÎÒÈÂ^7:"' . "^1$voted_no");
-		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, Yes NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+        &vote_cleanup;
+    }
+	# Vote FAIL, ALL players has voted, but not enough YES
+    elsif ((($voted_no+$voted_yes) >= $voting_players) and ($voted_yes < $required_yes)) {
+        &rcon_command("say " . '"Ãîëîñîâàíèå ^1ÍÅ ÓÄÀËÎÑÜ^7: Ãîëîñîâ ^2ÇÀ^7:"' . "^2$voted_yes^7," . '"^1ÏÐÎÒÈÂ^7:"' . "^1$voted_no");
+		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: ALL players has voted, but not enough YES, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
         &vote_cleanup;
     }
 	# Half-time check
