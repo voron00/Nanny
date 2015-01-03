@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# VERSION 3.xx RUS changelog is on github page https://github.com/voron00/Nanny/commits/master
+# VERSION 3.xx RUS changelog is on github page https://github.com/voron00/Nanny/commits/cod2_russian
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r11';
+my $version = '3.4 RUS r12';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -164,7 +164,7 @@ my $last_guid_sanity_check;
 my $uptime = 0;
 my %flood_protect;
 my $first_blood = 1;
-my %last_killed_by;
+my %last_killed_by_name;
 my %last_killed_by_guid;
 my %kill_spree;
 my %best_spree;
@@ -213,9 +213,6 @@ my @affiliate_servers;
 my $next_affiliate_announcement;
 my %servername_cache;
 my @remote_servers;
-my $ftpfail;
-my $fail_count = 0;
-my $fail_limit = 10;
 my $maximum_length = 512;
 my $players_count;
 my $vote_initiator;
@@ -410,7 +407,8 @@ while (1) {
 
 		$guid_by_slot{$attacker_slot} = $attacker_guid;
 		$guid_by_slot{$victim_slot} = $victim_guid;
-		$last_killed_by{$victim_slot} = $attacker_name;
+		$last_killed_by_name{$victim_slot} = $attacker_name;
+		if ($last_killed_by_name{$victim_slot} =~ /[јЅ¬√ƒ≈®∆«»… ЋћЌќѕ–—“”‘’÷„ЎўЏџ№ЁёяабвгдеЄжзийклмнопрстуфхцчшщъыьэю€]/) { $last_killed_by_name{$victim_slot} = '"' . $last_killed_by_name{$victim_slot} . '"'; }
 		$last_killed_by_guid{$victim_slot} = $attacker_guid;
 
 		# Glitch Server Mode
@@ -590,7 +588,7 @@ while (1) {
 		    $last_ping_by_slot{$slot} = 0;
 		    $kill_spree{$slot} = 0;
 		    $best_spree{$slot} = 0;
-		    $last_killed_by{$slot} = 'none';
+		    $last_killed_by_name{$slot} = 'none';
 		    $last_killed_by_guid{$slot} = 0;
 		    if ($game_type ne 'sd') {
 		        $penalty_points{$slot} = 0;
@@ -618,7 +616,7 @@ while (1) {
 		    $ping_by_slot{$slot} = 0;
             $last_ping_by_slot{$slot} = 0;
 		    $penalty_points{$slot} = 0;
-		    $last_killed_by{$slot} = 'none';
+		    $last_killed_by_name{$slot} = 'none';
 		    $last_killed_by_guid{$slot} = 0;
 		    $kill_spree{$slot} = 0;
 		    $best_spree{$slot} = 0;
@@ -1108,22 +1106,13 @@ sub load_config_file {
 # BEGIN: die_nice(message)
 sub die_nice {
     my $message = shift;
-	my $ftpfail = shift;
     if ((!defined($message)) or ($message !~ /./)) { $message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
 	&log_to_file('logs/error.log', "CRITICAL ERROR: $message");
-	# dirty workaround, but sometimes server can drop a ftp connection or it can be lost on client side
-	if (($ftpfail) and ($fail_count < $fail_limit)) {
-	    $fail_count++;
-	    sleep 30;
-	    &ftp_connect;
-	}
-	else {
-	    print "Press <ENTER> to close this program\n";
-	    my $who_cares = <STDIN>;
-        -e $ftp_tmpFileName and unlink ($ftp_tmpFileName);
-        exit 1; 
-	}
+	print "Press <ENTER> to close this program\n";
+	my $who_cares = <STDIN>;
+    -e $ftp_tmpFileName and unlink ($ftp_tmpFileName);
+    exit 1; 
 }
 # END: die_nice
 
@@ -1315,6 +1304,7 @@ sub chat {
     #   $message
     #   $guid
     my $chattype = shift;
+	if (defined($name_by_slot{$slot}) and $name_by_slot{$slot} ne 'SLOT_EMPTY') { $name = $name_by_slot{$slot}; }
     if (!defined($ignore{$slot})) { $ignore{$slot} = 0; }
     # print the message to the console
     if ($config->{'show_talk'}) { print &strip_color("CHAT: $chattype: $name: $message\n"); }
@@ -1404,7 +1394,7 @@ sub chat {
     # Call Bad shot
     if (($config->{'bad_shots'}) and (!$ignore{$slot})) {
 	if ($message =~ /^!?bs\W*$|^!?bad\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that\s+was\s+(bs|badshot)\W*$/i) {
-	    if ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) {
+	    if ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none') and (&strip_color($last_killed_by_name{$slot}) ne $name)) {
 		if (&flood_protection('badshot', 30, $slot)) {
 		    # bad shot abuse
 		    if (&flood_protection('badshot-two', 30, $slot)) { }
@@ -1417,7 +1407,7 @@ sub chat {
 		    # update the Bad Shot counter.
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
 		    $stats_sth->execute($last_killed_by_guid{$slot}) or &die_nice("Unable to update stats\n");	
-		    &rcon_command("say ^2$name" . '"^7не понравилось то как его убил^1"' . &strip_color($last_killed_by{$slot}));
+		    &rcon_command("say ^2$name" . '"^7не понравилось то как его убил^1"' . &strip_color($last_killed_by_name{$slot}));
 		}
 	    }  
 	} 
@@ -1427,7 +1417,7 @@ sub chat {
     # Call Nice Shot
     if (($config->{'nice_shots'}) and (!$ignore{$slot})) {
 	if ($message =~ /\bnice\W?\s+(one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
-	    if ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name)) {
+	    if ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none') and (&strip_color($last_killed_by_name{$slot}) ne $name)) {
 		if (&flood_protection('niceshot', 30, $slot)) {
 		    # nice shot abuse
 			if (&flood_protection('niceshot-two', 30, $slot)) { }
@@ -1440,7 +1430,7 @@ sub chat {
 		    # update the Nice Shot counter.
 		    $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
 		    $stats_sth->execute($last_killed_by_guid{$slot}) or &die_nice("Unable to update stats\n");
-		    &rcon_command("say ^2$name" . '"^7понравилось ^7то как его убил^1"' . &strip_color($last_killed_by{$slot}));
+		    &rcon_command("say ^2$name" . '"^7понравилось ^7то как его убил^1"' . &strip_color($last_killed_by_name{$slot}));
 		}
 	    }  
 	}
@@ -2444,8 +2434,6 @@ sub status {
 	if (/^map:\s+(\w+)$/) { $map_name = $1; }
 	if (/^[\sX]+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
 	($slot,$score,$ping,$guid,$name,$lastmsg,$ip,$port,$qport,$rate) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
-	    # update players count
-		$players_count++;
 		# strip trailing spaces.
 		$name =~ s/\s+$//;
 		# cache ping
@@ -2480,7 +2468,11 @@ sub status {
 		}
 	    }
 		# Check for banned IP
-		if ($ping ne 'CNCT' or $ping ne '999' or $ping ne 'ZMBI') { &check_banned_ip($ip,$name,$slot); }
+		if ($ping ne 'CNCT' or $ping ne '999' or $ping ne 'ZMBI') {
+			# update players count
+		    $players_count++;
+		    &check_banned_ip($ip,$name,$slot);
+		}
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
 		if ($ping eq '999') {
@@ -2819,7 +2811,7 @@ sub lastkill {
     my $search_string = shift;
 	if ($search_string) {
 	my @matches = &matching_users($search_string);
-	if (($#matches == 0) and (defined($last_killed_by{$matches[0]})) and ($last_killed_by{$matches[0]} ne 'none') and (&strip_color($last_killed_by{$matches[0]}) ne $name_by_slot{$matches[0]})) { &rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^7был убит игроком^1"' .  &strip_color($last_killed_by{$matches[0]})); }
+	if (($#matches == 0) and (defined($last_killed_by_name{$matches[0]})) and ($last_killed_by_name{$matches[0]} ne 'none') and (&strip_color($last_killed_by_name{$matches[0]}) ne $name_by_slot{$matches[0]})) { &rcon_command("say ^2" . $name_by_slot{$matches[0]} . '"^7был убит игроком^1"' .  &strip_color($last_killed_by_name{$matches[0]})); }
 	elsif ($#matches > 0) {
 	    &rcon_command("say " . '"—лишком много совпадений с:"' . '"' . "$search_string");
 	    return 1;
@@ -2829,13 +2821,12 @@ sub lastkill {
 	    return 1;
 	}
 	}
-	elsif ((defined($last_killed_by{$slot})) and ($last_killed_by{$slot} ne 'none') and (&strip_color($last_killed_by{$slot}) ne $name_by_slot{$slot})) { &rcon_command("say ^2" . $name_by_slot{$slot} . "^7:" . '"¬ы были убиты игроком^1"' . &strip_color($last_killed_by{$slot})); }
+	elsif ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none') and (&strip_color($last_killed_by_name{$slot}) ne $name_by_slot{$slot})) { &rcon_command("say ^2" . $name_by_slot{$slot} . "^7:" . '"¬ы были убиты игроком^1"' . &strip_color($last_killed_by_name{$slot})); }
 }
 # END: lastkill
 
 # BEGIN: stats($search_string)
 sub stats {
-    if (&flood_protection('stats', 30)) { return 1; }
     my $slot = shift;
     my $search_string = shift;
 	my @row;
@@ -2851,6 +2842,7 @@ sub stats {
 		return 1;
 	}
 	}
+	if (&flood_protection('stats', 30)) { return 1; }
 	$name = $name_by_slot{$slot}; 
 	$guid = $guid_by_slot{$slot};
 	if (!defined($name or $guid)) { return 1; }
@@ -4467,7 +4459,7 @@ sub reset {
 		$ping_by_slot{$slot} = 0;
 		$last_ping_by_slot{$reset_slot} = 0;
 		$penalty_points{$reset_slot} = 0;
-		$last_killed_by{$reset_slot} = 'none';
+		$last_killed_by_name{$reset_slot} = 'none';
 		$last_killed_by_guid{$slot} = 0;
 		$kill_spree{$reset_slot} = 0;
 		$best_spree{$reset_slot} = 0;
@@ -4496,11 +4488,11 @@ sub vote_cleanup {
     fileparse_set_fstype; # FTP uses UNIX rules
     $ftp_tmpFileName = tmpnam;
     $ftp_verbose and warn "FTP $ftp_host\n";
-    $ftp=Net::FTP->new($ftp_host,Timeout=>60) or &die_nice("FTP: Cannot ftp to $ftp_host: $!", $ftpfail = 1);
+    $ftp=Net::FTP->new($ftp_host,Timeout=>60) or &die_nice("FTP: Cannot ftp to $ftp_host: $!");
     $ftp_verbose and warn "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
-    $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!", $ftpfail = 1);
+    $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!");
     $ftp_verbose and warn "CWD: $ftp_dirname\n";
-    $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!", $ftpfail = 1);
+    $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
     if ($config->{'use_passive_ftp'}) {
 	    print "Using Passive ftp mode...\n\n";
 	    $ftp->pasv or &die_nice($ftp->message);
@@ -4509,9 +4501,6 @@ sub vote_cleanup {
     $ftp_type = $ftp->binary;
     $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
     $ftp_verbose and warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n\n";
-	# FTP connection were successful
-	$ftpfail = 0;
-	$fail_count = 0;
 }
 
 sub ftp_getNlines {
@@ -4549,7 +4538,7 @@ sub ftp_flushPipe {
 sub ftp_getNchars {
     my ($bytes) = @_;
     my $type = $ftp->binary;
-    my $size = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $ftpfail = 1);
+    my $size = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
     my $startPos = $size - $bytes;
     if ($startPos<0) { $startPos=0; $bytes=$size; } #file is smaller than requested number of bytes
     -e $ftp_tmpFileName and &die_nice("FTP: $ftp_tmpFileName exists");
@@ -4561,7 +4550,7 @@ sub ftp_getNchars {
 sub ftp_get_line {
     if (!defined($ftp_buffer[0])) {
 	$ftp_type = $ftp->binary;
-        $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n", $ftpfail = 1);
+        $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
         if ($ftp_currentEnd > $ftp_lastEnd) {
             $ftp_verbose and warn "FTP: SIZE $ftp_basename increased: ".($ftp_currentEnd-$ftp_lastEnd)." bytes\n";
             $ftp_verbose and warn "FTP: GET: $ftp_basename, $ftp_tmpFileName, $ftp_lastEnd\n";
@@ -4868,8 +4857,8 @@ sub make_affiliate_server_announcement {
 	    if ($clients == 1 or $clients == 21 or $clients == 31) { $players = '"игрок на"'; }
 		elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32) { $players = '"игрока на"'; }
 	    else { $players = '"игроков на"'; }
-		$line = "^1$clients^7$players ^7$hostname^7 -^2$mapname^7|^3$gametype^7\n";
-	    if ($clients < $maxclients) { push @results, $line; }
+		$line = "^1$clients^7$players ^7$hostname^7 - ^2$mapname^7|^3$gametype^7\n";
+	    push @results, $line;
 	}
     }
     if (defined($results[0])) {
