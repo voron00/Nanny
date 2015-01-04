@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r14';
+my $version = '3.4 RUS r15';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -610,6 +610,10 @@ while (1) {
 		    ($guid,$slot,$name) = ($1,$2,$3);
 		    # cache the guid and name
 		    if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+			&update_name_by_slot($name, $slot);
+			if ($config->{'show_game_quits'}) { &rcon_command("say $name_by_slot{$slot}" . '"^7покинул игру"'); }
+            if ($config->{'show_quits'}) { print "QUIT: $name_by_slot{$slot} has left the game\n"; }
+			&update_name_by_slot('SLOT_EMPTY', $slot);
 		    $last_activity_by_slot{$slot} = 'gone';
 		    $idle_warn_level{$slot} = 0;
 		    $ip_by_slot{$slot} = 'SLOT_EMPTY';
@@ -623,9 +627,6 @@ while (1) {
 		    $kill_spree{$slot} = 0;
 		    $best_spree{$slot} = 0;
 		    $ignore{$slot} = 0;
-			if ($config->{'show_game_quits'}) { &rcon_command("say $name_by_slot{$slot}" . '"^7покинул игру"'); }
-            if ($config->{'show_quits'}) { print "QUIT: $name_by_slot{$slot} has left the game\n"; }
-			&update_name_by_slot('SLOT_EMPTY', $slot);
         }
 	    else { print "WARNING: unrecognized syntax for quit line:\n\t$line\n"; }
 	}
