@@ -68,8 +68,8 @@ sub execute {
     print $rcon->execute($command) . "\n";
     if ($error = $rcon->error) {
 	if ($error eq 'Rcon timeout') {
-	print "rebuilding rcon object\n";
-	$rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old');
+	    print "rebuilding rcon object\n";
+	    $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old');
 	}
 	else { print "WARNING: rcon error: $error\n"; }
 	return 1;

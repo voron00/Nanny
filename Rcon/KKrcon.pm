@@ -118,27 +118,27 @@ sub sendrecv {
         my $lol;
 		my @explode;
         while (select($rin, undef, undef, 0.05)) {
-        # this really sucks.  We're missing a byte and I can't find it
-        # BECAUSE ITS NOT THERE.
-        # fuckers.  This seems to be a bug in the game.
-        # Even the in-game /rcon command has the missing-byte bug.
-        # Now that we know we can't fix it now we mark it as corrupt.
-		# First, we mark the begining of the last line of what we've received
-		# so far as being corrupt. 		    
-		@explode = split(/\n/,$ans);
-		$explode[$#explode] =~ s/^ //;
-		$explode[$#explode] = 'X' . $explode[$#explode];
-		$ans = join("\n", @explode);
-		# now we receive, strip again, and append.
-        $lol = '';
-        $hispaddr = recv(RCON, $lol, 8192, 0);
-        $lol =~ s/\x00+$//;                     # trailing crap
-        $lol =~ s/^\xFF\xFF\xFF\xFFl//;         # HL response
-        $lol =~ s/^\xFF\xFF\xFF\xFFn//;         # QW response
-        $lol =~ s/^\xFF\xFF\xFF\xFF//;          # Q2/Q3 response
-        $lol =~ s/^\xFE\xFF\xFF\xFF.....//;     # old HL bug/feature
-        $lol = substr($lol, 6, 8192);
-		$ans .= $lol;
+            # this really sucks.  We're missing a byte and I can't find it
+            # BECAUSE ITS NOT THERE.
+            # fuckers.  This seems to be a bug in the game.
+            # Even the in-game /rcon command has the missing-byte bug.
+            # Now that we know we can't fix it now we mark it as corrupt.
+		    # First, we mark the begining of the last line of what we've received
+		    # so far as being corrupt. 		    
+		    @explode = split(/\n/,$ans);
+		    $explode[$#explode] =~ s/^ //;
+		    $explode[$#explode] = 'X' . $explode[$#explode];
+		    $ans = join("\n", @explode);
+		    # now we receive, strip again, and append.
+            $lol = '';
+            $hispaddr = recv(RCON, $lol, 8192, 0);
+            $lol =~ s/\x00+$//;                     # trailing crap
+            $lol =~ s/^\xFF\xFF\xFF\xFFl//;         # HL response
+            $lol =~ s/^\xFF\xFF\xFF\xFFn//;         # QW response
+            $lol =~ s/^\xFF\xFF\xFF\xFF//;          # Q2/Q3 response
+            $lol =~ s/^\xFE\xFF\xFF\xFF.....//;     # old HL bug/feature
+            $lol = substr($lol, 6, 8192);
+		    $ans .= $lol;
         }
 		# End of the llama / platypus ugly hack for long responses.
 	}
