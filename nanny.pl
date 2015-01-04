@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r15';
+my $version = '3.4 RUS r16';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -600,7 +600,7 @@ while (1) {
 		    if (($config->{'show_game_joins'}) and ($game_type ne 'sd')) { &rcon_command("say $name_by_slot{$slot}" . '"^7присоеденился к игре"'); }
 		    if ($config->{'show_joins'}) { print "JOIN: $name_by_slot{$slot} has joined the game\n"; }
 		    # Check for banned GUID
-		    &check_banned_guid($guid,$name,$slot);
+		    &check_banned_guid($slot);
         }
 	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
 	}
@@ -900,12 +900,6 @@ while (1) {
     elsif ($voted_no >= $required_yes) {
         &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
 		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-        &vote_cleanup;
-    }
-	# Vote FAIL, ALL players has voted, but not enough YES
-    elsif ((($voted_no+$voted_yes) >= $voting_players) and ($voted_yes < $required_yes)) {
-        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
-		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: ALL players has voted, but not enough YES, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
         &vote_cleanup;
     }
 	# Half-time check
@@ -2467,7 +2461,7 @@ sub status {
 			# update players count
 		    $players_count++;
 			# Check for banned IP
-		    &check_banned_ip($ip,$name,$slot);
+		    &check_banned_ip($slot);
 		}
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
@@ -2519,24 +2513,22 @@ sub status {
 
 # BEGIN: Check for Banned IP
 sub check_banned_ip {
-    my $ip = shift;
-	my $name = shift;
 	my $slot = shift;
 	my @row;
     $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	$bans_sth->execute($ip);
+	$bans_sth->execute($ip_by_slot{$slot});
 	while (@row = $bans_sth->fetchrow_array) {
-	if ($row[3] ne 'undefined') {
+	if ($row[3] ne 'unknown') {
         sleep 1;
-	    &rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+	    &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы забанены. Вы не можете остатся на этом сервере"');
 	    sleep 1;
 	    &rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 	    sleep 1;
-	    if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
-	    else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
+	    if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7У вас перманентный бан."'); }
+	    else { &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
 	    sleep 1;
+		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot} ($row[3]) - (BAN ID#: $row[0])");
 	    &rcon_command("clientkick $slot");
-	    &log_to_file('logs/kick.log', "KICK: BANNED: $name was kicked - banned IP: $ip ($row[3]) - (BAN ID#: $row[0])");
 	    $last_rconstatus = $time;
 	}
 	}
@@ -2545,24 +2537,22 @@ sub check_banned_ip {
 
 # BEGIN: Check for Banned GUID
 sub check_banned_guid {
-    my $guid = shift;
-	my $name = shift;
 	my $slot = shift;
 	my @row;
     $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	$bans_sth->execute($guid);
+	$bans_sth->execute($guid_by_slot{$slot});
 	while (@row = $bans_sth->fetchrow_array) {
 	if ($row[4] != 12345678) {
         sleep 1;
-	    &rcon_command("say " . &strip_color($name) . "^7: " . '"Вы забанены. Вы не можете остатся на этом сервере"');
+	    &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы забанены. Вы не можете остатся на этом сервере"');
 	    sleep 1;
 	    &rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
 	    sleep 1;
-	    if ($row[2] == 2125091758) { &rcon_command("say " . &strip_color($name) . "^7: " . '"^7У вас перманентный бан."'); }
-	    else { &rcon_command("say " . &strip_color($name) . "^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
+	    if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7У вас перманентный бан."'); }
+	    else { &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
 	    sleep 1;
+		&log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot} ($row[4]) - (BAN ID#: $row[0])");
 	    &rcon_command("clientkick $slot");
-	    &log_to_file('logs/kick.log', "KICK: BANNED: $name was kicked - banned GUID: $guid ($row[4]) - (BAN ID#: $row[0])");
 	    $last_rconstatus = $time;
 	}
 	}
@@ -3914,7 +3904,9 @@ sub get_name_by_guid {
     $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 1");
     $guid_to_name_sth->execute($guid) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
 	@row = $guid_to_name_sth->fetchrow_array;
-	return $row[0];
+	if (!$row[0]) { return 'name_not_found'; }
+	elsif ($row[0] =~ /[АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя]/) { return '"' . $row[0] . '"'; }
+	else { return $row[0]; }
 }
 
 sub change_gametype {
