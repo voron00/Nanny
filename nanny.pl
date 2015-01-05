@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r16';
+my $version = '3.4 RUS r17';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1271,17 +1271,17 @@ sub idle_check {
 		        if (!defined($idle_warn_level{$slot})) { $idle_warn_level{$slot} = 0; }
                         if (($idle_warn_level{$slot} < 1) and ($idle_for >= $config->{'antiidle_warn_level_1'})) {
                             print "IDLE_WARN1: Idle Time for $name_by_slot{$slot} has exceeded warn1 threshold: " . duration($config->{'antiidle_warn_level_1'}) . "\n";
-                            &rcon_command("say $name_by_slot{$slot} ^7" . $config->{'antiidle_warn_message_1'} . '  (idle for ' . duration($idle_for) . ')');
+                            &rcon_command("say $name_by_slot{$slot}^7" . $config->{'antiidle_warn_message_1'} . '"(неактивен"' . duration($idle_for) . ")");
                             $idle_warn_level{$slot} = 1;
                         }
 		        if (($idle_warn_level{$slot} < 2) and ($idle_for >= $config->{'antiidle_warn_level_2'})) {
 		            print "IDLE_WARN2: Idle Time for $name_by_slot{$slot} has exceeded warn2 threshold: " . duration($config->{'antiidle_warn_level_2'}) . "\n";
-                    &rcon_command("say $name_by_slot{$slot} ^7" . $config->{'antiidle_warn_message_2'} . '  (idle for ' . duration($idle_for) . ')');
+                    &rcon_command("say $name_by_slot{$slot}^7" . $config->{'antiidle_warn_message_2'} . '"(неактивен"' . duration($idle_for) . ")");
 		            $idle_warn_level{$slot} = 2;
 		        }
 		        if ($idle_for >= $config->{'antiidle_kick_level'}) {
 		            print "KICK: Idle Time for $name_by_slot{$slot} exceeded.\n";
-		            &rcon_command("say $name_by_slot{$slot} ^7" . $config->{'antiidle_kick_message'});
+		            &rcon_command("say $name_by_slot{$slot}^7" . $config->{'antiidle_kick_message'});
                     sleep 1;
 		            &rcon_command("clientkick $slot");
 		            &log_to_file('logs/kick.log', "IDLE: $name_by_slot{$slot} was kicked for being idle for too long" . duration($idle_for));
@@ -1444,7 +1444,7 @@ sub chat {
 	    $definitions_sth->execute($question) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 	    while (@row = $definitions_sth->fetchrow_array) {
 	        print "DATABASE DEFINITION: $row[0]\n";
-	        push @results, "$name^7:" . '"' . "^1$question" . '"' . "^3is: ^2$row[0]";
+	        push @results, "$name^7:" . '"' . "^1$question" . '"' . "^3is:" . '"' . "^2$row[0]" . '"';
 	    }
 	    if ($#results ne -1) {
 	        if (&flood_protection('auto-define', 30, $slot)) { }
@@ -4862,7 +4862,7 @@ sub make_affiliate_server_announcement {
 	    if ($clients == 1 or $clients == 21 or $clients == 31) { $players = '"игрок на"'; }
 		elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32) { $players = '"игрока на"'; }
 	    else { $players = '"игроков на"'; }
-		$line = "^1$clients^7$players ^7$hostname^7 - ^2$mapname^7|^3$gametype^7\n";
+		$line = "^1$clients^7$players ^7$hostname^7 - ^2$mapname^7 |^3$gametype^7\n";
 	    push @results, $line;
 	}
     }
