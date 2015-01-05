@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r20';
+my $version = '3.4 RUS r21';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -95,6 +95,7 @@ my %name_warn_level;
 my $last_namecheck;
 my $rconstatus_interval = 30;
 my $guid_sanity_check_interval = 597;
+my $problematic_characters = "[^\x00-\x99]";
 my $config;
 my $line;
 my $first_char;
@@ -415,7 +416,7 @@ while (1) {
 		$last_killed_by_name{$victim_slot} = $attacker_name;
 		$last_killed_by_guid{$victim_slot} = $attacker_guid;
 
-		if ($last_killed_by_name{$victim_slot} =~ /[јЅ¬√ƒ≈®∆«»… ЋћЌќѕ–—“”‘’÷„ЎўЏџ№ЁёяабвгдеЄжзийклмнопрстуфхцчшщъыьэю€]/) { $last_killed_by_name{$victim_slot} = '"' . $last_killed_by_name{$victim_slot} . '"'; }
+		if ($last_killed_by_name{$victim_slot} =~ /$problematic_characters/) { $last_killed_by_name{$victim_slot} = '"' . $last_killed_by_name{$victim_slot} . '"'; }
 
 		# Glitch Server Mode
 		if ($config->{'glitch_server_mode'}) {
@@ -1443,7 +1444,7 @@ sub chat {
 	    my @row;
 	    my @results;
 	    my $result;
-	    $definitions_sth = $definitions_dbh->prepare('SELECT definition FROM definitions WHERE term=?;');
+	    $definitions_sth = $definitions_dbh->prepare("SELECT definition FROM definitions WHERE term=?;");
 	    $definitions_sth->execute($question) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 	    while (@row = $definitions_sth->fetchrow_array) {
 	        print "DATABASE DEFINITION: $row[0]\n";
@@ -3799,7 +3800,7 @@ sub best {
     &rcon_command("say " . '"^2Ћучшие ^7игроки сервера:"');
     sleep 1;
     # Most Kills
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 0 ORDER BY kills DESC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE kills > 0 ORDER BY kills DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Ќаибольшее количество убийств^7:"');
     sleep 1;
@@ -3810,7 +3811,7 @@ sub best {
     # Best Kill to Death ratio
     $counter = 1;
     sleep 1;
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 100 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE kills > 100 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2»гроки с лучшим к/д соотношением^7:"');
     sleep 1;
@@ -3821,7 +3822,7 @@ sub best {
     # Best Headshot Percentages
     $counter = 1;
     sleep 1;
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE kills > 100 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE kills > 100 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Ћучший процент хедшотов^7:"');
     sleep 1;
@@ -3833,7 +3834,7 @@ sub best {
     # Best Kill Spree
     $counter = 1;
     sleep 1;
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE best_killspree > 2 ORDER BY best_killspree DESC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE best_killspree > 2 ORDER BY best_killspree DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Ћучшие серии убийств^7:"');
     sleep 1;
@@ -3846,7 +3847,7 @@ sub best {
 	# Best Bomb Plants
     $counter = 1;
     sleep 1;
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Ќаибольшее количество заложенной взрывчатки^7:"');
     sleep 1;
@@ -3857,7 +3858,7 @@ sub best {
 	# Best Bomb Defuses
     $counter = 1;
     sleep 1;
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^2Ќаибольшее количество обезвреженной взрывчатки^7:"');
     sleep 1;
@@ -3875,7 +3876,7 @@ sub get_name_by_guid {
     $guid_to_name_sth->execute($guid) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
 	@row = $guid_to_name_sth->fetchrow_array;
 	if (!$row[0]) { return 'name_not_found'; }
-	elsif ($row[0] =~ /[јЅ¬√ƒ≈®∆«»… ЋћЌќѕ–—“”‘’÷„ЎўЏџ№ЁёяабвгдеЄжзийклмнопрстуфхцчшщъыьэю€]/) { return '"' . $row[0] . '"'; }
+	elsif ($row[0] =~ /$problematic_characters/) { return '"' . $row[0] . '"'; }
 	else { return $row[0]; }
 }
 
@@ -4047,7 +4048,7 @@ sub worst {
 	my @row;
     sleep 1;
     # Most deaths
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE deaths > 0 ORDER BY deaths DESC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE deaths > 0 ORDER BY deaths DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say" . '"^1Ќаибольшее количество смертей^7:"');
     sleep 1;
@@ -4058,7 +4059,7 @@ sub worst {
     # Worst k2d ratio
     $counter = 1;
     sleep 1;
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 100) and (deaths > 50)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE ((kills > 100) and (deaths > 50)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1»гроки с худшим к/д соотношением^7:"');
     sleep 1;
@@ -4069,7 +4070,7 @@ sub worst {
     # Worst headshot percentages
     $counter = 1;
     sleep 1;
-    $stats_sth = $stats_dbh->prepare('SELECT * FROM stats WHERE ((kills > 100) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;');
+    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE ((kills > 100) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
     &rcon_command("say " . '"^1’удший процент хедшотов^7:"');
     sleep 1;
@@ -4274,7 +4275,7 @@ sub dictionary {
     }
     # Now, Most imporant are the definitions that have been manually defined.
     # They come first.
-    $definitions_sth = $definitions_dbh->prepare('SELECT definition FROM definitions WHERE term=?;');
+    $definitions_sth = $definitions_dbh->prepare("SELECT definition FROM definitions WHERE term=?;");
     $definitions_sth->execute($word) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
     while (@row = $definitions_sth->fetchrow_array) {
         print "DATABASE DEFINITION: $row[0]\n";
@@ -4720,7 +4721,7 @@ sub update_name_by_slot {
     if ($slot == -1) { return; }
     # strip trailing spaces from the name.
     $name =~ s/\s+$//;
-	if ($name =~ /[јЅ¬√ƒ≈®∆«»… ЋћЌќѕ–—“”‘’÷„ЎўЏџ№ЁёяабвгдеЄжзийклмнопрстуфхцчшщъыьэю€]/) { $name = '"' . $name . '"'; }
+	if ($name =~ /$problematic_characters/) { $name = '"' . $name . '"'; }
 	if ($name =~ /\^\^\d\d/) { $name = &strip_color($name); }
     if (!defined($name_by_slot{$slot})) { $name_by_slot{$slot} = $name; }
     if ($name_by_slot{$slot} ne $name) {
