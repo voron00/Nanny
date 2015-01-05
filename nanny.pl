@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r18';
+my $version = '3.4 RUS r19';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1656,14 +1656,32 @@ sub chat {
 		    if (&flood_protection('undefine', 30, $slot)) { }
 		    else {
 	            my $undefine = $1;
-		        $definitions_sth = $definitions_dbh->prepare('SELECT count(*) FROM definitions WHERE term=?;');
+		        $definitions_sth = $definitions_dbh->prepare("SELECT count(*) FROM definitions WHERE term=?;");
 		        $definitions_sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 		        @row = $definitions_sth->fetchrow_array;
-		        $definitions_sth = $definitions_dbh->prepare('DELETE FROM definitions WHERE term=?;');
+		        $definitions_sth = $definitions_dbh->prepare("DELETE FROM definitions WHERE term=?;");
 		        $definitions_sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 		        if ($row[0] == 1) { &rcon_command("say " . '"^2Удалено одно определение для:"' . '"' . "^1$undefine"); }
 		        elsif ($row[0] > 1) { &rcon_command("say " . '"^2Удалено"' . "^3$row[0]^2" . '"определений для:"' . '"' . "^1$undefine"); }
 		        else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undefine");}
+		    }
+		}
+    }
+	# !undef (word)
+    elsif ($message =~ /^!undef\s+(.+)/i) {
+		if (&check_access('undefine')) {
+		    if (&flood_protection('undef', 30, $slot)) { }
+		    else {
+	            my $undef = $1;
+		        $definitions_sth = $definitions_dbh->prepare("SELECT definition FROM definitions WHERE term=? ORDER BY id DESC LIMIT 1;");
+		        $definitions_sth->execute($undef) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
+		        @row = $definitions_sth->fetchrow_array;
+				if ($row[0]) {
+				    $definitions_sth = $definitions_dbh->prepare("DELETE FROM definitions WHERE definition=?;");
+		            $definitions_sth->execute($row[0]) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
+				    &rcon_command("say " . '"^2Удалено последнее определение для:"' . '"' . "^1$undef"); 
+				}
+				else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undef");}
 		    }
 		}
     }
@@ -4953,6 +4971,7 @@ sub broadcast_message {
 	}
 	else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
     }
+	if (&flood_protection('broadcast', 30, $slot)) { return 1; }
     if ($num_servers == 0) { &rcon_command("say " . '"К сожалению, не найдено настроенных удаленных серверов. Проверьте ваш конфигурационный файл."'); }
     elsif ($num_servers == 1) { &rcon_command("say " . '"Ваше сообщение было успешно передано на другой сервер."'); }
     else { &rcon_command("say " . '"Ваше сообщение было успешно передано на"' . "^1$num_servers" . '"других серверов"'); }
