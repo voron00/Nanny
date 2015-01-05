@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r19';
+my $version = '3.4 RUS r20';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -224,6 +224,8 @@ my $voted_no = 0;
 my $voting_players = 0;
 my $required_yes = 0;
 my $vote_time = 0;
+my $makar_on_server = 0;
+my $makar_name;
 
 # turn on auto-flush for STDOUT
 $| = 1;
@@ -890,7 +892,7 @@ while (1) {
 		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 		}
 		elsif ($vote_type eq 'map') {
-		    &rcon_command("say " . '"^2Смена на:"' . "^3$description{$vote_target}");
+		    &rcon_command("say " . '"^2Смена карты на:"' . "^3$description{$vote_target}");
 			sleep 1;
 			&rcon_command("map $vote_target");
 			&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Changing map to $description{$vote_target}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
@@ -1390,7 +1392,7 @@ sub chat {
 
     # Call Bad shot
     if (($config->{'bad_shots'}) and (!$ignore{$slot})) {
-	if ($message =~ /^!?bs\W*$|^!?bad\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that\s+was\s+(bs|badshot)\W*$/i) {
+	if ($message =~ /^!?bs\W*$|^!?bad\s*shot\W*$|^!?bull\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that\s+was\s+(bs|badshot|bullshit)\W*$/i) {
 	    if ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none') and (&strip_color($last_killed_by_name{$slot}) ne $name)) {
 		if (&flood_protection('badshot', 30, $slot)) {
 		    # bad shot abuse
@@ -1931,6 +1933,8 @@ sub chat {
 	elsif ($message =~ /^!(vote)?no\s*$/i) {
 	    if (&check_access('vote')) { &no($slot,$name); }
 	}
+	# !checkmakar
+	elsif ($message =~ /^!checkmakar\s*$/i) { &check_makar; }
 	# !killcam
 	elsif ($message =~ /^!killcam\s+(.+)/i) {
 	    if (&check_access('killcam')) { &killcam_command($1); }
@@ -2216,125 +2220,65 @@ sub chat {
 	    if (&check_access('audit')) { &check_guid_zero_players; }
 	}
 	# Map Commands
-	# !beltot or !farmhouse command
+	# !beltot or !farmhouse
 	elsif ($message =~ /^!beltot\b|!farmhouse\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: "' . "^3Beltot, France      ^7(mp_farmhouse)");
-		    sleep 1;
-		    &rcon_command('map mp_farmhouse');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_farmhouse'); }
 	}
 	# !villers !breakout !vb !bocage !villers-bocage
 	elsif ($message =~ /^!villers\b|^!breakout\b|^!vb\b|^!bocage\b|^!villers-bocage\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на ^3Villers-Bocage, France      ^7(mp_breakout)"');
-		    sleep 1;
-		    &rcon_command('map mp_breakout');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_breakout'); }
 	}
 	# !brecourt
 	elsif ($message =~ /^!brecourt\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3Brecourt, France"');
-		    sleep 1;
-		    &rcon_command('map mp_brecourt');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_brecourt'); }
 	}
 	# !burgundy  (frequently misspelled, loose matching on vowels)
 	elsif ($message =~ /^!b[ieu]rg[aeiou]?ndy\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3Burgundy, France"');
-		    sleep 1;
-		    &rcon_command('map mp_burgundy');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_burgundy'); }
 	}
 	# !carentan  (frequently misspelled, loose matching on vowels)
 	elsif ($message =~ /^!car[ie]nt[ao]n\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3Carentan, France"');
-		    sleep 1;
-		    &rcon_command('map mp_carentan');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_carentan'); }
 	}
 	# !st.mere !dawnville !eglise !st.mereeglise 
 	elsif ($message =~ /^!(st\.?mere|dawnville|egli[sc]e|st\.?mere.?egli[sc]e)\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3St. Mere Eglise, France      ^7(mp_dawnville)"');
-		    sleep 1;
-		    &rcon_command('map mp_dawnville');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_dawnville'); }
 	}
 	# !el-alamein !egypt !decoy
 	elsif ($message =~ /^!(el.?alamein|egypt|decoy)\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3El Alamein, Egypt      ^7(mp_decoy)"');
-		    sleep 1;
-		    &rcon_command('map mp_decoy');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_decoy'); }
 	}
 	# !moscow !downtown
 	elsif ($message =~ /^!(moscow|downtown)\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3Moscow, Russia      ^7(mp_downtown)"');
-		    sleep 1;
-		    &rcon_command('map mp_downtown');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_downtown'); }
 	}
 	# !leningrad      (commonly misspelled, loose matching) 
 	elsif ($message =~ /^!len+[aeio]ngrad\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3Leningrad, Russia"');
-		    sleep 1;
-		    &rcon_command('map mp_leningrad');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_leningrad'); }
 	}
 	# !matmata
 	elsif ($message =~ /^!matmata\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3Matmata, Tunisia"');
-		    sleep 1;
-		    &rcon_command('map mp_matmata');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_matmata'); }
 	}
 	# !stalingrad !railyard
 	elsif ($message =~ /^!(st[ao]l[ie]ngrad|railyard)\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: ^3Stalingrad, Russia      ^7(mp_railyard)"');
-		    sleep 1;
-		    &rcon_command('map mp_railyard');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_railyard'); }
 	}
 	# !toujane
 	elsif ($message =~ /^!toujane\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: "' . "^3Toujane, Tunisia");
-		    sleep 1;
-		    &rcon_command('map mp_toujane');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_toujane'); }
 	}
 	# !caen  !trainstation
 	elsif ($message =~ /^!(caen|train.?station)\b/i) {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: "' . "^3Caen, France      ^7(mp_trainstation)");
-		    sleep 1;
-		    &rcon_command('map mp_trainstation');
-	    }
+	    if (&check_access('map_control')) { &change_map('mp_trainstation'); }
 	}
     # !rostov  !harbor
-	elsif ($message =~ /^!(harbor|rostov)\b/i and $cod_version eq '1.3') {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: "' . "^3Rostov, Russia      ^7(mp_harbor)");
-		    sleep 1;
-		    &rcon_command('map mp_harbor');
-		}
+	elsif ($message =~ /^!(harbor|rostov)\b/i and $cod_version ne '1.0') {
+	    if (&check_access('map_control')) { &change_map('mp_harbor'); }
 	}
 	# !rhine  !wallendar
-	elsif ($message =~ /^!(rhine|wallendar)\b/i and $cod_version eq '1.3') {
-	    if (&check_access('map_control')) {
-		    &rcon_command("say " . '"^2Смена на: "' . "^3Wallendar, Germany      ^7(mp_rhine)");
-		    sleep 1;
-		    &rcon_command('map mp_rhine');
-	    }
+	elsif ($message =~ /^!(rhine|wallendar)\b/i and $cod_version ne '1.0') {
+	    if (&check_access('map_control')) { &change_map('mp_rhine'); }
 	}
 	# End of Map Commands
 	# !time
@@ -2439,6 +2383,8 @@ sub status {
     print "$status\n";
     my @lines = split(/\n/,$status);
 	$players_count = 0;
+	$makar_on_server = 0;
+	$makar_name = undef;
     foreach (@lines) {
 	if (/^map:\s+(\w+)$/) { $map_name = $1; }
 	if (/^[\sX]+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
@@ -2449,6 +2395,11 @@ sub status {
 	    $ping_by_slot{$slot} = $ping;
 	    # update name by slot
 		&update_name_by_slot($name, $slot);
+		# cache MaKaR
+		if ($guid == 708524 or $guid == 721587) {
+		    $makar_on_server = 1;
+			$makar_name = $name_by_slot{$slot};
+		}
 	    # cache the guid
 	    $guid_by_slot{$slot} = $guid;
         # cache slot to IP mappings
@@ -3928,6 +3879,22 @@ sub get_name_by_guid {
 	else { return $row[0]; }
 }
 
+sub change_map {
+    my $map = shift;
+    if (!defined($map)) {
+	    print "WARNING: change_map was called without a map\n";
+	    return 1;
+	}
+    if ($map !~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|trainstation|harbor|rhine)$/) {
+	    print "WARNING: change_map was called with an invalid map: $map\n";
+        return 1;
+	}
+    if (&flood_protection('map', 30, $slot)) { return 1; }
+    &rcon_command("say " . '"^2Смена карты на^7:^3"' . ($description{$map}));
+    &rcon_command("map $map");
+    &log_to_file('logs/commands.log', "$name changed map to: $map");
+}
+
 sub change_gametype {
     my $gametype = shift;
     if (!defined($gametype)) {
@@ -3941,9 +3908,8 @@ sub change_gametype {
     if (&flood_protection('gametype', 30, $slot)) { return 1; }
     &rcon_command("say " . '"^2Смена режима игры на^7:^3"' . ($description{$gametype}));
     &rcon_command("g_gametype $gametype");
-    sleep 1;
     &rcon_command("map_restart");
-    &log_to_file('logs/commands.log', "$name change the game type to: $gametype");
+    &log_to_file('logs/commands.log', "$name changed gametype to: $gametype");
 }
 
 # BEGIN: check_player_names
@@ -5079,4 +5045,13 @@ sub vote {
 	    &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
     }
     }
+}
+
+# BEGIN: check_makar
+sub check_makar {
+    if (&flood_protection('check_makar', 30, $slot)) { return 1; }
+    if (($makar_on_server) and (defined($makar_name)) and ($makar_name ne 'SLOT_EMPTY')) {
+        &rcon_command("say " . '"Макар есть на сервере и играет под ником"' . "^1$makar_name");
+    }
+    else { &rcon_command("say " . '"В данный момент Макара на сервере нет"'); }
 }
