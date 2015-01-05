@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r17';
+my $version = '3.4 RUS r18';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -411,13 +411,14 @@ while (1) {
 		$guid_by_slot{$attacker_slot} = $attacker_guid;
 		$guid_by_slot{$victim_slot} = $victim_guid;
 		$last_killed_by_name{$victim_slot} = $attacker_name;
-		if ($last_killed_by_name{$victim_slot} =~ /[јЅ¬√ƒ≈®∆«»… ЋћЌќѕ–—“”‘’÷„ЎўЏџ№ЁёяабвгдеЄжзийклмнопрстуфхцчшщъыьэю€]/) { $last_killed_by_name{$victim_slot} = '"' . $last_killed_by_name{$victim_slot} . '"'; }
 		$last_killed_by_guid{$victim_slot} = $attacker_guid;
+
+		if ($last_killed_by_name{$victim_slot} =~ /[јЅ¬√ƒ≈®∆«»… ЋћЌќѕ–—“”‘’÷„ЎўЏџ№ЁёяабвгдеЄжзийклмнопрстуфхцчшщъыьэю€]/) { $last_killed_by_name{$victim_slot} = '"' . $last_killed_by_name{$victim_slot} . '"'; }
 
 		# Glitch Server Mode
 		if ($config->{'glitch_server_mode'}) {
-			print "GLITCH SERVER MODE:  " . &strip_color($attacker_name) . " killed someone. Kicking!\n";
-			&rcon_command("say ^1" . $attacker_name . "^7:" . $config->{'glitch_kill_kick_message'});
+			print "GLITCH SERVER MODE: $name_by_slot{$attacker_slot} killed someone. Kicking!\n";
+			&rcon_command("say ^1$name_by_slot{$attacker_slot}^7:" . $config->{'glitch_kill_kick_message'});
 			sleep 1;
 			&rcon_command("clientkick $attacker_slot");
 			&log_to_file('logs/kick.log', "GLITCH_KILL: Murderer! Kicking $attacker_name for killing other people");
@@ -502,24 +503,24 @@ while (1) {
 
 		# print the kill to the screen
 		if ($damage_location eq 'head') {
-		    if ($config->{'show_headshots'}) { print "HEADSHOT: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . " - HEADSHOT!\n"; }
-		    &log_to_file('logs/kills.log', "HEADSHOT: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . " - HEADSHOT!");
+		    if ($config->{'show_headshots'}) { print "HEADSHOT: $name_by_slot{$attacker_slot} killed $name_by_slot{$victim_slot} - HEADSHOT!\n"; }
+		    &log_to_file('logs/kills.log', "HEADSHOT: $name_by_slot{$attacker_slot} killed $name_by_slot{$victim_slot} - HEADSHOT!");
 		}
 		else {
-		    if ($victim_slot eq $attacker_slot) { &log_to_file('logs/kills.log', "SUICIDE: " . &strip_color($attacker_name) . " killed himself"); }
-			elsif ($damage_type eq 'MOD_FALLING') { &log_to_file('logs/kills.log', "FALL: " . &strip_color($victim_name) . " fell to their death"); }
-			else { &log_to_file('logs/kills.log', "KILL: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name)); }
+		    if ($victim_slot eq $attacker_slot) { &log_to_file('logs/kills.log', "SUICIDE: $name_by_slot{$attacker_slot} killed himself"); }
+			elsif ($damage_type eq 'MOD_FALLING') { &log_to_file('logs/kills.log', "FALL: $name_by_slot{$victim_slot} fell to their death"); }
+			else { &log_to_file('logs/kills.log', "KILL: $name_by_slot{$attacker_slot} killed $name_by_slot{$victim_slot}"); }
 		    if ($config->{'show_kills'}) {
-			    if ($victim_slot eq $attacker_slot) { print "SUICIDE: " . &strip_color($attacker_name) . " killed himself\n"; }
-			    elsif ($damage_type eq 'MOD_FALLING') { print "FALL: " . &strip_color($victim_name) . " fell to their death\n"; }
-			    else { print "KILL: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . "\n"; }
+			    if ($victim_slot eq $attacker_slot) { print "SUICIDE: $name_by_slot{$attacker_slot} killed himself\n"; }
+			    elsif ($damage_type eq 'MOD_FALLING') { print "FALL: $name_by_slot{$victim_slot} fell to their death\n"; }
+			    else { print "KILL: $name_by_slot{$attacker_slot} killed $name_by_slot{$victim_slot}\n"; }
 		    }
 		}
 		# First Blood
 		if (($config->{'first_blood'}) and ($first_blood == 0) and ($attacker_slot ne $victim_slot) and ($attacker_slot >= 0)) {
 		    $first_blood = 1;
-		    &rcon_command("say " . '"ѕ≈–¬јя  –ќ¬№:^1"' . &strip_color($attacker_name) . '"^7убил^2"' . &strip_color($victim_name));
-		    print "FIRST BLOOD: " . &strip_color($attacker_name) . " killed " . &strip_color($victim_name) . "\n";
+		    &rcon_command("say " . '"ѕ≈–¬јя  –ќ¬№:^1"' . "$name_by_slot{$attacker_slot}" . '"^7убил^2"' . "$name_by_slot{$victim_slot}");
+		    print "FIRST BLOOD: $name_by_slot{$attacker_slot} killed $name_by_slot{$victim_slot}\n";
 			# First blood stats tracking
 			if ($attacker_guid) {
 			    $stats_sth = $stats_dbh->prepare("UPDATE stats SET first_bloods = first_bloods + 1 WHERE guid=?");
@@ -540,9 +541,9 @@ while (1) {
 			        if (($victim_guid) and (defined($row[0])) and ($row[0] < $best_spree{$victim_slot})) {
 			    	    $stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE guid=?");
 				        $stats_sth->execute($best_spree{$victim_slot}, $victim_guid) or &die_nice("Unable to update stats\n");
-				        &rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил ^2*^1–≈ ќ–ƒЌ”ё^2* ^7серию убийств дл€ игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^6$kill_spree{$victim_slot}" . '"^7человек"');
+				        &rcon_command("say ^1$name_by_slot{$attacker_slot}" . '"^7остановил ^2*^1–≈ ќ–ƒЌ”ё^2* ^7серию убийств дл€ игрока"' . "^2$name_by_slot{$victim_slot}" . '"^7который убил"' . "^6$kill_spree{$victim_slot}" . '"^7человек"');
 			    	}
-                    else { &rcon_command("say ^1" . &strip_color($attacker_name) . '"^7остановил серию убийств игрока^2"' . &strip_color($victim_name) . '"^7который убил"' . "^6$kill_spree{$victim_slot}" . '"^7человек"'); }
+                    else { &rcon_command("say ^1$name_by_slot{$attacker_slot}" . '"^7остановил серию убийств игрока"' . "^2$name_by_slot{$victim_slot}" . '"^7который убил"' . "^6$kill_spree{$victim_slot}" . '"^7человек"'); }
 			    }
 		    }
 		    $kill_spree{$victim_slot} = 0;
@@ -918,7 +919,7 @@ while (1) {
 		    ($next_gametype,$next_map) = ($1,$2);
 		    if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype; }
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map; }
-		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n"; 
+		    print "Next Map: " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n"; 
 		    $freshen_next_map_prediction = 0;
 	    }
 		else {
@@ -927,7 +928,7 @@ while (1) {
 		    ($next_gametype,$next_map) = ($1,$2);
 		    if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype; }
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map; }
-		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
+		    print "Next Map: " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
 		    $freshen_next_map_prediction = 0;
 		}
 		# If maprotation contatins only space(empty) character, next map and gametype will be current map and gametype
@@ -935,7 +936,7 @@ while (1) {
 		    ($next_gametype,$next_map) = ($game_type,$map_name);
 	        if (!defined($description{$next_gametype})) { $description{$next_gametype} = $next_gametype; }
 		    if (!defined($description{$next_gametype})) { $description{$next_map} = $next_map; }
-		    print "Next Map:  " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
+		    print "Next Map: " . $description{$next_map} .  " and Next Gametype: " .  $description{$next_gametype} . "\n";
 		    $freshen_next_map_prediction = 0;
 		}
 		else {
@@ -1813,13 +1814,13 @@ sub chat {
 	elsif ($message =~ /^!reset/i) {
 	    if (&check_access('reset')) {
             &reset;
-		    &rcon_command("say " . '"’орошо"' . "$name^7," . '" сбрасываю параметры..."');
+		    &rcon_command("say " . '"’орошо"' . "$name," . '"^7сбрасываю параметры..."');
 		}
 	}
 	# !reboot
 	elsif ($message =~ /^!reboot/i) {
 	    if (&check_access('reboot')) {
-		    &rcon_command("say " . '"’орошо"' . "$name^7," . '" перезапускаю себ€..."');
+		    &rcon_command("say " . '"’орошо"' . "$name," . '"^7перезапускаю себ€..."');
             exec 'perl nanny.pl';
 	    }
 	}
