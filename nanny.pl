@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r21';
+my $version = '3.4 RUS r22';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -1134,9 +1134,9 @@ sub initialize_databases {
     my $cmd;
     my $result_code;
     # populate the list of tables already in the databases.
-    $sth = $guid_to_name_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $guid_to_name_sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+    foreach ($guid_to_name_sth->fetchrow_array) { $tables{$_} = $_; }
     # The GUID to NAME database
     if ($tables{'guid_to_name'}) { print "GUID <-> NAME database brought online\n\n"; }
     else {
@@ -1149,9 +1149,9 @@ sub initialize_databases {
 	    if (!$result_code) { print "ERROR: $result_code rows were inserted\n"; }
     }
     # The IP to GUID mapping table
-    $sth = $ip_to_guid_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $ip_to_guid_sth = $ip_to_guid_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $ip_to_guid_sth->execute or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
+    foreach ($ip_to_guid_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'ip_to_guid'}) { print "IP <-> GUID database brought online\n\n"; }
     else {
 	    print "Creating ip_to_guid database...\n\n";
@@ -1163,9 +1163,9 @@ sub initialize_databases {
 	    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
     # The IP to NAME mapping table
-    $sth = $ip_to_name_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $ip_to_name_sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+    foreach ($ip_to_name_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'ip_to_name'}) { print "IP <-> NAME database brought online\n\n"; }
     else {
 	    print "Creating ip_to_name database...\n\n";
@@ -1177,9 +1177,9 @@ sub initialize_databases {
 	    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
     # The seen database
-    $sth = $seen_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $seen_sth = $seen_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $seen_sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
+    foreach ($seen_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'seen'}) { print "seen database brought online\n\n"; }
     else {
 	    print "Creating seen database...\n\n";
@@ -1191,9 +1191,9 @@ sub initialize_databases {
 	   if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
 	# The names database
-    $sth = $names_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $names_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $names_sth = $names_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $names_sth->execute or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+    foreach ($names_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'names'}) { print "names database brought online\n\n"; }
     else {
 	    print "Creating names database...\n\n";
@@ -1205,9 +1205,9 @@ sub initialize_databases {
 	    if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
 	# The ranks database
-    $sth = $ranks_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $ranks_sth = $ranks_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $ranks_sth->execute or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+    foreach ($ranks_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'ranks'}) { print "ranks database brought online\n\n"; }
     else {
 	    print "Creating ranks database...\n\n";
@@ -1219,9 +1219,9 @@ sub initialize_databases {
 	   if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
     # The bans database
-    $sth = $bans_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $bans_sth = $bans_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $bans_sth->execute or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
+    foreach ($bans_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'bans'}) { print "bans database brought online\n\n"; }
     else {
         print "Creating bans database...\n\n";
@@ -1233,9 +1233,9 @@ sub initialize_databases {
         if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
     # The definitions database
-    $sth = $definitions_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $definitions_sth = $definitions_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $definitions_sth->execute or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
+    foreach ($definitions_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'definitions'}) { print "definitions database brought online\n\n"; }
     else {
         print "Creating definitions database...\n\n";
@@ -1247,9 +1247,9 @@ sub initialize_databases {
         if (!$result_code) { print "ERROR: $result_code indexes were created\n"; }
     }
     # The stats database
-    $sth = $stats_dbh->prepare("SELECT name FROM SQLITE_MASTER");
-    $sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-    foreach ($sth->fetchrow_array) { $tables{$_} = $_; }
+    $stats_sth = $stats_dbh->prepare("SELECT name FROM SQLITE_MASTER");
+    $stats_sth->execute or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
+    foreach ($stats_sth->fetchrow_array) { $tables{$_} = $_; }
     if ($tables{'stats'}) { print "stats database brought online\n\n"; }
     else {
 	    print "Creating stats database\n\n";
@@ -1845,6 +1845,34 @@ sub chat {
             exec 'perl nanny.pl';
 	    }
 	}
+	# !checkmakar
+	elsif ($message =~ /^!checkmakar\s*$/i) {
+	    if (&flood_protection('check_makar', 30, $slot)) { }
+        elsif (($makar_on_server) and (defined($makar_name)) and ($makar_name ne 'SLOT_EMPTY')) { &rcon_command("say " . '"Макар есть на сервере и играет под ником"' . "^1$makar_name"); }
+        else { &rcon_command("say " . '"В данный момент Макара на сервере нет"'); }
+	}
+	# !fixdb
+    elsif ($message =~ /^!fix(db|databases?)/i) {
+            if (&check_access('fixdb')) {
+			if (&flood_protection('fixdb', 30, $slot)) { }
+			else {
+                $ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name WHERE length(name) > 31;");
+                $ip_to_name_sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+                @row = $ip_to_name_sth->fetchrow_array;
+                $ip_to_name_sth = $ip_to_name_dbh->prepare("DELETE FROM ip_to_name WHERE length(name) > 31;");
+                $ip_to_name_sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+                if ($row[0] == 1) { &rcon_command("say " . '"^7Удалено одно поврежденное имя из базы ^2IP <-> NAME"'); }
+				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^3$row[0]^7" . '"поврежденных имен из базы ^2IP <-> NAME"'); }
+				$guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE length(name) > 31;");
+                $guid_to_name_sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+                @row = $guid_to_name_sth->fetchrow_array;
+                $guid_to_name_sth = $guid_to_name_dbh->prepare("DELETE FROM guid_to_name WHERE length(name) > 31;");
+                $guid_to_name_sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+                if ($row[0] == 1) { &rcon_command("say " . '"^7Удалено одно поврежденное имя из базы ^2GUID <-> NAME"'); }
+				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^3$row[0]^7" . '"поврежденных имен из базы ^2GUID <-> NAME'); }
+				}
+            }
+    }
 	# !version
 	elsif ($message =~ /^!ver(sion)?\b/i) {
 	    if (&check_access('version')) {
@@ -1934,8 +1962,6 @@ sub chat {
 	elsif ($message =~ /^!(vote)?no\s*$/i) {
 	    if (&check_access('vote')) { &no($slot,$name); }
 	}
-	# !checkmakar
-	elsif ($message =~ /^!checkmakar\s*$/i) { &check_makar; }
 	# !killcam
 	elsif ($message =~ /^!killcam\s+(.+)/i) {
 	    if (&check_access('killcam')) { &killcam_command($1); }
@@ -2428,7 +2454,7 @@ sub status {
 		    }
 		}
 	    }
-		if ($ping ne 'CNCT' or $ping ne '999' or $ping ne 'ZMBI') {
+		if ($ping ne 'CNCT' or $ping != 999 or $ping ne 'ZMBI') {
 			# update players count
 		    $players_count++;
 			# Check for banned IP
@@ -2436,9 +2462,9 @@ sub status {
 		}
 	    # Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 	    if ($ping ne 'CNCT') {
-		if ($ping eq '999') {
+		if ($ping == 999) {
 		    if (!defined($last_ping_by_slot{$slot})) { $last_ping_by_slot{$slot} = 0; }
-		    if (($last_ping_by_slot{$slot} eq '999') and ($config->{'ping_enforcement'}) and ($config->{'999_quick_kick'})) {
+		    if (($last_ping_by_slot{$slot} == 999) and ($config->{'ping_enforcement'}) and ($config->{'999_quick_kick'})) {
 			    print "PING ENFORCEMENT: 999 ping for $name\n";
 			    &rcon_command("say " . &strip_color($name) . '"^7был выкинут за 999 пинг"');
 			    sleep 1;
@@ -3041,7 +3067,7 @@ sub sanitize_regex {
 	    print "WARNING: sanitize_regex was not passed a string\n";
 	    return '';
     }
-    if (($search_string eq '*') or ($search_string eq '.') or ($search_string eq 'all')) { return '.'; }
+    if ($search_string eq 'all') { return '.'; }
 	
     $search_string =~ s/\\/\\\\/g;
     $search_string =~ s/\./\\./g;
@@ -3153,7 +3179,7 @@ sub clear_stats {
     elsif ($#matches == 0) {
 	    $victim_guid = $guid_by_slot{$matches[0]};
 	    $victim_name = $name_by_slot{$matches[0]};
-	    $stats_sth = $stats_dbh->prepare('DELETE FROM stats where guid=?;');
+	    $stats_sth = $stats_dbh->prepare("DELETE FROM stats where guid=?;");
         $stats_sth->execute($guid) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	    &rcon_command("say " . '"Удалена статистика для:"' . "^1$victim_name^7 (^2GUID^7 - ^3$victim_guid^7)");
 		&log_to_file('logs/admin.log', "!CLEARSTATS: $victim_name (GUID - $victim_guid) stats were deleted by $name - GUID $guid - (Search: $search_string)");
@@ -3174,11 +3200,10 @@ sub clear_names {
 	    $victim_guid = $guid_by_slot{$matches[0]};
 	    $victim_name = $name_by_slot{$matches[0]};
 	    $victim_ip = $ip_by_slot{$matches[0]};
-	    # Strip '?' if guessed ip
-	    if ($victim_ip =~ /\?$/) { $victim_ip =~ s/\?$//; }
-	    $guid_to_name_sth = $guid_to_name_dbh->prepare('DELETE FROM guid_to_name where guid=?;');
+	    if ($victim_ip =~ /\?$/) { return 1; }
+	    $guid_to_name_sth = $guid_to_name_dbh->prepare("DELETE FROM guid_to_name where guid=?;");
         $guid_to_name_sth->execute($victim_guid) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-	    $ip_to_name_sth = $ip_to_name_dbh->prepare('DELETE FROM ip_to_name where ip=?;');
+	    $ip_to_name_sth = $ip_to_name_dbh->prepare("DELETE FROM ip_to_name where ip=?;");
         $ip_to_name_sth->execute($victim_ip) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
 	    &rcon_command("say " . '"Удалены имена для:"' . "^1$victim_name");
 		&log_to_file('logs/admin.log', "!CLEARNAMES: $victim_name names were deleted by $name - GUID $guid - (Search: $search_string)");
@@ -3410,65 +3435,65 @@ sub database_info {
     my $message = shift;
 	my @row;
     if ($message =~ /^bans(.db)?$/i) {
-        $sth = $bans_dbh->prepare("SELECT count(*) FROM bans");
-        $sth->execute() or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $bans_sth = $bans_dbh->prepare("SELECT count(*) FROM bans");
+        $bans_sth->execute() or &die_nice("Unable to execute query: $bans_dbh->errstr\n");
+        @row = $bans_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2bans.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2bans.db ^7нет записей"'); }
     }
     elsif ($message =~ /^definitions(.db)?$/i) {
-        $sth = $definitions_dbh->prepare("SELECT count(*) FROM definitions");
-        $sth->execute() or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $definitions_sth = $definitions_dbh->prepare("SELECT count(*) FROM definitions");
+        $definitions_sth->execute() or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
+        @row = $definitions_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2definitions.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2definitions.db ^7нет записей"'); }
     }
     elsif ($message =~ /^guid_to_name(.db)?$/i) {
-        $sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name");
-        $sth->execute() or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name");
+        $guid_to_name_sth->execute() or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+        @row = $guid_to_name_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2guid_to_name.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2guid_to_name.db ^7нет записей"'); }
     }
     elsif ($message =~ /^ip_to_guid(.db)?$/i) {
-        $sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid");
-        $sth->execute() or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $ip_to_guid_sth = $ip_to_guid_dbh->prepare("SELECT count(*) FROM ip_to_guid");
+        $ip_to_guid_sth->execute() or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
+        @row = $ip_to_guid_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_guid.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2ip_to_guid.db ^7нет записей"'); }
     }
     elsif ($message =~ /^ip_to_name(.db)?$/i) {
-        $sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name");
-        $sth->execute() or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name");
+        $ip_to_name_sth->execute() or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+        @row = $ip_to_name_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ip_to_name.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2ip_to_name.db ^7нет записей"'); }
     }
     elsif ($message =~ /^names(.db)?$/i) {
-        $sth = $names_dbh->prepare("SELECT count(*) FROM names");
-        $sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $names_sth = $names_dbh->prepare("SELECT count(*) FROM names");
+        $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
+        @row = $names_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2names.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2names.db ^7нет записей"'); }
     }
     elsif ($message =~ /^ranks(.db)?$/i) {
-        $sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks");
-        $sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $ranks_sth = $ranks_dbh->prepare("SELECT count(*) FROM ranks");
+        $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
+        @row = $ranks_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2ranks.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2ranks.db ^7нет записей"'); }
     }
     elsif ($message =~ /^seen(.db)?$/i) {
-        $sth = $seen_dbh->prepare("SELECT count(*) FROM seen");
-        $sth->execute() or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $seen_sth = $seen_dbh->prepare("SELECT count(*) FROM seen");
+        $seen_sth->execute() or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
+        @row = $seen_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2seen.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2seen.db ^7нет записей"'); }
     }
     elsif ($message =~ /^stats(.db)?$/i) {
-        $sth = $stats_dbh->prepare("SELECT count(*) FROM stats");
-        $sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-        @row = $sth->fetchrow_array;
+        $stats_sth = $stats_dbh->prepare("SELECT count(*) FROM stats");
+        $stats_sth->execute() or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+        @row = $stats_sth->fetchrow_array;
         if ($row[0]) { &rcon_command("say ^3$row[0]" . '"^7записей в базе данных ^2stats.db"'); }
         else { &rcon_command("say " . '"В базе данных ^2stats.db ^7нет записей"'); }
     }
@@ -5046,13 +5071,4 @@ sub vote {
 	    &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
     }
     }
-}
-
-# BEGIN: check_makar
-sub check_makar {
-    if (&flood_protection('check_makar', 30, $slot)) { return 1; }
-    if (($makar_on_server) and (defined($makar_name)) and ($makar_name ne 'SLOT_EMPTY')) {
-        &rcon_command("say " . '"Макар есть на сервере и играет под ником"' . "^1$makar_name");
-    }
-    else { &rcon_command("say " . '"В данный момент Макара на сервере нет"'); }
 }
