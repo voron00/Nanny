@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r22';
+my $version = '3.4 RUS r23';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -234,6 +234,15 @@ $| = 1;
 # shake the snow-globe.
 srand;
 
+# initialize the timers
+$time = time;
+$last_idlecheck = $time;
+$last_rconstatus = 0;
+$last_namecheck = $time;
+$last_guid0_audit = $time;
+$last_guid_sanity_check = $time;
+$timestring = scalar(localtime($time));
+
 # Read the configuration from the .cfg file.
 &load_config_file('nanny.cfg');
 
@@ -244,6 +253,10 @@ if ($logfile_mode eq 'local') {
     seek(LOGFILE, 0, 2);
 }
 else { &ftp_connect }
+
+# use interval for first announcement that defined in config
+$next_announcement = $time + (60*($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1))));
+$next_affiliate_announcement = $time + $config->{'affiliate_server_announcement_interval'};
 
 # Initialize the database tables if they do not exist
 &initialize_databases;
@@ -273,18 +286,6 @@ print "                   Последняя Русская версия доступна на:\n";
 print "                     https://github.com/voron00/Nanny\n\n";
 
 print "================================================================================\n";
-
-# initialize the timers
-$time = time;
-$last_idlecheck = $time;
-$last_rconstatus = 0;
-$last_namecheck = $time;
-$last_guid0_audit = $time;
-$last_guid_sanity_check = $time;
-$timestring = scalar(localtime($time));
-# use interval for first announcement that defined in config
-if ($config->{'use_announcements'}) { $next_announcement = $time + (60*($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1)))); }
-if ($config->{'affiliate_server_announcements'}) { $next_affiliate_announcement = $time + $config->{'affiliate_server_announcement_interval'}; }
 
 # create the rcon control object - this is how we send commands to the console
 my $rcon = new KKrcon (Host => $config->{'ip'}, Port => $config->{'port'}, Password => $config->{'rcon_pass'}, Type => 'old');
@@ -3334,7 +3335,7 @@ sub name_player {
     $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
 	@row = $names_sth->fetchrow_array;
 	if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено имен в базе данных"'); }
-	&rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$row[1]" . '"');
+	else { &rcon_command("say " . '"Игрока"' . "^2$name_by_slot{$slot}" . '"^7зовут"' . '"' . "^3$row[1]" . '"'); }
 }
 
 # BEGIN: !rank($search_string)
@@ -3359,7 +3360,7 @@ sub rank_player {
     $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
 	@row = $ranks_sth->fetchrow_array;
 	if (!$row[0]) { &rcon_command("say " . '"К сожалению, не найдено рангов в базе данных"'); }
-	&rcon_command("say ^1$name_by_slot{$slot}^7:" . '"Твой ранг:"' . '"' . "^3$row[1]" . '"');
+	else { &rcon_command("say ^1$name_by_slot{$slot}^7:" . '"Твой ранг:"' . '"' . "^3$row[1]" . '"'); }
 }
 
 # BEGIN: !addname($name)
@@ -4255,7 +4256,7 @@ sub tell {
 # BEGIN: !lastbans($number);
 sub last_bans {
     my $number = shift;
-	my @row;
+    my @row;
     # keep some sane limits.
     if ($number > 10) { $number = 10; }
     if ($number < 0) { $number = 1; }
@@ -4264,12 +4265,12 @@ sub last_bans {
     $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
     while (@row = $bans_sth->fetchrow_array) {
-        if ($row[0]) {
+        if (!$row[0]) { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
+        else {
             my $txt_time = &duration($time - $row[1]);
             &rcon_command("say ^2$row[5]" . '"^7был забанен"' . "$txt_time" . '"назад"' . "(BAN ID#: ^1$row[0]^7, IP - ^3$row[3]^7, GUID - ^3$row[4]^7)");
             sleep 1;
         }
-        else { &rcon_command("say " . '"В последнее время не было забаненных игроков."'); }
     }
 }
 # END: lastbans($number);
@@ -4466,7 +4467,7 @@ sub fisher_yates_shuffle {
 }
 
 sub tan {
- sin($_[0]) / cos($_[0])
+    sin($_[0]) / cos($_[0])
 }
 
 sub random_pwd {
@@ -4477,23 +4478,23 @@ sub random_pwd {
 
 sub reset {
     foreach $reset_slot (keys %last_activity_by_slot) {
-	    $last_activity_by_slot{$reset_slot} = 'gone';
+        $last_activity_by_slot{$reset_slot} = 'gone';
         $idle_warn_level{$reset_slot} = 0;
-	    &update_name_by_slot('SLOT_EMPTY', $reset_slot);
-	    $ip_by_slot{$reset_slot} = 'not_yet_known';
-	    $guid_by_slot{$reset_slot} = 0;
-	    $spam_count{$reset_slot} = 0;
-		$spam_last_said{$slot} = &random_pwd(6);
-		$ping_by_slot{$slot} = 0;
-		$last_ping_by_slot{$reset_slot} = 0;
-		$penalty_points{$reset_slot} = 0;
-		$last_killed_by_name{$reset_slot} = 'none';
-		$last_killed_by_guid{$slot} = 0;
-		$kill_spree{$reset_slot} = 0;
-		$best_spree{$reset_slot} = 0;
-		$ignore{$reset_slot} = 0;
-		$last_rconstatus = 0;
-	}
+	&update_name_by_slot('SLOT_EMPTY', $reset_slot);
+	$ip_by_slot{$reset_slot} = 'not_yet_known';
+	$guid_by_slot{$reset_slot} = 0;
+	$spam_count{$reset_slot} = 0;
+	$spam_last_said{$slot} = &random_pwd(6);
+	$ping_by_slot{$slot} = 0;
+	$last_ping_by_slot{$reset_slot} = 0;
+	$penalty_points{$reset_slot} = 0;
+	$last_killed_by_name{$reset_slot} = 'none';
+	$last_killed_by_guid{$slot} = 0;
+	$kill_spree{$reset_slot} = 0;
+	$best_spree{$reset_slot} = 0;
+	$ignore{$reset_slot} = 0;
+	$last_rconstatus = 0;
+    }
 }
 
 sub vote_cleanup {
@@ -4524,7 +4525,7 @@ sub vote_cleanup {
     if ($config->{'use_passive_ftp'}) {
 	    print "Using Passive ftp mode...\n\n";
 	    $ftp->pasv or &die_nice($ftp->message);
-	}
+    }
     $ftp_lines and &ftp_getNlines;
     $ftp_type = $ftp->binary;
     $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
@@ -4961,9 +4962,9 @@ sub broadcast_message {
 	    $rcon = new KKrcon (Host => $ip_address, Port => $port, Password => $password, Type => 'old');
 	    print $rcon->execute($message);
 	}
-	else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
+    else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
     }
-	if (&flood_protection('broadcast', 30, $slot)) { return 1; }
+    if (&flood_protection('broadcast', 30, $slot)) { return 1; }
     if ($num_servers == 0) { &rcon_command("say " . '"К сожалению, не найдено настроенных удаленных серверов. Проверьте ваш конфигурационный файл."'); }
     elsif ($num_servers == 1) { &rcon_command("say " . '"Ваше сообщение было успешно передано на другой сервер."'); }
     else { &rcon_command("say " . '"Ваше сообщение было успешно передано на"' . "^1$num_servers" . '"других серверов"'); }
@@ -4987,11 +4988,11 @@ sub exchange {
     my $euro;
     my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $today);
     if (defined($content)) {
-	    if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
-	    if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
-	    if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1 }
-	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
-	    if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
+        if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
+        if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
+        if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1 }
+        if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
+        if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
     }
     else { &rcon_command("say " . '"Сайт ЦБ РФ в настоящее время недоступен, повторите попытку позже"'); }
 }
@@ -5007,30 +5008,30 @@ sub vote {
     if ($#matches == 0) {
         if (&flood_protection('vote', 120)) { return 1; }
         $vote_target = $name_by_slot{$matches[0]};
-	    if ($vote_type eq 'kick') { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Выкинуть"' . "^1$vote_target"); }
-	    else { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Временно забанить"' . "^1$vote_target"); }
-	    $voting_players = $players_count;
-	    if (!$voting_players) {
-	        &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
-	        return 1;
-	    }
-		if ($vote_type eq 'kick') { &log_to_file('logs/voting.log', "!VOTEKICK: $vote_initiator has started a vote: kick $vote_target"); }
-		else { &log_to_file('logs/voting.log', "!VOTEBAN: $vote_initiator has started a vote: temporary ban $vote_target"); }
-	    $vote_time = $time + $vote_timelimit;
-	    $required_yes = ($voting_players/2)+1;
-	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
-	    sleep 1;
-	    &rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
-	    $vote_started = 1;
-	    sleep 1;
-	    &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
+	if ($vote_type eq 'kick') { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Выкинуть"' . "^1$vote_target"); }
+	else { &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Временно забанить"' . "^1$vote_target"); }
+	$voting_players = $players_count;
+	if (!$voting_players) {
+	    &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
+           return 1
+        }
+	if ($vote_type eq 'kick') { &log_to_file('logs/voting.log', "!VOTEKICK: $vote_initiator has started a vote: kick $vote_target"); }
+	else { &log_to_file('logs/voting.log', "!VOTEBAN: $vote_initiator has started a vote: temporary ban $vote_target"); }
+	$vote_time = $time + $vote_timelimit;
+	$required_yes = ($voting_players/2)+1;
+	if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
+	sleep 1;
+	&rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
+	$vote_started = 1;
+	sleep 1;
+	&rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
     }
     elsif ($#matches > 0) {
-	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$vote_target");
-	    return 1;
+    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$vote_target");
+        return 1;
     }
     elsif ($#matches == -1) {
-	    &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$vote_target");
+        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$vote_target");
         return 1;
     }
     }
@@ -5054,21 +5055,21 @@ sub vote {
     if (($cod_version eq '1.0') and ($vote_target =~ /^mp_(harbor|rhine)/)) { return 1; }
     elsif ($vote_target =~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|trainstation|harbor|rhine)$/) {
         if (&flood_protection('vote', 120)) { return 1; }
-	    &rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Смена карты на"' . "^3$description{$vote_target}");
-	    $voting_players = $players_count;
-	    if (!$voting_players) {
-	        &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
-	        return 1;
-	    }
-		&log_to_file('logs/voting.log', "!VOTEMAP: $vote_initiator has started a vote: change map to $description{$vote_target}");
-	    $vote_time = $time + $vote_timelimit;
-	    $required_yes = ($voting_players/2)+1;
-	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
-	    sleep 1;
-	    &rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
-	    $vote_started = 1;
-	    sleep 1;
-	    &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
+	&rcon_command("say ^2$vote_initiator^7" . '"предложил голосование: Смена карты на"' . "^3$description{$vote_target}");
+	$voting_players = $players_count;
+	if (!$voting_players) {
+	    &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
+	    return 1;
+	}
+	&log_to_file('logs/voting.log', "!VOTEMAP: $vote_initiator has started a vote: change map to $description{$vote_target}");
+	$vote_time = $time + $vote_timelimit;
+	$required_yes = ($voting_players/2)+1;
+	if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
+	sleep 1;
+	&rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
+	$vote_started = 1;
+	sleep 1;
+	&rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
     }
     }
 }
