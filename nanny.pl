@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r25';
+my $version = '3.4 RUS r26';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -179,7 +179,7 @@ my $game_name;
 my $map_name;
 my $log_sync;
 my $friendly_fire = 0;
-my $kill_cam = 1;
+my $killcam = 1;
 my $cod_version;
 my $server_name;
 my $max_clients = 999;
@@ -353,72 +353,58 @@ while (1) {
 
     if ($logfile_mode eq 'local') { $line = <LOGFILE>; }
 	elsif ($logfile_mode eq 'ftp') { $line = &ftp_get_line; }
-
+    # We have a new line from the logfile.
     if (defined($line)) {
-	# We have a new line from the logfile.
-
 	# make sure our line is complete.
 	if ($line !~ /\n/) {
 	    # incomplete, save this for next time.
 	    $partial = $line;
 	    next;
 	}
-
 	# if we have any previous leftovers, prepend them.
 	if ($partial ne '') {
 	    $line = $partial . $line;
 	    $partial = '';
 	}
-
 	# Strip the timestamp from the begining
 	if ($line =~ /^\s{0,2}(\d+:\d+)\s+(.*)/) {
 	    ($uptime,$line) = ($1,$2);
-
 	    # BEGIN: SERVER CRASH / RESTART detection
 	    # detect when the uptime gets smaller.
 	    if ($uptime =~ /^(\d+):/) {
-		$now_upmins = $1;
-		if ($now_upmins < $last_upmins) {
-            &reset;
-	        print "SERVER CRASH/RESTART DETECTED, RESETTING...\n";
-		}
-		$last_upmins = $now_upmins;
+		    $now_upmins = $1;
+		    if ($now_upmins < $last_upmins) {
+                &reset;
+	            print "SERVER CRASH/RESTART DETECTED, RESETTING...\n";
+		    }
+		    $last_upmins = $now_upmins;
 	    }
 	    # END: SERVER CRASH / RESTART detection
 	}
-
 	# Strip the newline and any trailing space from the end.
 	$line =~ s/\s+$//;
-
 	# hold onto the first character of the line
 	# doing single character eq is faster than regex
 	$first_char = substr($line, 0, 1);
-
 	# Which class of event is the line we just read?
 	if ($first_char eq 'K') {
 	    # A "KILL" Event has happened
 	    if ($line =~ /^K;(\d+);(\d+);(allies|axis|);([^;]+);(\d*);([\d\-]+);(allies|axis|world|spectator|);([^;]*);(\w+);(\d+);(\w+);(\w+)/) {
 		($victim_guid, $victim_slot, $victim_team, $victim_name, $attacker_guid, $attacker_slot, $attacker_team,
 		$attacker_name, $attacker_weapon, $damage, $damage_type, $damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
-
 		# the RIDDLER fix, try #1
 		$attacker_name =~ s/\s+$//;
 		$victim_name =~ s/\s+$//;
-
 		if (($attacker_guid) and ($attacker_name)) { &cache_guid_to_name($attacker_guid, $attacker_name); }
 		if (($victim_guid) and ($victim_name)) { &cache_guid_to_name($victim_guid, $victim_name); }
 		$last_activity_by_slot{$attacker_slot} = $time;
-
 		&update_name_by_slot($attacker_name, $attacker_slot);
 		&update_name_by_slot($victim_name, $victim_slot);
-
 		$guid_by_slot{$attacker_slot} = $attacker_guid;
 		$guid_by_slot{$victim_slot} = $victim_guid;
 		$last_killed_by_name{$victim_slot} = $attacker_name;
 		$last_killed_by_guid{$victim_slot} = $attacker_guid;
-
 		if ($last_killed_by_name{$victim_slot} =~ /$problematic_characters/) { $last_killed_by_name{$victim_slot} = '"' . $last_killed_by_name{$victim_slot} . '"'; }
-
 		# Glitch Server Mode
 		if ($config->{'glitch_server_mode'}) {
 			print "GLITCH SERVER MODE: $name_by_slot{$attacker_slot} killed someone. Kicking!\n";
@@ -427,7 +413,6 @@ while (1) {
 			&rcon_command("clientkick $attacker_slot");
 			&log_to_file('logs/kick.log', "GLITCH_KILL: Murderer! Kicking $attacker_name for killing other people");
 		}
-
 		# Track the kill stats for the killer
 		if (($attacker_guid) and ($attacker_slot ne $victim_slot)) {
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE guid=?");
@@ -445,12 +430,8 @@ while (1) {
 		    }
 		    else {
 			    $stats_sth = $stats_dbh->prepare("INSERT INTO stats VALUES (NULL, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
-			    if ($damage_location eq 'head') {
-			        $stats_sth->execute($attacker_guid, 1, 0, 1) or &die_nice("Unable to do insert\n");
-			    }
-			    else {
-			        $stats_sth->execute($attacker_guid, 1, 0, 0) or &die_nice("Unable to do insert\n");
-			    }
+			    if ($damage_location eq 'head') { $stats_sth->execute($attacker_guid, 1, 0, 1) or &die_nice("Unable to do insert\n"); }
+			    else { $stats_sth->execute($attacker_guid, 1, 0, 0) or &die_nice("Unable to do insert\n"); }
 		    }
 		    # Grenade Kills
 		    if ($damage_type eq 'MOD_GRENADE_SPLASH') {
@@ -488,7 +469,6 @@ while (1) {
                 $stats_sth->execute($attacker_guid) or &die_nice("Unable to update stats\n");
             }
 		}
-
 		# Track the death stats for the victim
 		if (($victim_guid) and ($victim_slot ne $attacker_slot)) {
 		    $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE guid=?");
@@ -504,7 +484,6 @@ while (1) {
 		    }
 		}
 		# End of kill-stats tracking
-
 		# print the kill to the screen
 		if ($damage_location eq 'head') {
 		    if ($config->{'show_headshots'}) { print "HEADSHOT: $name_by_slot{$attacker_slot} killed $name_by_slot{$victim_slot} - HEADSHOT!\n"; }
@@ -780,7 +759,7 @@ while (1) {
 	    if ($line =~ /\\gamename\\([^\\]+)/) { $game_name = $1; }
 	    if ($line =~ /\\mapname\\([^\\]+)/) { $map_name = $1; }
 	    if ($line =~ /\\scr_friendlyfire\\([^\\]+)/) { $friendly_fire = $1; }
-        if ($line =~ /\\scr_killcam\\([^\\]+)/) { $kill_cam = $1; }
+        if ($line =~ /\\scr_killcam\\([^\\]+)/) { $killcam = $1; }
 	    if ($line =~ /\\shortversion\\([^\\]+)/) { $cod_version = $1; }
 	    if ($line =~ /\\sv_hostname\\([^\\]+)/) { $server_name = $1; }
         if ($line =~ /\\sv_maxclients\\([^\\]+)/) { $max_clients = $1; }
@@ -1854,25 +1833,25 @@ sub chat {
 	}
 	# !fixdb
     elsif ($message =~ /^!fix(db|databases?)/i) {
-            if (&check_access('fixdb')) {
-			if (&flood_protection('fixdb', 30, $slot)) { }
-			else {
+        if (&check_access('fixdb')) {
+		    if (&flood_protection('fixdb', 30, $slot)) { }
+		    else {
                 $ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name WHERE length(name) > 31;");
                 $ip_to_name_sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
                 @row = $ip_to_name_sth->fetchrow_array;
                 $ip_to_name_sth = $ip_to_name_dbh->prepare("DELETE FROM ip_to_name WHERE length(name) > 31;");
                 $ip_to_name_sth->execute or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
                 if ($row[0] == 1) { &rcon_command("say " . '"^7Удалено одно поврежденное имя из базы ^2IP <-> NAME"'); }
-				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^3$row[0]^7" . '"поврежденных имен из базы ^2IP <-> NAME"'); }
-				$guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE length(name) > 31;");
+		        elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^3$row[0]^7" . '"поврежденных имен из базы ^2IP <-> NAME"'); }
+			    $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE length(name) > 31;");
                 $guid_to_name_sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
                 @row = $guid_to_name_sth->fetchrow_array;
                 $guid_to_name_sth = $guid_to_name_dbh->prepare("DELETE FROM guid_to_name WHERE length(name) > 31;");
                 $guid_to_name_sth->execute or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
                 if ($row[0] == 1) { &rcon_command("say " . '"^7Удалено одно поврежденное имя из базы ^2GUID <-> NAME"'); }
-				elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^3$row[0]^7" . '"поврежденных имен из базы ^2GUID <-> NAME'); }
-				}
-            }
+			    elsif ($row[0] > 1) { &rcon_command("say " . '"^7Удалено"' . "^3$row[0]^7" . '"поврежденных имен из базы ^2GUID <-> NAME'); }
+			}
+        }
     }
 	# !version
 	elsif ($message =~ /^!ver(sion)?\b/i) {
@@ -2216,12 +2195,12 @@ sub chat {
 	    # !perl -v
         if ($message =~ /^!perl\s+-v\b/i) {
 		    if (&flood_protection('perl-version', 30, $slot)) { }
-	        else { &rcon_command("say $^V"); }
+	        else { &rcon_command("say Perl Version: ^3$^V"); }
 		}
 		# !osinfo
         if ($message =~ /^!os(info|name)\b/i) {
 		    if (&flood_protection('os-version', 30, $slot)) { }
-	        else { &rcon_command("say $^O"); }
+	        else { &rcon_command("say OS Version: ^3$^O"); }
 		}
     # !speed (number)
     if ($message =~ /^!(g_)?speed\s*(.*)/i) {
@@ -2672,7 +2651,7 @@ sub geolocate_ip {
 	    my ($player_lat, $player_lon) = ($record->latitude, $record->longitude);
 	    # gps coordinates are defined for this IP.
 	    # now make sure we have coordinates for the server.
-	    $record = $gi->record_by_name($config->{'ip'});
+	    $record = $gi->record_by_addr($config->{'ip'});
 	    if (($record->latitude) and ($record->longitude) and ($record->latitude =~ /\d/)) {
 		my ($home_lat, $home_lon) = ($record->latitude, $record->longitude);
 		my $obj = Geo::Inverse->new; 
@@ -2680,11 +2659,13 @@ sub geolocate_ip {
 		if ($ip ne $config->{'ip'}) {
 		if ($metric) {
             $dist = int($dist/1000);
-			$geo_ip_info .= "^7, ^1$dist^7" . '"километров до сервера"';
+			if (!$dist) { $geo_ip_info .= '"^7, расстояние до сервера неизвестно"'; }
+			else { $geo_ip_info .= "^7, ^1$dist^7" . '"километров до сервера"'; }
 		}
 		else {
 		    $dist = int($dist/1609.344);
-			$geo_ip_info .= "^7, ^1$dist^7" . '"миль до сервера"';
+			if (!$dist) { $geo_ip_info .= '"^7, расстояние до сервера неизвестно"'; }
+			else { $geo_ip_info .= "^7, ^1$dist^7" . '"миль до сервера"'; }
 		}
 		}
 	    }
@@ -3897,16 +3878,14 @@ sub best {
 
 sub get_name_by_guid {
     my $guid = shift;
-	my $name;
 	my @row;
     $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 1");
     $guid_to_name_sth->execute($guid) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
 	@row = $guid_to_name_sth->fetchrow_array;
-	$name = $row[0];
-	if (!defined($name)) { $name = "^3$guid"; }
-	if ($name =~ /\^\^\d\d/) { $name = &strip_color($name); }
-	if ($name =~ /$problematic_characters/) { $name = '"' . $name . '"'; }
-	return $name;
+	if (!$row[0]) { $row[0] = "^3$guid"; }
+	if ($row[0] =~ /$problematic_characters/) { $row[0] = '"' . $row[0] . '"'; }
+	if ($row[0] =~ /\^\^\d\d/) { $row[0] = &strip_color($row[0]); }
+	return $row[0];
 }
 
 sub change_map {
@@ -4846,38 +4825,38 @@ sub make_affiliate_server_announcement {
 	my $players;
 	my $num_servers;
     foreach $server (@affiliate_servers) {
-	$hostname = 'undefined';
-	$clients = 0;
-	$gametype = 'undefined';
-	$maxclients = 0;
-	$mapname = 'undefined';
-	$line = &get_server_info($server);
-	$num_servers++;
-	@info_lines = split(/\n/, $line);
-	foreach $line (@info_lines) {
-	    $line =~ s/\s+$//;
-	    if ($line =~ /^hostname:\s+(.*)$/) {
-		    $hostname = $1;
-		    $servername_cache{$server} = $hostname;
+	    $hostname = 'undefined';
+	    $clients = 0;
+	    $gametype = 'undefined';
+	    $maxclients = 0;
+	    $mapname = 'undefined';
+	    $line = &get_server_info($server);
+	    $num_servers++;
+	    @info_lines = split(/\n/, $line);
+	    foreach $line (@info_lines) {
+	        $line =~ s/\s+$//;
+	        if ($line =~ /^hostname:\s+(.*)$/) {
+	            $hostname = $1;
+	            $servername_cache{$server} = $hostname;
+	        }
+	        if ($line =~ /^clients:\s+(\d+)$/) { $clients = $1; }
+	        if ($line =~ /^gametype:\s+(\w+)$/) {
+	    	    $gametype = $1;
+	            if (defined($description{$gametype})) { $gametype = $description{$gametype}; }
+	        }
+	        if ($line =~ /^sv_maxclients:\s+(\d+)$/) { $maxclients = $1; }
+	        if ($line =~ /^mapname:\s+(\w+)$/) {
+	            $mapname = $1;
+	            if (defined($description{$mapname})) { $mapname = $description{$mapname}; }
+	        }
 	    }
-	    if ($line =~ /^clients:\s+(\d+)$/) { $clients = $1; }
-	    if ($line =~ /^gametype:\s+(\w+)$/) {
-		    $gametype = $1;
-		    if (defined($description{$gametype})) { $gametype = $description{$gametype}; }
+	    if ($clients) {
+	        if ($clients == 1 or $clients == 21 or $clients == 31) { $players = '"игрок на"'; }
+	        elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32) { $players = '"игрока на"'; }
+	        else { $players = '"игроков на"'; }
+		    $line = "^1$clients^7$players ^7$hostname^7 - ^2$mapname^7 |^3$gametype^7\n";
+	        push @results, $line;
 	    }
-	    if ($line =~ /^sv_maxclients:\s+(\d+)$/) { $maxclients = $1; }
-	    if ($line =~ /^mapname:\s+(\w+)$/) {
-		    $mapname = $1;
-		    if (defined($description{$mapname})) { $mapname = $description{$mapname}; }
-	    }
-	}
-	if ($clients) {
-	    if ($clients == 1 or $clients == 21 or $clients == 31) { $players = '"игрок на"'; }
-		elsif ($clients == 2 or $clients == 3 or $clients == 4 or $clients == 22 or $clients == 23 or $clients == 24 or $clients == 32) { $players = '"игрока на"'; }
-	    else { $players = '"игроков на"'; }
-		$line = "^1$clients^7$players ^7$hostname^7 - ^2$mapname^7 |^3$gametype^7\n";
-	    push @results, $line;
-	}
     }
     if (defined($results[0])) {
 	    if ($num_servers == 1) { &rcon_command("say " . '"^7Пора узнать что происходит на другом сервере:"'); }
@@ -4992,8 +4971,8 @@ sub exchange {
 	    if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
 	    if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
 	    if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1 }
-	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
-	    if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . $date . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
+	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say " . '"Курс доллара на^2"' . "$date" . '"^7по ЦБ РФ составляет:^3"' . "$dollar" . '"^7рублей"'); }
+	    if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say " . '"Курс евро на^2"' . "$date" . '"^7по ЦБ РФ составляет:^3"' . "$euro" . '"^7рублей"'); }
     }
     else { &rcon_command("say " . '"Сайт ЦБ РФ в настоящее время недоступен, повторите попытку позже"'); }
 }
