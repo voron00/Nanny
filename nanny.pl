@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r27';
+my $version = '3.4 RUS r28';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -3929,17 +3929,17 @@ sub check_player_names {
 		    if (!defined($name_warn_level{$slot})) { $name_warn_level{$slot} = 0; }
 		    if ($name_warn_level{$slot} == 0) {
 			    print "NAME_WARN1: $name_by_slot{$slot} is using a banned name.  Match: $match_string\n";
-			    &rcon_command("say $slot ^1$name_by_slot{$slot}^7:" . $config->{'banned_name_warn_message_1'});
+			    &rcon_command("say ^1$name_by_slot{$slot}^7:" . $config->{'banned_name_warn_message_1'});
 			    $name_warn_level{$slot} = 1;
 		    }
 			elsif ($name_warn_level{$slot} == 1) {
 			    print "NAME_WARN2: $name_by_slot{$slot} is using a banned name.  (2nd warning) Match: $match_string\n";
-                &rcon_command("say $slot ^1$name_by_slot{$slot}^7:" . $config->{'banned_name_warn_message_2'});
+                &rcon_command("say ^1$name_by_slot{$slot}^7:" . $config->{'banned_name_warn_message_2'});
                 $name_warn_level{$slot} = 2;
             }
 			elsif ($name_warn_level{$slot} == 2) {
                 print "NAME_KICK: $name_by_slot{$slot} is using a banned name.  (3rd strike) Match: $match_string\n";
-                &rcon_command("say $slot ^1$name_by_slot{$slot}^7:" . $config->{'banned_name_kick_message'});
+                &rcon_command("say ^1$name_by_slot{$slot}^7:" . $config->{'banned_name_kick_message'});
                 sleep 1;
 			    &rcon_command("clientkick $slot");
 			    &log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
