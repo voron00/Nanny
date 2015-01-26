@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r28';
+my $version = '3.4 RUS r30';
 my $idlecheck_interval = 45;
 my %idle_warn_level;
 my $namecheck_interval = 40;
@@ -218,7 +218,7 @@ my $players_count;
 my $vote_initiator;
 my $vote_type;
 my $vote_target;
-my $vote_timelimit = 60;
+my $vote_timelimit = 30;
 my $vote_started = 0;
 my $voted_yes = 0;
 my $voted_no = 0;
@@ -255,7 +255,7 @@ if ($logfile_mode eq 'local') {
 else { &ftp_connect }
 
 # use interval for first announcement that defined in config
-$next_announcement = $time + (60*($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1))));
+$next_announcement = $time + ( 60* ($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1))));
 $next_affiliate_announcement = $time + $config->{'affiliate_server_announcement_interval'};
 
 # Initialize the database tables if they do not exist
@@ -822,7 +822,7 @@ while (1) {
     }
     # Check if it's time to make our next announement yet.
     if (($time >= $next_announcement) and ($config->{'use_announcements'})) {
-        $next_announcement = $time + (60*($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1))));
+        $next_announcement = $time + (60 * ($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1))));
         &make_announcement;
     }
 	# Check if it's time to make our next affiliate server announement yet.
@@ -848,40 +848,38 @@ while (1) {
 	}
 	# Check vote status
 	if ($vote_started) {
-    # Vote TIMEOUT
-    if (($vote_time) and ($time >= $vote_time)) {
-        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
-		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: TIMEOUT, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-        &vote_cleanup;
-    }
-    # Vote PASS, required YES reached
-    elsif ($voted_yes >= $required_yes) {
-        &rcon_command("say " . '"Голосование ^2ЗАВЕРШЕНО^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
-	    sleep 1;
-        if ($vote_type eq 'kick') {
-		    &kick_command($vote_target);
-		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-		}
-        elsif ($vote_type eq 'ban') {
-		    &tempban_command($vote_target);
-		    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-		}
-		elsif ($vote_type eq 'map') {
-		    &rcon_command("say " . '"^2Смена карты на:"' . "^3$description{$vote_target}");
-			sleep 1;
-			&rcon_command("map $vote_target");
-			&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Changing map to $description{$vote_target}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-		}
-        &vote_cleanup;
-    }
-    # Vote FAIL, too many NO
-    elsif ($voted_no >= $required_yes) {
-        &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
-		&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-        &vote_cleanup;
-    }
-	# Half-time check
-	elsif ($time == $vote_time-($vote_timelimit/2)) { &rcon_command("say " . '"Голосование: Осталось^8"' . ($vote_timelimit/2) . '"^7секунд: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no"); }
+        # Vote TIMEOUT
+        if (($vote_time) and ($time >= $vote_time)) {
+            &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+	        &log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: TIMEOUT, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+            &vote_cleanup;
+        }
+        # Vote PASS, required YES reached
+        elsif ($voted_yes >= $required_yes) {
+            &rcon_command("say " . '"Голосование ^2ЗАВЕРШЕНО^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+	        sleep 1;
+            if ($vote_type eq 'kick') {
+		        &kick_command($vote_target);
+		        &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		    }
+            elsif ($vote_type eq 'ban') {
+		        &tempban_command($vote_target);
+		        &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+	        }
+		    elsif ($vote_type eq 'map') {
+		        &rcon_command("say " . '"^2Смена карты на:"' . "^3$description{$vote_target}");
+		        sleep 1;
+		        &rcon_command("map $vote_target");
+		        &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Changing map to $description{$vote_target}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+		    }
+            &vote_cleanup;
+        }
+        # Vote FAIL, too many NO
+        elsif ($voted_no >= $required_yes) {
+            &rcon_command("say " . '"Голосование ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
+	        &log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+            &vote_cleanup;
+        }
 	}
 	# End of vote check
 	# Check to see if it's time to audit a GUID 0 person
@@ -1369,9 +1367,9 @@ sub chat {
     if (($config->{'bad_shots'}) and (!$ignore{$slot})) {
 	if ($message =~ /^!?bs\W*$|^!?bad\s*shot\W*$|^!?bull\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that\s+was\s+(bs|badshot|bullshit)\W*$/i) {
 	    if ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none') and (&strip_color($last_killed_by_name{$slot}) ne $name)) {
-		if (&flood_protection('badshot', 30, $slot)) {
+		if ((&flood_protection('badshot', 30, $slot)) or (&flood_protection('niceshot', 30, $slot))) {
 		    # bad shot abuse
-		    if (&flood_protection('badshot-two', 30, $slot)) { }
+		    if ((&flood_protection('badshot-two', 30, $slot)) or (&flood_protection('niceshot-two', 30, $slot))) { }
 		    elsif ($guid) {
 			    $stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
 			    $stats_sth->execute($guid) or &die_nice("Unable to update stats\n");
@@ -1392,9 +1390,9 @@ sub chat {
     if (($config->{'nice_shots'}) and (!$ignore{$slot})) {
 	if ($message =~ /\bnice\W?\s+(one|shot|1)\b|^n[1s]\W*$|^n[1s],/i) {
 	    if ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none') and (&strip_color($last_killed_by_name{$slot}) ne $name)) {
-		if (&flood_protection('niceshot', 30, $slot)) {
+		if ((&flood_protection('niceshot', 30, $slot)) or (&flood_protection('badshot', 30, $slot))) {
 		    # nice shot abuse
-			if (&flood_protection('niceshot-two', 30, $slot)) { }
+			if ((&flood_protection('niceshot-two', 30, $slot)) or (&flood_protection('badshot-two', 30, $slot))) { }
 			elsif ($guid) {
 			    $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
 			    $stats_sth->execute($guid) or &die_nice("Unable to update stats\n");
@@ -2395,38 +2393,38 @@ sub status {
 		# cache ping
 	    $ping_by_slot{$slot} = $ping;
 	    # update name by slot
-		&update_name_by_slot($name, $slot);
-		# cache MaKaR
-		if ($guid == 708524 or $guid == 721587) {
-		    $makar_on_server = 1;
-			$makar_name = $name_by_slot{$slot};
-		}
+		if (length($name) < 32) { &update_name_by_slot($name, $slot); }
 	    # cache the guid
 	    $guid_by_slot{$slot} = $guid;
         # cache slot to IP mappings
         $ip_by_slot{$slot} = $ip;
 	    # cache the ip_to_guid mapping
-	    if (($ip) and ($guid)) { &cache_ip_to_guid($ip,$guid); }
+	    if (($ip) and ($guid)) { &cache_ip_to_guid($ip, $guid); }
 	    # cache the guid_to_name mapping
-	    if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+	    if (($guid) and ($name) and (length($name) < 32)) { &cache_guid_to_name($guid, $name); }
 	    # cache the ip_to_name mapping
-	    if (($ip) and ($name)) { &cache_ip_to_name($ip,$name); }
+	    if (($ip) and ($name) and (length($name) < 32)) { &cache_ip_to_name($ip, $name); }
 	    # cache names without color codes, too.
 		$colorless = &strip_color($name);
 	    if ($colorless ne $name) {
-		if (($ip) and ($colorless)) { &cache_ip_to_name($ip,$colorless); }
-		if (($guid) and ($colorless)) { &cache_guid_to_name($guid,$colorless); }
+		    if (($ip) and ($colorless) and (length($colorless) < 32)) { &cache_ip_to_name($ip, $colorless); }
+		    if (($guid) and ($colorless) and (length($colorless) < 32)) { &cache_guid_to_name($guid, $colorless); }
 	    }
+		# catch MaKaR
+		if ($guid == 708524 or $guid == 721587) {
+		    $makar_on_server = 1;
+			$makar_name = $name_by_slot{$slot};
+		}
 	    # GUID Sanity Checking - detects when the server is not tracking GUIDs correctly.
 	    if ($guid) {
-		# we know the GUID is non-zero.  Is it the one we most recently saw join?
-		if (($guid == $most_recent_guid) and ($slot == $most_recent_slot)) {
-		    # was it recent enough to still be cached by activision?
-		    if (($time - $most_recent_time) < (2 * $rconstatus_interval)) {
-			# Is it time to run another sanity check?
-			if (($time - $last_guid_sanity_check) > ($guid_sanity_check_interval)) { &guid_sanity_check($guid,$ip); }
+		    # we know the GUID is non-zero.  Is it the one we most recently saw join?
+		    if (($guid == $most_recent_guid) and ($slot == $most_recent_slot)) {
+		        # was it recent enough to still be cached by activision?
+		        if (($time - $most_recent_time) < (2 * $rconstatus_interval)) {
+			        # Is it time to run another sanity check?
+			        if (($time - $last_guid_sanity_check) > ($guid_sanity_check_interval)) { &guid_sanity_check($guid, $ip); }
+		        }
 		    }
-		}
 	    }
 		if ($ping ne 'CNCT' or $ping != 999 or $ping ne 'ZMBI') {
 			# update players count
@@ -3974,7 +3972,7 @@ sub names {
     elsif ($#matches == 0) {
         &log_to_file('logs/commands.log', "$name executed an !names search for $name_by_slot{$matches[0]}");
         if ($guid_by_slot{$matches[0]} > 0) {
-            $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 10;");
+            $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 100;");
             $guid_to_name_sth->execute($guid_by_slot{$matches[0]}) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
             while (@row = $guid_to_name_sth->fetchrow_array) { push @names, $row[0]; }
         }
@@ -3984,7 +3982,7 @@ sub names {
 	        $guessed = 1;
 	    }
         if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-            $ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT name FROM ip_to_name WHERE ip=? ORDER BY id DESC LIMIT 10;");
+            $ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT name FROM ip_to_name WHERE ip=? ORDER BY id DESC LIMIT 100;");
             $ip_to_name_sth->execute($ip) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
             while (@row = $ip_to_name_sth->fetchrow_array) { push @names, $row[0]; }
         }
@@ -4110,7 +4108,8 @@ sub guid_sanity_check {
     my $selecta = IO::Select->new;
     $selecta->add(\*SOCKET);
     my @ready;
-    while (($current_try++ < $total_tries) and ($still_waiting)) {
+    while (($current_try < $total_tries) and ($still_waiting)) {
+	    $current_try++;
         # Send the packet
 	    $portaddr = sockaddr_in($port, $d_ip);
 	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("Cannot send to $activision_master($port): $!\n\n");
@@ -4339,7 +4338,7 @@ sub check_guid_zero_players {
     my $still_waiting = 1;
     my $got_response = 0;
     my $portaddr;
-    my $random;
+    my $random = int(rand(7654321));
     my $send_message;
     my $selecta;
     my @ready;
@@ -4347,17 +4346,14 @@ sub check_guid_zero_players {
     my $dirtbag;
     # Try as many as we can within our time limit
     foreach $slot (@possible) {
-	$current_try = 0;
-	$still_waiting = 1;
-	$got_response = 0;
-	$random = int(rand(7654321));
 	$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot}  0";
 	print "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}\n";
 	print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.\n\n";
 	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
 	$selecta = IO::Select->new;
 	$selecta->add(\*SOCKET);
-	while (($current_try++ < $total_tries) and ($still_waiting)) {
+	while (($current_try < $total_tries) and ($still_waiting)) {
+	    $current_try++;
 	    # Send the packet
 	    $portaddr = sockaddr_in($port, $d_ip);
 	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $activision_master($port): $!\n\n");
@@ -4406,8 +4402,7 @@ sub check_guid_zero_players {
 		    $kick_reason = '"был выкинут за использование неверного ключа диска. Вероятно этот ключ уже где-то используется"';
 		}
 		if (($dirtbag) and ($reason eq 'BANNED_CDKEY')) {
-		    print"DIRTBAG: $name_by_slot{$slot} - $reason\n";
-		    &rcon_command("say ^1$name_by_slot{$slot} $kick_reason");
+		    &rcon_command("say ^1$name_by_slot{$slot} ^7$kick_reason");
 		    sleep 1;
 		    &rcon_command("clientkick $slot");
 		    &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
@@ -4884,7 +4879,8 @@ sub get_server_info {
     my $selecta = IO::Select->new;
     $selecta->add(\*SOCKET);
     my @ready;
-    while (($current_try++ < $total_tries) and ($still_waiting)) {
+    while (($current_try < $total_tries) and ($still_waiting)) {
+	    $current_try++;
 	    # Send the packet
 	    $portaddr = sockaddr_in($port, $d_ip);
 	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $ip_address($port): $!\n\n");
@@ -4926,15 +4922,15 @@ sub broadcast_message {
     my $num_servers = 0;
     my $config_val;
     my $rcon;
-    $message = "say ^1(^2$name^7|^3$server_name^1)^7:" . '"' . "$message";
+    $message = "say ^1(^2$name^7|^3$server_name^1)^7:" . '"' . "$message" . '"';
     foreach $config_val (@remote_servers) {
-	if ($config_val =~ /^([\d\.]+):(\d+):(.*)$/) {
-	    my ($ip_address,$port,$password) = ($1,$2,$3);
-	    $num_servers++;
-	    $rcon = new KKrcon (Host => $ip_address, Port => $port, Password => $password, Type => 'old');
-	    print $rcon->execute($message);
-	}
-	else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
+	    if ($config_val =~ /^([\d\.]+):(\d+):(.*)$/) {
+	        my ($ip_address,$port,$password) = ($1,$2,$3);
+	        $num_servers++;
+	        $rcon = new KKrcon (Host => $ip_address, Port => $port, Password => $password, Type => 'old');
+	        print $rcon->execute($message);
+	    }
+	    else { print "WARNING: Invalid remote_server syntax: $config_val\n"; }
     }
 	if (&flood_protection('broadcast', 30, $slot)) { return 1; }
     if ($num_servers == 0) { &rcon_command("say " . '"К сожалению, не найдено настроенных удаленных серверов. Проверьте ваш конфигурационный файл."'); }
@@ -4989,8 +4985,8 @@ sub vote {
 	    }
 		if ($vote_type eq 'kick') { &log_to_file('logs/voting.log', "!VOTEKICK: $vote_initiator has started a vote: kick $vote_target"); }
 		else { &log_to_file('logs/voting.log', "!VOTEBAN: $vote_initiator has started a vote: temporary ban $vote_target"); }
-	    $vote_time = $time + $vote_timelimit;
-	    $required_yes = ($voting_players/2)+1;
+	    $vote_time = ($time + $vote_timelimit) + ($players_count * 5); # +5 seconds for each player
+	    $required_yes = ($voting_players / 2) + 1;
 	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
 	    sleep 1;
 	    &rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
@@ -5034,8 +5030,8 @@ sub vote {
 	        return 1;
 	    }
 		&log_to_file('logs/voting.log', "!VOTEMAP: $vote_initiator has started a vote: change map to $description{$vote_target}");
-	    $vote_time = $time + $vote_timelimit;
-	    $required_yes = ($voting_players/2)+1;
+	    $vote_time = ($time + $vote_timelimit) + ($players_count * 5); # +5 seconds for each player
+	    $required_yes = ($voting_players / 2) + 1;
 	    if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
 	    sleep 1;
 	    &rcon_command("say " . '"Голосование началось: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");

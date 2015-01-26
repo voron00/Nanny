@@ -59,7 +59,6 @@ sub execute {
 	my ($self, $command) = @_;
 	my $msg;
 	my $ans;
-
 	if ($self->{"server_type"} == 1) {
 		# version x.1.0.6+ HL server
 		$msg = "\xFF\xFF\xFF\xFFchallenge rcon\n\0";
