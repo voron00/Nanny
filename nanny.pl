@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r35';
+my $version = '3.4 RUS r36';
 my %WARNS;
 my $idlecheck_interval = 45;
 my %idle_warn_level;
@@ -1249,6 +1249,7 @@ sub chat {
     #   $message
     #   $guid
     my $chattype = shift;
+	my $is_there;
     if (defined($name_by_slot{$slot}) and $name_by_slot{$slot} ne 'SLOT_EMPTY') { $name = $name_by_slot{$slot}; }
     if (!defined($ignore{$slot})) { $ignore{$slot} = 0; }
     # print the message to the console
@@ -1283,7 +1284,6 @@ sub chat {
     # End Anti-Spam functions
 
     # populate the seen data
-    my $is_there;
     $seen_sth = $seen_dbh->prepare("SELECT count(*) FROM seen WHERE name=?");
     $seen_sth->execute($name) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
     foreach ($seen_sth->fetchrow_array) { $is_there = $_; }
@@ -1298,14 +1298,13 @@ sub chat {
     # end of seen data population
 
     # Server Response / Penalty System
-    my $rule_name;
-    my $penalty = 0;
-    my $response = 'undefined';
-    my $index;
-    my $flooded = 0;
-
 	if ($config->{'use_responses'}) {
-        # loop through all the rule regex looking for matches
+        my $rule_name;
+        my $penalty = 0;
+        my $response = 'undefined';
+        my $index;
+        my $flooded = 0;
+        # loop through all the rule_regex looking for matches
         foreach $rule_name (keys %rule_regex) {
             if ($message =~ /$rule_regex{$rule_name}/i) {
             # We have a match, initiate response.
@@ -1318,7 +1317,7 @@ sub chat {
                 $penalty = $rule_penalty{$rule_name};
 	    	    if ((!$flooded) and (!$ignore{$slot})) {
 		            &rcon_command("say ^1$name^7:" . '"' . "$response" . '"');
-		            &log_to_file('logs/response.log', "Rule: $rule_name  Match Text: $message");
+		            &log_to_file('logs/response.log', "Rule: $rule_name Match Text: $message");
 		        }
             }
 	        if ((!$flooded) and (!$ignore{$slot})) { print "Positive Match:\nRule Name: $rule_name\nPenalty: $penalty\nResponse: $response\n\n"; }
@@ -1734,17 +1733,17 @@ sub chat {
 	# !say
     elsif ($message =~ /^!say\s+(.+)/i) {
 	    if (&flood_protection('say', 30, $slot)) { }
-        elsif (&check_access('say')) { &rcon_command("say " . '"' . "$1"); }
+        elsif (&check_access('say')) { &rcon_command("say " . '"' . "$1" . '"'); }
     }
 	# !saybold (only works with certain mods)
     elsif ($message =~ /^!saybold\s+(.+)/i) {
 	    if (&flood_protection('saybold', 30, $slot)) { }
-        elsif (&check_access('saybold')) { &rcon_command("saybold " . '"' . "$1"); }
+        elsif (&check_access('saybold')) { &rcon_command("saybold " . '"' . "$1" . '"'); }
     }
 	# !sayline (only works with certain mods)
     elsif ($message =~ /^!sayline\s+(.+)/i) {
 	    if (&flood_protection('sayline', 30, $slot)) { }
-        elsif (&check_access('sayline')) { &rcon_command("sayline " . '"' . "$1"); }
+        elsif (&check_access('sayline')) { &rcon_command("sayline " . '"' . "$1" . '"'); }
     }
 	# !rcon
     elsif ($message =~ /^!rcon\s+(.+)/i) {
@@ -2548,12 +2547,12 @@ sub geolocate_ip {
     my $ip = shift;
     my $metric = 0;
     if (!$ip) { return '"Не указан IP-Адрес"'; }
-	if ($ip =~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./) { return '"^2своей локальной сети"'; }
+	if ($ip =~ /^192\.168\.|^10\.|^169\.254\./) { return '"Локальной сети"'; }
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:"' . "$ip"; }
     my $gi = Geo::IP->open("Geo/GeoLiteCity.dat", GEOIP_STANDARD);
     my $record = $gi->record_by_addr($ip);
 	my $geo_ip_info;
-	if (!$record) { return '"ниоткуда..."'; }
+	if (!$record) { return '"Не найдено местоположение для этого IP-Адреса"'; }
     if (defined($record->country_code)) { print "\n\tCountry Code: " . $record->country_code . "\n"; }
     if (defined($record->country_code3)) { print "\tCountry Code 3: " . $record->country_code3 . "\n"; }
     if (defined($record->country_name)) { print "\tCountry Name: " . $record->country_name . "\n"; }
@@ -2599,12 +2598,12 @@ sub geolocate_ip {
     }
 	else {
         # I give up.
-        $geo_ip_info = '"ниоткуда"';
+        $geo_ip_info = '"Невозможно определить местоположение"';
     }
     if (($record->country_code) and ($record->country_code eq 'US')) { $metric = 0 }
     else { $metric = 1; }
     # GPS Coordinates
-    if (($config->{'ip'} !~ /^192\.168\.|^10\.|localhost|127.0.0.1|loopback|^169\.254\./)) {
+    if (($config->{'ip'} !~ /^192\.168\.|^10\.|^169\.254\./)) {
 	    if (($record->latitude) and ($record->longitude) and ($record->latitude =~ /\d/)) {
 	        my ($player_lat, $player_lon) = ($record->latitude, $record->longitude);
 	        # gps coordinates are defined for this IP.
@@ -2617,12 +2616,12 @@ sub geolocate_ip {
 		        if ($ip ne $config->{'ip'}) {
 		            if ($metric) {
                         $dist = int($dist/1000);
-                        if (!$dist) { $geo_ip_info .= '"^7, расстояние до сервера неизвестно"'; }
+                        if (!$dist) { $geo_ip_info .= "^7," . '"расстояние до сервера неизвестно"'; }
                         else { $geo_ip_info .= "^7, ^1$dist^7" . '"километров до сервера"'; }
 		            }
 		            else {
 		                $dist = int($dist/1609.344);
-		                if (!$dist) { $geo_ip_info .= '"^7, расстояние до сервера неизвестно"'; }
+		                if (!$dist) { $geo_ip_info .= "^7," . '"расстояние до сервера неизвестно"'; }
 		                else { $geo_ip_info .= "^7, ^1$dist^7" . '"миль до сервера"'; }
 		            }
 		        }
@@ -2712,7 +2711,7 @@ sub seen {
     $seen_sth = $seen_dbh->prepare("SELECT name,time,saying FROM seen WHERE name LIKE ? ORDER BY time DESC LIMIT 5");
     $seen_sth->execute("\%$search_string\%") or &die_nice("Unable to execute query: $seen_dbh->errstr\n");
     while (@row = $seen_sth->fetchrow_array) {
-	    &rcon_command("say $row[0]" . '"^7был замечен на сервере"' . duration($time - $row[1]) . '"назад и сказал:"' . '"' . "$row[2]");
+	    &rcon_command("say $row[0]" . '"^7был замечен на сервере"' . duration($time - $row[1]) . '"назад и сказал:"' . '"' . "$row[2]" . '"');
 	    sleep 1;
     }
 }
@@ -2874,7 +2873,7 @@ sub stats {
     }
 	else {
 	    &rcon_command("say " . '"Ошибка чтения статистики для:"' . "^1$name^7 (^2GUID^7 - ^3$guid^7)");
-	    return 1;
+	    return 0;
 	}
 }
 # END: stats
@@ -4197,7 +4196,7 @@ sub guid_sanity_check {
 	    	    else {
 	    	        &rcon_command("say " . '"^1ПРЕДУПРЕЖДЕНИЕ: ^7Проверка корректности GUID не пройдена для"' . "$name_by_slot{$most_recent_slot}");
 	    	        print "\nFAIL: GUID Sanity check: FAILED\n";
-	    	        print "    IP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
+	    	        print "\tIP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
 	    	        &log_to_file('logs/guid.log', "SANITY FAILED: $name_by_slot{$most_recent_slot}  IP: $ip was supposed to be GUID $should_be_guid but came back as $guid - Server has been up for: $uptime");
 	    	    }
 	        }
@@ -4388,7 +4387,7 @@ sub check_guid_zero_players {
     my $dirtbag;
     # Try as many as we can within our time limit
     foreach $slot (@possible) {
-	$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot}  0";
+	$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot} 0";
 	print "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}\n";
 	print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.\n\n";
 	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
