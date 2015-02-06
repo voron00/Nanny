@@ -5,7 +5,7 @@ use strict;
 use diagnostics;
 use Rcon::KKrcon;
 
-$| = 1;
+local $| = 1;
 &load_config_file('nanny.cfg');
 my $address;
 my $port;
@@ -81,7 +81,5 @@ sub die_nice {
     my $message = shift;
     if ((!defined($message)) or ($message !~ /./)) { $message = 'default die_nice message.\n\n'; }
     print "\nCritical Error: $message\n\n";
-	print "Press <ENTER> to close this program\n";
-	my $who_cares = <STDIN>;
     exit 1;
 }

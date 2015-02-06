@@ -224,3 +224,4 @@ databases/ip_to_guid.db
 databases/ip_to_name.db
 databases/seen.db
 databases/stats.db
+logs/*.log
