@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r37';
+my $version = '3.4 RUS r38';
 my %WARNS;
 my $idlecheck_interval = 45;
 my %idle_warn_level;
@@ -2325,14 +2325,8 @@ sub locate {
 	            }
 	            if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/) {
 	    	        $location = &geolocate_ip($ip);
-	        	    if ($location =~ /,.* - .+/) {
-	        	        if ($guessed) { $location = $name_by_slot{$slot} . '"^7вероятно зашел к нам из районов около^2"' . $location; }
-	        	        else { $location = $name_by_slot{$slot} . '"^7зашел к нам из районов около^2"' . $location; }
-	        	    }
-	        	    else {
-	        	        if ($guessed) { $location = $name_by_slot{$slot} . '"^7вероятно зашел к нам из^2"' . $location; }
-	    	            else { $location = $name_by_slot{$slot} . '"^7зашел к нам из^2"' . $location; }
-	    	        }
+	        	    if ($guessed) { $location = $name_by_slot{$slot} . '"^7вероятно зашел к нам из^2"' . $location; }
+	    	        else { $location = $name_by_slot{$slot} . '"^7зашел к нам из^2"' . $location; }
 	    	        # location spoofing
 	        	    foreach $spoof_match (keys(%location_spoof)) {
 	    	            if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . '^7' . $location_spoof{$spoof_match}; }
@@ -2345,16 +2339,13 @@ sub locate {
 	}
     if ($search_string =~ /^console|nanny|server\b/i) {
 	    $location = &geolocate_ip($config->{'ip'});
-	    if ($location =~ /,.* - .+/) { $location = '"Этот сервер находится в районах около^2"' . $location; }
-	    else { $location = '"Этот сервер находится в^2"' . $location; }
+	    $location = '"Этот сервер находится в^2"' . $location;
 	    &rcon_command("say $location");
 	    sleep 1;
     }
 	elsif ($search_string =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/) {
-	    my $target_ip = $1;
-	    $location = &geolocate_ip($target_ip);
-	    if ($location =~ /,.* - .+/) { $location = "^3$target_ip" . '"^7находится в районах около^2"' . $location; }
-	    else { $location = "^3$target_ip" . '"^7находится в^2"' . $location; }
+	    $location = &geolocate_ip($1);
+	    $location = "^3$1" . '"^7находится в^2"' . $location;
 	    &rcon_command("say $location");
 	    sleep 1;
     }
@@ -2558,7 +2549,7 @@ sub rcon_query {
 # BEGIN: geolocate_ip
 sub geolocate_ip {
     my $ip = shift;
-    my $metric = 0;
+    my $metric = 1;
     if (!$ip) { return '"Не указан IP-Адрес"'; }
 	if ($ip =~ /^192\.168\.|^10\.|^169\.254\./) { return '"Локальной сети"'; }
     if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { return '"Неверный IP-Адрес:"' . "$ip"; }
@@ -2613,7 +2604,7 @@ sub geolocate_ip {
         # I give up.
         $geo_ip_info = '"Невозможно определить местоположение"';
     }
-    if (($record->country_code) and ($record->country_code eq 'US')) { $metric = 0 }
+    if ($record->country_code eq 'US') { $metric = 0; }
     else { $metric = 1; }
     # GPS Coordinates
     if (($config->{'ip'} !~ /^192\.168\.|^10\.|^169\.254\./)) {
