@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r36';
+my $version = '3.4 RUS r37';
 my %WARNS;
 my $idlecheck_interval = 45;
 my %idle_warn_level;
@@ -219,6 +219,7 @@ my $players_count;
 my $vote_initiator;
 my $vote_type;
 my $vote_target;
+my $vote_target_slot;
 my $vote_string;
 my $vote_timelimit = 60;
 my $vote_started = 0;
@@ -867,12 +868,24 @@ while (1) {
                 &rcon_command("say " . '"Ãîëîñîâàíèå:"' . "$vote_string^3" . &description($vote_target) . "^7:" . '"^2ÇÀÂÅĞØÅÍÎ^7: Ãîëîñîâ ^2ÇÀ^7:"' . "^2$voted_yes^7," . '"^1ÏĞÎÒÈÂ^7:"' . "^1$voted_no");
 	            sleep 1;
                 if ($vote_type eq 'kick') {
-	    	        &kick_command($vote_target);
-	    	        &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+				    if ($name_by_slot{$vote_target_slot} eq $vote_target) {
+	    	            &kick_command($vote_target);
+	    	            &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+					}
+					else {
+					    &kick_command('#' . $vote_target_slot);
+					    &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $name_by_slot{$vote_target_slot}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+					}
 	    	    }
                 elsif ($vote_type eq 'ban') {
-		            &tempban_command($vote_target);
-		            &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+				    if ($name_by_slot{$vote_target_slot} eq $vote_target) {
+		                &tempban_command($vote_target);
+		                &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+					}
+					else {
+					    &tempban_command('#' . $vote_target);
+		                &log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $name_by_slot{$vote_target_slot}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
+					}
 	            }
 		        elsif ($vote_type eq 'map') {
 		            &change_map($vote_target);
@@ -2265,7 +2278,7 @@ sub chat {
         if (&check_access('lastbans')) { &last_bans($2); }
     }
     elsif ($message =~ /^!(lastbans?|recentbans?|bans|banned)/i) {
-        if (&check_access('lastbans')) { &last_bans(10); }
+        if (&check_access('lastbans')) { &last_bans(5); }
     }
     }
 }
@@ -2322,7 +2335,7 @@ sub locate {
 	    	        }
 	    	        # location spoofing
 	        	    foreach $spoof_match (keys(%location_spoof)) {
-	    	            if ($name_by_slot{$slot} =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . '^7' . $location_spoof{$spoof_match}; }
+	    	            if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . '^7' . $location_spoof{$spoof_match}; }
 	    	        }
 	    	        &rcon_command("say " . "$location");
 	    	        sleep 1;
@@ -3472,24 +3485,24 @@ sub database_info {
 sub kick_command {
     if (&flood_protection('kick', 30, $slot)) { return 1; }
     my $search_string = shift;
-    my $key;
-    if ($search_string =~ /^\#(\d+)$/) {
-	    $slot = $1;
-	    &rcon_command("say ^1$name_by_slot{$slot}" . '" ^7áûë âûêèíóò àäìèíîì"');
-        sleep 1;
-        &rcon_command("clientkick $slot");
-        &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
-	    return 0;
+    if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
+	else {
+	    my @matches = &matching_users($search_string);
+	    if ($#matches == -1) {
+	        &rcon_command("say " . '"Íåò ñîâïàäåíèé ñ:"' . '"' . "$search_string");
+	        return 0;
+	    }
+	    elsif ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches > 0) {
+	        &rcon_command("say " . '"Ñëèøêîì ìíîãî ñîâïàäåíèé ñ:"' . '"' . "$search_string");
+	        return 0;
+	    }
 	}
-    my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Íåò ñîâïàäåíèé ñ:"' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
-	    &rcon_command("say ^1$name_by_slot{$matches[0]}" . '"^7áûë âûêèíóò àäìèíîì"');
-	    sleep 1;
-	    &rcon_command("clientkick $matches[0]");
-	    &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$matches[0]} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
-	}
-    elsif ($#matches > 0) { &rcon_command("say " . '"Ñëèøêîì ìíîãî ñîâïàäåíèé ñ:"' . '"' . "$search_string"); }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+	&rcon_command("say ^1$name_by_slot{$slot}" . '"^7áûë âûêèíóò àäìèíîì"');
+    sleep 1;
+    &rcon_command("clientkick $slot");
+    &log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
 }
 # END: kick
 
@@ -3498,7 +3511,6 @@ sub tempban_command {
     if (&flood_protection('tempban', 30, $slot)) { return 1; }
     my $search_string = shift;
 	my $tempbantime = shift;
-    my $key;
 	my $minutes;
 	if (!defined($tempbantime)) { $tempbantime = 30; }
 	if ($tempbantime == 1) { $minutes = '"ìèíóòó"'; }
@@ -3517,6 +3529,7 @@ sub tempban_command {
 	        return 0;
 	    }
 	}
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
 	my $ban_name = 'unknown';
     my $ban_ip = 'unknown';
 	my $ban_guid = 12345678;
@@ -3525,10 +3538,10 @@ sub tempban_command {
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
-    &log_to_file('logs/kick.log', "TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");  
     $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
+	&log_to_file('logs/kick.log', "TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");
 }
 # END: tempban
 
@@ -3536,7 +3549,6 @@ sub tempban_command {
 sub ban_command {
     if (&flood_protection('ban', 30, $slot)) { return 1; }
     my $search_string = shift;
-    my $key;
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
         my @matches = &matching_users($search_string);
@@ -3550,6 +3562,7 @@ sub ban_command {
 	        return 0;
 	    }
 	}
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
 	my $ban_name = 'unknown';
     my $ban_ip = 'unknown';
 	my $ban_guid = 12345678;
@@ -3558,10 +3571,10 @@ sub ban_command {
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
     if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
-    &log_to_file('logs/kick.log', "BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");
     $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
     $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
+	&log_to_file('logs/kick.log', "BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");
 }
 # END: ban
 
@@ -3996,7 +4009,6 @@ sub make_announcement {
 # BEGIN: !names(search_string);
 sub names {
     my $search_string = shift;
-    my $key;
     my @matches = &matching_users($search_string);
     my @names;
 	my @row;
@@ -4259,7 +4271,7 @@ sub tell {
     }
     else {
 	    if (&flood_protection('tell', 30, $slot)) { return 1; }
-	    foreach $key (@matches) { &rcon_command("say ^2" . "$name_by_slot{$key}" . "^7: " . '"' . "$message"); }
+	    foreach $key (@matches) { &rcon_command("say ^2" . "$name_by_slot{$key}" . "^7:" . '"' . "$message"); }
     }
 }
 # END: tell
@@ -4269,8 +4281,6 @@ sub last_bans {
     my $number = shift;
 	my @row;
 	my $txt_time;
-    # keep some sane limits.
-    if ($number > 10) { $number = 10; }
     if ($number < 0) { $number = 1; }
     $number = int($number);
     if (&flood_protection('lastbans', 30, $slot)) { return 1; }
@@ -4517,6 +4527,7 @@ sub vote_cleanup {
 	$vote_string = undef;
     $vote_initiator = undef;
     $vote_target = undef;
+	$vote_target_slot = undef;
     foreach $reset_slot (keys %voted_by_slot) {
         $voted_by_slot{$reset_slot} = 0;
     }
@@ -5023,6 +5034,7 @@ sub vote {
         if ($#matches == 0) {
             if (&flood_protection('vote', 120)) { return 1; }
             $vote_target = $name_by_slot{$matches[0]};
+			$vote_target_slot = $matches[0];
 	        if ($vote_type eq 'kick') { $vote_string = '"Âûêèíóòü"'; }
 	        else { $vote_string = '"Âğåìåííî çàáàíèòü"'; }
 	        &rcon_command("say ^2$vote_initiator^7" . '"ïğåäëîæèë ãîëîñîâàíèå:"' . "$vote_string" . "^3$vote_target");
