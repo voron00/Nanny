@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r38';
+my $version = '3.4 RUS r39';
 my %WARNS;
 my $idlecheck_interval = 45;
 my %idle_warn_level;
@@ -1277,7 +1277,7 @@ sub chat {
 	    	    else { $spam_count{$slot} += 1; }
 	    	    if ($spam_count{$slot} == $config->{'antispam_warn_level_1'}) { &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_1'}); }
 	    	    if ($spam_count{$slot} == $config->{'antispam_warn_level_2'}) { &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_warn_message_2'}); }
-	    	    if (($spam_count{$slot} >= $config->{'antispam_kick_level'}) and ($spam_count{$slot} <= ( $config->{'antispam_kick_level'} + 1))) {  
+	    	    if (($spam_count{$slot} >= $config->{'antispam_kick_level'}) and ($spam_count{$slot} <= ($config->{'antispam_kick_level'} + 1))) {  
 	    	        if (&flood_protection('anti-spam-kick', 30, $slot)) { }
 	    	    	else {
 	    	    	    &rcon_command("say ^1$name_by_slot{$slot}^7: " . $config->{'antispam_kick_message'});
@@ -1623,7 +1623,7 @@ sub chat {
 		        $definitions_sth->execute($undefine) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 		        if ($row[0] == 1) { &rcon_command("say " . '"^2Удалено одно определение для:"' . '"' . "^1$undefine"); }
 		        elsif ($row[0] > 1) { &rcon_command("say " . '"^2Удалено"' . "^3$row[0]^2" . '"определений для:"' . '"' . "^1$undefine"); }
-		        else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undefine");}
+		        else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undefine"); }
 		    }
 		}
     }
@@ -1641,7 +1641,7 @@ sub chat {
 		            $definitions_sth->execute($row[0]) or &die_nice("Unable to execute query: $definitions_dbh->errstr\n");
 				    &rcon_command("say " . '"^2Удалено последнее определение для:"' . '"' . "^1$undef"); 
 				}
-				else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undef");}
+				else { &rcon_command("say " . '"^2Больше нет определений для:"' . '"' . "^1$undef"); }
 		    }
 		}
     }
@@ -2261,7 +2261,7 @@ sub chat {
 	elsif ($message =~ /^!time\b/i) {
         if (&check_access('time')) {
 	        if (&flood_protection('time', 30, $slot)) { }
-	        else { &rcon_command("say " . '"^2Московское время^7:^3"' . $timestring->hms . " ^7|^3 " . $timestring->dmy(".")); }
+	        else { &rcon_command("say " . '"^1Московское время^7:^2"' . $timestring->hms . " ^7|^3 " . $timestring->dmy(".")); }
 	    }
     }
 	# !ragequit
@@ -2460,7 +2460,7 @@ sub check_banned_ip {
             sleep 1;
 	        &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы забанены. Вы не можете остатся на этом сервере"');
 	        sleep 1;
-	        &rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+	        &rcon_command("say $row[5]^7:" . '"Был забанен^3"' . scalar(localtime($row[1]))->dmy(".") . '"^7в^2"' . scalar(localtime($row[1]))->hms . " ^7(BAN ID#: ^1$row[0]^7)");
 	        sleep 1;
 	        if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7У вас перманентный бан."'); }
 	        else { &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
@@ -2484,7 +2484,7 @@ sub check_banned_guid {
             sleep 1;
 	        &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы забанены. Вы не можете остатся на этом сервере"');
 	        sleep 1;
-	        &rcon_command("say $row[5]^7:" . '"Был забанен"' . scalar(localtime($row[1])) . " - (BAN ID#: ^1$row[0]^7)");
+	        &rcon_command("say $row[5]^7:" . '"Был забанен^3"' . scalar(localtime($row[1]))->dmy(".") . '"^7в^2"' . scalar(localtime($row[1]))->hms . " ^7(BAN ID#: ^1$row[0]^7)");
 	        sleep 1;
 	        if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7:" . '"^7У вас перманентный бан."'); }
 	        else { &rcon_command("say $name_by_slot{$slot}^7:" . '"Вы будете разбанены через"' . &duration(($row[2]) - $time)); }
@@ -3037,7 +3037,7 @@ sub sanitize_regex {
 # BEGIN: matching_users($search_string)
 sub matching_users {
     # a generic function to do string matches on active usernames
-    #  returns a list of slot numbers that match.
+    # returns a list of slot numbers that match.
     my $search_string = shift;
     if ($search_string =~ /^\/(.+)\/$/) { $search_string = $1; }
     else { $search_string = &sanitize_regex($search_string); }
@@ -3051,16 +3051,6 @@ sub matching_users {
 			}
 	    }
     }
-    if ($#matches == -1) {
-	    foreach $key (keys %name_by_slot) {
-	        if (&strip_color(&strip_color($name_by_slot{$key})) =~ /$search_string/i) {
-			    if ($name_by_slot{$key} ne 'SLOT_EMPTY') {
-                    print "MATCH: $name_by_slot{$key}\n";
-	                push @matches, $key;
-				}
-			}
-	    }
-    }
     return @matches;
 }
 # END: matching_users
@@ -3069,22 +3059,23 @@ sub matching_users {
 sub ignore {
     if (&flood_protection('ignore', 30, $slot)) { return 1; }
     my $search_string = shift;
-    my $key;
-    if ($search_string =~ /^\#(\d+)$/) {
-        $slot = $1;
-        &rcon_command("say ^2$name_by_slot{$slot}" . '" ^7теперь будет игнорироватся."');
-	    $ignore{$slot} = 1;
-        &log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$slot} was ignored by $name - GUID $guid - (Search: $search_string)");
-        return 0;
+    if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
+	else {
+	    my @matches = &matching_users($search_string);
+	    if ($#matches == -1) {
+	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
+	        return 0;
+	    }
+	    elsif ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches > 0) {
+	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
+	        return 0;
+	    }
 	}
-    my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
-        &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7теперь будет игнорироватся."');
-        $ignore{$matches[0]} = 1;
-        &log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$matches[0]} was ignored by $name - GUID $guid - (Search: $search_string)");
-	}
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+    $ignore{$slot} = 1;
+	&rcon_command("say ^2$name_by_slot{$slot}" . '"^7теперь будет игнорироватся."');
+    &log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$slot} was ignored by $name - GUID $guid - (Search: $search_string)");
 }
 # END: ignore
 
@@ -3092,28 +3083,28 @@ sub ignore {
 sub forgive {
     if (&flood_protection('forgive', 30, $slot)) { return 1; }
     my $search_string = shift;
-    my $key;
-    if ($search_string =~ /^\#(\d+)$/) {
-        $slot = $1;
-        &rcon_command("say ^2$name_by_slot{$slot}" . '"^7пообещал вести себя хорошо и был прощен админом"');
-        $ignore{$slot} = 0;
-	    $idle_warn_level{$slot} = 0;
-	    $last_activity_by_slot{$slot} = $time;
-	    $penalty_points{$slot} = 0;
-        &log_to_file('logs/admin.log', "!FORGIVE: $name_by_slot{$slot} was forgiven by $name - GUID $guid - (Search: $search_string)");
-        return 0;
+    if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
+	else {
+	    my @matches = &matching_users($search_string);
+	    if ($#matches == -1) {
+	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
+	        return 0;
+	    }
+	    elsif ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches > 0) {
+	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
+	        return 0;
+	    }
 	}
-    my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
-        &rcon_command("say ^2$name_by_slot{$matches[0]}" . '"^7пообещал вести себя хорошо и был прощен админом"');
-        $ignore{$matches[0]} = 0;
-	    $idle_warn_level{$matches[0]} = 0;
-        $last_activity_by_slot{$matches[0]} = $time;
-        $penalty_points{$matches[0]} = 0;
-        &log_to_file('logs/admin.log', "!FORGIVE: $name_by_slot{$matches[0]} was forgiven by $name - GUID $guid - (Search: $search_string)");
-	}
-    elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+    $ignore{$slot} = 0;
+	$idle_warn_level{$slot} = 0;
+    $last_activity_by_slot{$slot} = $time;
+    $penalty_points{$slot} = 0;
+	$spam_count{$slot} = 0;
+    $spam_last_said{$slot} = &random_pwd(6);
+	&rcon_command("say ^2$name_by_slot{$slot}" . '"^7пообещал вести себя хорошо и был прощен админом"');
+    &log_to_file('logs/admin.log', "!FORGIVE: $name_by_slot{$slot} was forgiven by $name - GUID $guid - (Search: $search_string)");
 }
 # END: forgive
 
@@ -3121,17 +3112,13 @@ sub forgive {
 sub clear_stats {
     if (&flood_protection('clearstats', 30, $slot)) { return 1; }
     my $search_string = shift;
-	my $victim_guid;
-	my $victim_name;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
-	    $victim_guid = $guid_by_slot{$matches[0]};
-	    $victim_name = $name_by_slot{$matches[0]};
 	    $stats_sth = $stats_dbh->prepare("DELETE FROM stats where guid=?;");
         $stats_sth->execute($guid) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-	    &rcon_command("say " . '"Удалена статистика для:"' . "^1$victim_name");
-		&log_to_file('logs/admin.log', "!CLEARSTATS: $victim_name (GUID - $victim_guid) stats were deleted by $name - GUID $guid - (Search: $search_string)");
+	    &rcon_command("say " . '"Удалена статистика для:"' . "^1$name_by_slot{$matches[0]}");
+		&log_to_file('logs/admin.log', "!CLEARSTATS: $name_by_slot{$matches[0]} (GUID - $guid_by_slot{$matches[0]}) stats were deleted by $name - GUID $guid - (Search: $search_string)");
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
@@ -3141,22 +3128,16 @@ sub clear_stats {
 sub clear_names {
     if (&flood_protection('clearnames', 30, $slot)) { return 1; }
     my $search_string = shift;
-    my $victim_guid;
-	my $victim_name;
-	my $victim_ip;
     my @matches = &matching_users($search_string);
     if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
     elsif ($#matches == 0) {
-	    $victim_guid = $guid_by_slot{$matches[0]};
-	    $victim_name = $name_by_slot{$matches[0]};
-	    $victim_ip = $ip_by_slot{$matches[0]};
-	    if ($victim_ip =~ /\?$/) { return 1; }
+	    if ($ip_by_slot{$matches[0]} =~ /\?$/) { return 1; }
 	    $guid_to_name_sth = $guid_to_name_dbh->prepare("DELETE FROM guid_to_name where guid=?;");
-        $guid_to_name_sth->execute($victim_guid) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+        $guid_to_name_sth->execute($guid_by_slot{$matches[0]}) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
 	    $ip_to_name_sth = $ip_to_name_dbh->prepare("DELETE FROM ip_to_name where ip=?;");
-        $ip_to_name_sth->execute($victim_ip) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-	    &rcon_command("say " . '"Удалены имена для:"' . "^1$victim_name");
-		&log_to_file('logs/admin.log', "!CLEARNAMES: $victim_name names were deleted by $name - GUID $guid - (Search: $search_string)");
+        $ip_to_name_sth->execute($ip_by_slot{$matches[0]}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+	    &rcon_command("say " . '"Удалены имена для:"' . "^1$name_by_slot{$matches[0]}");
+		&log_to_file('logs/admin.log', "!CLEARNAMES: $name_by_slot{$matches[0]} names were deleted by $name - GUID $guid - (Search: $search_string)");
 	}
 	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
 }
@@ -4444,7 +4425,7 @@ sub check_guid_zero_players {
 		        $kick_reason = '"был выкинут за использование неверного ключа диска. Вероятно этот ключ уже где-то используется"';
 		    }
 		    if (($dirtbag) and ($reason eq 'BANNED_CDKEY')) {
-		        &rcon_command("say ^1$name_by_slot{$slot} ^7$kick_reason");
+		        &rcon_command("say ^1$name_by_slot{$slot}^7$kick_reason");
 		        sleep 1;
 		        &rcon_command("clientkick $slot");
 		        &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
@@ -4494,12 +4475,12 @@ sub reset {
 	    $ip_by_slot{$reset_slot} = 'not_yet_known';
 	    $guid_by_slot{$reset_slot} = 0;
 	    $spam_count{$reset_slot} = 0;
-		$spam_last_said{$slot} = &random_pwd(6);
-		$ping_by_slot{$slot} = 0;
+		$spam_last_said{$reset_slot} = &random_pwd(6);
+		$ping_by_slot{$reset_slot} = 0;
 		$last_ping_by_slot{$reset_slot} = 0;
 		$penalty_points{$reset_slot} = 0;
 		$last_killed_by_name{$reset_slot} = 'none';
-		$last_killed_by_guid{$slot} = 0;
+		$last_killed_by_guid{$reset_slot} = 0;
 		$kill_spree{$reset_slot} = 0;
 		$best_spree{$reset_slot} = 0;
 		$ignore{$reset_slot} = 0;
