@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r43';
+my $version = '3.4 RUS r44';
 my %WARNS;
 my $idlecheck_interval = 45;
 my %idle_warn_level;
@@ -1710,17 +1710,17 @@ sub chat {
 		if (&check_access('stats')) { &stats($slot); }
 	}
 	# !lastkill
-    elsif ($message =~ /^!(last\s*kill|whoikilled)\s*(.*)/i) {
+    elsif ($message =~ /^!last\s*kill\s+(.+)/i) {
         if (&check_access('lastkill')) { &lastkill($slot,$2); }
     }
-    elsif ($message =~ /^!(last\s*kill|killedby|whokilledme|whowasthat)\s*$/i) {
+    elsif ($message =~ /^!last\s*kill\s*$/i) {
 		if (&check_access('lastkill')) { &lastkill($slot); }
 	}
 	# !lastkilled
-    elsif ($message =~ /^!(last\s*killed|killedby|whokilledme|whowasthat)\s*(.*)/i) {
+    elsif ($message =~ /^!(last\s*killed|killedby|whokilledme|whowasthat)\s+(.+)/i) {
         if (&check_access('lastkilled')) { &lastkilled($slot,$2); }
     }
-    elsif ($message =~ /^!(last\s*kill|killedby|whokilledme|whowasthat)\s*$/i) {
+    elsif ($message =~ /^!(last\s*killed|killedby|whokilledme|whowasthat)\s*$/i) {
 		if (&check_access('lastkilled')) { &lastkilled($slot); }
 	}
 	# !best
