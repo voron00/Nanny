@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r42';
+my $version = '3.4 RUS r43';
 my %WARNS;
 my $idlecheck_interval = 45;
 my %idle_warn_level;
@@ -911,7 +911,7 @@ while (1) {
                 &vote_cleanup;
             }
             # Vote FAIL, too many NO
-            elsif ($voted_no >= $required_yes) {	
+            elsif ($voted_no >= $required_yes) {
                 &rcon_command("say " . '"Голосование:"' . "$vote_string" . &description($vote_target) . "^7:" . '"^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
 	            &log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
                 &vote_cleanup;
@@ -3157,11 +3157,11 @@ sub ignore {
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
 	    my @matches = &matching_users($search_string);
-	    if ($#matches == -1) {
+		if ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 	        return 1;
 	    }
-	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	        return 1;
@@ -3181,11 +3181,11 @@ sub forgive {
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
 	    my @matches = &matching_users($search_string);
-	    if ($#matches == -1) {
+		if ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 	        return 1;
 	    }
-	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	        return 1;
@@ -3208,14 +3208,20 @@ sub clear_stats {
     if (&flood_protection('clearstats', 30, $slot)) { return 1; }
     my $search_string = shift;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
+    if ($#matches == 0) {
 	    $stats_sth = $stats_dbh->prepare("DELETE FROM stats where guid=?;");
         $stats_sth->execute($guid) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	    &rcon_command("say " . '"Удалена статистика для:"' . "$name_by_slot{$matches[0]}");
 		&log_to_file('logs/admin.log', "!CLEARSTATS: $name_by_slot{$matches[0]} (GUID - $guid_by_slot{$matches[0]}) stats were deleted by $name - GUID $guid - (Search: $search_string)");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
+	elsif ($#matches == -1) {
+	    &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
+	    return 1;
+	}
+	elsif ($#matches > 0) {
+	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
+	    return 1;
+    }
 }
 # END: clearstats
 
@@ -3224,8 +3230,7 @@ sub clear_names {
     if (&flood_protection('clearnames', 30, $slot)) { return 1; }
     my $search_string = shift;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
+    if ($#matches == 0) {
 	    if ($ip_by_slot{$matches[0]} =~ /\?$/) { return 1; }
 	    $guid_to_name_sth = $guid_to_name_dbh->prepare("DELETE FROM guid_to_name where guid=?;");
         $guid_to_name_sth->execute($guid_by_slot{$matches[0]}) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
@@ -3234,7 +3239,14 @@ sub clear_names {
 	    &rcon_command("say " . '"Удалены имена для:"' . "$name_by_slot{$matches[0]}");
 		&log_to_file('logs/admin.log', "!CLEARNAMES: $name_by_slot{$matches[0]} names were deleted by $name - GUID $guid - (Search: $search_string)");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
+	elsif ($#matches == -1) {
+	    &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
+	    return 1;
+	}
+	elsif ($#matches > 0) {
+	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
+	    return 1;
+    }
 }
 # END: clearnames
 
@@ -3244,12 +3256,18 @@ sub report_player {
     my $search_string = shift;
 	my $reason = shift;
     my @matches = &matching_users($search_string);
-    if ($#matches == -1) { &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string"); }
-    elsif ($#matches == 0) {
+    if ($#matches == 0) {
 	    &rcon_command("say " . '"Жалоба на игрока"' . "$name_by_slot{$matches[0]}" . '"^7отправлена."');
         &log_to_file('logs/report.log', "!report: $name_by_slot{$slot} - GUID $guid reported player $name_by_slot{$matches[0]} - GUID $guid_by_slot{$matches[0]} - reason $reason via the !report command. (Search: $search_string)");
 	}
-	elsif ($#matches > 0) { &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string"); }
+	elsif ($#matches == -1) {
+	    &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
+	    return 1;
+	}
+	elsif ($#matches > 0) {
+	    &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
+	    return 1;
+    }
 }
 # END: report
 
@@ -3260,15 +3278,15 @@ sub ip_player {
     my $search_string = shift;
 	if ($search_string) {
         my @matches = &matching_users($search_string);
-        if ($#matches == -1) {
+        if ($#matches == 0) { $slot = $matches[0]; }
+		elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	    	return 1;
+	        return 1;
 	    }
-        elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	    	return 1;
-	    }
+	        return 1;
+        }
 	}
 	&rcon_command("say " . '"IP-Адрес:"' . "$name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}");
 }
@@ -3279,17 +3297,17 @@ sub id_player {
     if (&flood_protection('id', 30, $slot)) { return 1; }
 	my $slot = shift;
     my $search_string = shift;
-	if ($search_string) {
+    if ($search_string) {
         my @matches = &matching_users($search_string);
-        if ($#matches == -1) {
+        if ($#matches == 0) { $slot = $matches[0]; }
+		elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	    	return 1;
+	        return 1;
 	    }
-        elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	    	return 1;
-	    }
+	        return 1;
+        }
 	}
 	&rcon_command("say " . '"ClientID:"' . "$name_by_slot{$slot}^7 - ^3$slot");
 }
@@ -3300,17 +3318,17 @@ sub guid_player {
     if (&flood_protection('guid', 30, $slot)) { return 1; }
 	my $slot = shift;
     my $search_string = shift;
-	if ($search_string) {
+    if ($search_string) {
         my @matches = &matching_users($search_string);
-        if ($#matches == -1) {
+        if ($#matches == 0) { $slot = $matches[0]; }
+		elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	    	return 1;
+	        return 1;
 	    }
-        elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	    	return 1;
-	    }
+	        return 1;
+        }
 	}
 	&rcon_command("say " . '"GUID:"' . "$name_by_slot{$slot}^7 - ^3$guid_by_slot{$slot}");
 }
@@ -3322,17 +3340,17 @@ sub age_player {
 	my $slot = shift;
     my $search_string = shift;
 	my $age = 10 + int(rand(25 - 5));
-	if ($search_string) {
+    if ($search_string) {
         my @matches = &matching_users($search_string);
-        if ($#matches == -1) {
+        if ($#matches == 0) { $slot = $matches[0]; }
+		elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	    	return 1;
+	        return 1;
 	    }
-        elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	    	return 1;
-	    }
+	        return 1;
+        }
 	}
 	if ($age >= 10 and $age <= 20 or $age >= 25 and $age <= 30) { &rcon_command("say " . '"Возраст игрока"' . "$name_by_slot{$slot}^7 - ^3$age" . '"^7лет"'); }
 	elsif ($age == 21 or $age == 31) { &rcon_command("say " . '"Возраст игрока"' . "$name_by_slot{$slot}^7 - ^3$age" . '"^7год"'); }
@@ -3346,17 +3364,17 @@ sub name_player {
 	my $slot = shift;
     my $search_string = shift;
 	my @row;
-	if ($search_string) {
+    if ($search_string) {
         my @matches = &matching_users($search_string);
-        if ($#matches == -1) {
+        if ($#matches == 0) { $slot = $matches[0]; }
+		elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	    	return 1;
+	        return 1;
 	    }
-        elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	    	return 1;
-	    }
+	        return 1;
+        }
 	}
 	$names_sth = $names_dbh->prepare("SELECT * FROM names ORDER BY RANDOM() LIMIT 1;");
     $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
@@ -3372,17 +3390,17 @@ sub rank_player {
 	my $slot = shift;
     my $search_string = shift;
 	my @row;
-	if ($search_string) {
+    if ($search_string) {
         my @matches = &matching_users($search_string);
-        if ($#matches == -1) {
+        if ($#matches == 0) { $slot = $matches[0]; }
+		elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	    	return 1;
+	        return 1;
 	    }
-        elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	    	return 1;
-	    }
+	        return 1;
+        }
 	}
 	$ranks_sth = $ranks_dbh->prepare("SELECT * FROM ranks ORDER BY RANDOM() LIMIT 1;");
     $ranks_sth->execute() or &die_nice("Unable to execute query: $ranks_dbh->errstr\n");
@@ -3551,11 +3569,11 @@ sub kick_command {
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
 	    my @matches = &matching_users($search_string);
-	    if ($#matches == -1) {
+		if ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 	        return 1;
 	    }
-	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	        return 1;
@@ -3582,11 +3600,11 @@ sub tempban_command {
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
 	    my @matches = &matching_users($search_string);
-	    if ($#matches == -1) {
+		if ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 	        return 1;
 	    }
-	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	        return 1;
@@ -3615,11 +3633,11 @@ sub ban_command {
     if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
         my @matches = &matching_users($search_string);
-        if ($#matches == -1) {
+		if ($#matches == 0) { $slot = $matches[0]; }
+        elsif ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
 	        return 1;
 	    }
-        elsif ($#matches == 0) { $slot = $matches[0]; }
         elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
 	        return 1;
