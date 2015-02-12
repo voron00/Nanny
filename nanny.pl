@@ -87,7 +87,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r41';
+my $version = '3.4 RUS r42';
 my %WARNS;
 my $idlecheck_interval = 45;
 my %idle_warn_level;
@@ -911,7 +911,7 @@ while (1) {
                 &vote_cleanup;
             }
             # Vote FAIL, too many NO
-            elsif ($voted_no >= $required_yes) {
+            elsif ($voted_no >= $required_yes) {	
                 &rcon_command("say " . '"Голосование:"' . "$vote_string" . &description($vote_target) . "^7:" . '"^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7:"' . "^2$voted_yes^7," . '"^1ПРОТИВ^7:"' . "^1$voted_no");
 	            &log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
                 &vote_cleanup;
@@ -2972,7 +2972,7 @@ sub stats {
     }
 	else {
 	    &rcon_command("say " . '"Ошибка чтения статистики для:"' . "$name^7 (^2GUID^7 - ^3$guid^7)");
-	    return 0;
+	    return 1;
 	}
 }
 # END: stats
@@ -3159,15 +3159,15 @@ sub ignore {
 	    my @matches = &matching_users($search_string);
 	    if ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	}
-	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 1; }
     $ignore{$slot} = 1;
 	&rcon_command("say $name_by_slot{$slot}" . '"^7теперь будет игнорироватся."');
     &log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$slot} was ignored by $name - GUID $guid - (Search: $search_string)");
@@ -3183,15 +3183,15 @@ sub forgive {
 	    my @matches = &matching_users($search_string);
 	    if ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	}
-	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 1; }
     $ignore{$slot} = 0;
 	$idle_warn_level{$slot} = 0;
     $last_activity_by_slot{$slot} = $time;
@@ -3553,15 +3553,15 @@ sub kick_command {
 	    my @matches = &matching_users($search_string);
 	    if ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	}
-	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 1; }
 	&rcon_command("say $name_by_slot{$slot}" . '"^7был выкинут админом"');
     sleep 1;
     &rcon_command("clientkick $slot");
@@ -3584,15 +3584,15 @@ sub tempban_command {
 	    my @matches = &matching_users($search_string);
 	    if ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	    elsif ($#matches == 0) { $slot = $matches[0]; }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	}
-	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 1; }
 	my $ban_name = 'unknown';
     my $ban_ip = 'unknown';
 	my $ban_guid = 12345678;
@@ -3617,15 +3617,15 @@ sub ban_command {
         my @matches = &matching_users($search_string);
         if ($#matches == -1) {
 	        &rcon_command("say " . '"Нет совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
         elsif ($#matches == 0) { $slot = $matches[0]; }
         elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$search_string");
-	        return 0;
+	        return 1;
 	    }
 	}
-	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 0; }
+	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 1; }
 	my $ban_name = 'unknown';
     my $ban_ip = 'unknown';
 	my $ban_guid = 12345678;
@@ -4020,7 +4020,7 @@ sub next_map_prediction {
 		$next_map = $mapname;
 		print "Next Map: " . &description($next_map) . " and Next Gametype: " . &description($next_gametype) . "\n";
 		$freshen_next_map_prediction = 0;
-		return 0;
+		return 1;
 	}
 }
 # END: next_map_prediction
@@ -4379,7 +4379,7 @@ sub dictionary {
 	        $definitions_sth = $definitions_dbh->prepare("INSERT INTO definitions VALUES (NULL, ?, ?)");
 	        $definitions_sth->execute($term,$definition) or &die_nice("Unable to do insert\n");
 	        &rcon_command("say " . '"^2Добавлено определение для:"' . '"' . "^1$term");
-	        return 0;
+	        return 1;
 	    }
     }
     # Now, Most imporant are the definitions that have been manually defined.
@@ -4579,23 +4579,6 @@ sub reset {
 		$ignore{$reset_slot} = 0;
 		$last_rconstatus = 0;
 	}
-}
-
-sub vote_cleanup {
-    $vote_started = 0;
-    $voted_yes = 0;
-    $voted_no = 0;
-    $voting_players = 0;
-    $required_yes = 0;
-    $vote_time = 0;
-    $vote_type = undef;
-	$vote_string = undef;
-    $vote_initiator = undef;
-    $vote_target = undef;
-	$vote_target_slot = undef;
-    foreach $reset_slot (keys %voted_by_slot) {
-        $voted_by_slot{$reset_slot} = 0;
-    }
 }
 
  sub ftp_connect {
@@ -5088,7 +5071,7 @@ sub exchange {
 }
 # END: exchange
 
-# BEGIN: vote
+# BEGIN: vote($vote_initiator,$vote_type,$vote_target)
 sub vote {
     $vote_initiator = shift;
     $vote_type = shift;
@@ -5097,29 +5080,10 @@ sub vote {
     if ($vote_type eq 'kick' or $vote_type eq 'ban') {
         my @matches = &matching_users($vote_target);
         if ($#matches == 0) {
-            if (&flood_protection('vote', 120)) { return 1; }
             $vote_target = $name_by_slot{$matches[0]};
 			$vote_target_slot = $matches[0];
-	        if ($vote_type eq 'kick') { $vote_string = '"Выкинуть"'; }
-	        else { $vote_string = '"Временно забанить"'; }
-	        &rcon_command("say $vote_initiator^7" . '"предложил голосование:"' . "$vote_string" . "$vote_target");
-		    sleep 1;
-	        $voting_players = $players_count;
-	        if (!$voting_players) {
-	            &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
-	            return 1;
-	        }
-		    if ($vote_type eq 'kick') { &log_to_file('logs/voting.log', "!VOTEKICK: $vote_initiator has started a vote: kick $vote_target"); }
-		    else { &log_to_file('logs/voting.log', "!VOTEBAN: $vote_initiator has started a vote: temporary ban $vote_target"); }
-	        $vote_time = ($time + $vote_timelimit) + ($players_count * 5); # +5 seconds for each player
-	        $required_yes = ($voting_players / 2) + 1;
-	        if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
-	        &rcon_command("say " . '"Голосование началось: Длительность^4"' . ($vote_time-$time) . '"^7секунд: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
-	        sleep 1;
-	        &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
-		    sleep 1;
-	        &rcon_command("say " . '"Используйте ^5!votestatus ^7для проверки состояния голосования"');
-			$vote_started = 1;
+	        if ($vote_type eq 'kick') { &vote_start('"Выкинуть"'); }
+	        elsif ($vote_type eq 'ban') { &vote_start('"Временно забанить"'); }
         }
         elsif ($#matches > 0) {
 	        &rcon_command("say " . '"Слишком много совпадений с:"' . '"' . "$vote_target");
@@ -5148,27 +5112,7 @@ sub vote {
         elsif ($vote_target =~ /^(rhine|wallendar)\b/i) { $vote_target = 'mp_rhine'; }
         else { $vote_target = 'unknown'; }
         if (($cod_version eq '1.0') and ($vote_target =~ /mp_(harbor|rhine)/)) { return 1; }
-        elsif ($vote_target =~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|trainstation|harbor|rhine)$/) {
-            if (&flood_protection('vote', 120)) { return 1; }
-		    $vote_string = '"Смена карты на"';
-	        &rcon_command("say $vote_initiator^7" . '"предложил голосование:"' . "$vote_string" . &description($vote_target));
-		    sleep 1;
-	        $voting_players = $players_count;
-	        if (!$voting_players) {
-	            &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
-	            return 1;
-	        }
-		    &log_to_file('logs/voting.log', "!VOTEMAP: $vote_initiator has started a vote: change map to $vote_target");
-	        $vote_time = ($time + $vote_timelimit) + ($players_count * 5); # +5 seconds for each player
-	        $required_yes = ($voting_players / 2) + 1;
-	        if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
-	        &rcon_command("say " . '"Голосование началось: Длительность^4"' . ($vote_time-$time) . '"^7секунд: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
-	        sleep 1;
-	        &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
-		    sleep 1;
-	        &rcon_command("say " . '"Используйте ^5!votestatus ^7для проверки состояния голосования"');
-			$vote_started = 1;
-        }
+        elsif ($vote_target =~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|trainstation|harbor|rhine)$/) { &vote_start('"Смена карты на"'); }
     }
 	elsif ($vote_type eq 'type') {
         if ($vote_target =~ /^dm\b/i) { $vote_target = 'dm'; }
@@ -5177,27 +5121,51 @@ sub vote {
 		elsif ($vote_target =~ /^ctf\b/i) { $vote_target = 'ctf'; }
 		elsif ($vote_target =~ /^sd\b/i) { $vote_target = 'sd'; }
         else { $vote_target = 'unknown'; }
-        if ($vote_target =~ /^(dm|tdm|hq|ctf|sd)$/) {
-            if (&flood_protection('vote', 120)) { return 1; }
-		    $vote_string = '"Смена типа игры на"';
-	        &rcon_command("say $vote_initiator^7" . '"предложил голосование:"' . "$vote_string" . &description($vote_target));
-		    sleep 1;
-	        $voting_players = $players_count;
-	        if (!$voting_players) {
-	            &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
-	            return 1;
-	        }
-		    &log_to_file('logs/voting.log', "!VOTETYPE: $vote_initiator has started a vote: change gametype to $vote_target");
-	        $vote_time = ($time + $vote_timelimit) + ($players_count * 5); # +5 seconds for each player
-	        $required_yes = ($voting_players / 2) + 1;
-	        if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
-	        &rcon_command("say " . '"Голосование началось: Длительность^4"' . ($vote_time-$time) . '"^7секунд: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
-	        sleep 1;
-	        &rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
-		    sleep 1;
-	        &rcon_command("say " . '"Используйте ^5!votestatus ^7для проверки состояния голосования"');
-			$vote_started = 1;
-        }
+        if ($vote_target =~ /^(dm|tdm|hq|ctf|sd)$/) { &vote_start('"Смена типа игры на"'); }
     }
 }
 # END: vote
+
+# BEGIN: vote_start($vote_string)
+sub vote_start {
+    if (&flood_protection('vote', 120)) { return 1; }
+	$vote_string = shift;
+	my $type = uc $vote_type;
+    &rcon_command("say $vote_initiator^7" . '"предложил голосование:"' . "$vote_string" . &description($vote_target));
+	sleep 1;
+	$voting_players = $players_count;
+	if (!$voting_players) {
+	    &rcon_command("say " . '"Сейчас провести голосование невозможно, повторите попытку позже"');
+	        return 1;
+	    }
+	$vote_time = ($time + $vote_timelimit) + ($players_count * 5); # +5 seconds for each player
+	$required_yes = ($voting_players / 2) + 1;
+	if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
+	&rcon_command("say " . '"Голосование началось: Длительность^4"' . ($vote_time-$time) . '"^7секунд: Необходимо голосов ^2ЗА^7:"' . "^2$required_yes");
+	sleep 1;
+	&rcon_command("say " . '"Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ"');
+	sleep 1;
+	&rcon_command("say " . '"Используйте ^5!votestatus ^7для проверки состояния голосования"');
+	$vote_started = 1;
+	&log_to_file('logs/voting.log', "!VOTE$type: $vote_initiator has started a vote: change gametype to $vote_target");
+}
+# END: vote_start
+
+# BEGIN: vote_cleanup
+sub vote_cleanup {
+    $vote_started = 0;
+    $voted_yes = 0;
+    $voted_no = 0;
+    $voting_players = 0;
+    $required_yes = 0;
+    $vote_time = 0;
+    $vote_type = undef;
+	$vote_string = undef;
+    $vote_initiator = undef;
+    $vote_target = undef;
+	$vote_target_slot = undef;
+    foreach $reset_slot (keys %voted_by_slot) {
+        $voted_by_slot{$reset_slot} = 0;
+    }
+}
+# END: vote_cleanup
