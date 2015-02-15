@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r45';
+my $version = '3.4 RUS r46';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -178,6 +178,7 @@ my $next_announcement;
 my $voting = 0;
 my $reactivate_voting = 0;
 my $fly_timer = 0;
+my $ban_message_spam = 0;
 my %location_spoof;
 my $gametype;
 my $gamename;
@@ -612,7 +613,7 @@ while (1) {
     		    if (($config->{'show_game_joins'}) and ($gametype ne 'sd')) { &rcon_command("say $name_by_slot{$slot} ^7присоеденился к игре"); }
     		    if ($config->{'show_joins'}) { print "JOIN: $name_by_slot{$slot} has joined the game\n"; }
     		    # Check for banned GUID
-    		    &check_banned_guid($slot);
+    		    if ($guid) { &banned_player_check($slot,$guid); }
             }
     	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
     	}
@@ -886,6 +887,8 @@ while (1) {
             &rcon_command("g_gravity 800");
             &rcon_command("say Думаю стоит продолжить нормальную игру");
 	    }
+		# Ban message anti-spam
+	    if (($ban_message_spam) and ($time >= $ban_message_spam)) { $ban_message_spam = 0; }
 	    # Check vote status
 	    if ($vote_started) {
             # Vote TIMEOUT
@@ -1387,14 +1390,7 @@ sub chat {
     if (($config->{'bad_shots'}) and (!$ignore{$slot})) {
     	if ($message =~ /^!?bs\W*$|^!?bad\s*shot\W*$|^!?bull\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that\s+was\s+(bs|badshot|bullshit)\W*$/i) {
     	    if ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none')) {
-    	    	if ((&flood_protection('badshot', 30, $slot)) or (&flood_protection('niceshot', 30, $slot))) {
-    		        # bad shot abuse
-    		        if ((&flood_protection('badshot-two', 30, $slot)) or (&flood_protection('niceshot-two', 30, $slot))) { }
-	    	        elsif ($guid) {
-    	    		    $stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
-	        		    $stats_sth->execute($guid) or &die_nice("Unable to update stats\n");
-    	    	    }
-	        	}
+    	    	if ((&flood_protection('badshot', 30, $slot)) or (&flood_protection('niceshot', 30, $slot))) { }
     	    	elsif ($last_killed_by_guid{$slot}) {
 	        	    # update the Bad Shot counter.
     	    	    $stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
@@ -1407,14 +1403,7 @@ sub chat {
 		    my $search_string = $2;
 			my @matches = &matching_users($search_string);
     	    if (($#matches == 0) and (defined($last_kill_by_name{$matches[0]})) and ($last_kill_by_name{$matches[0]} ne 'none') and ($slot ne $matches[0])) {
-    	        if ((&flood_protection('badshot-player', 30, $slot)) or (&flood_protection('niceshot-player', 30, $slot))) {
-    		        # bad shot abuse
-    		        if ((&flood_protection('badshot-player-two', 30, $slot)) or (&flood_protection('niceshot-player-two', 30, $slot))) { }
-	    	        elsif ($guid_by_slot{$matches[0]}) {
-    	    	    	$stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
-	        	    	$stats_sth->execute($guid_by_slot{$matches[0]}) or &die_nice("Unable to update stats\n");
-    	    	    }
-	        	}
+    	        if ((&flood_protection('badshot', 30, $slot)) or (&flood_protection('niceshot', 30, $slot))) { }
     	    	elsif ($last_kill_by_guid{$matches[0]}) {
 	        	    # update the Bad Shot counter.
     	    	    $stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
@@ -1430,14 +1419,7 @@ sub chat {
     if (($config->{'nice_shots'}) and (!$ignore{$slot})) {
 	    if ($message =~ /\bnice\W?\s+(one|shot|1)\b|^n[1s]\W*$/i) {
 	        if ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none')) {
-	        	if ((&flood_protection('niceshot', 30, $slot)) or (&flood_protection('badshot', 30, $slot))) {
-	        	    # nice shot abuse
-    		    	if ((&flood_protection('niceshot-two', 30, $slot)) or (&flood_protection('badshot-two', 30, $slot))) { }
-    		    	elsif ($guid) {
-    		    	    $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
-    		    	    $stats_sth->execute($guid) or &die_nice("Unable to update stats\n");
-    	    		}
-    	    	}
+	        	if ((&flood_protection('niceshot', 30, $slot)) or (&flood_protection('badshot', 30, $slot))) { }
     	    	elsif ($last_killed_by_guid{$slot}) {
     		        # update the Nice Shot counter.
 	    	        $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
@@ -1450,14 +1432,7 @@ sub chat {
 		    my $search_string = $2;
 			my @matches = &matching_users($search_string);
 	        if (($#matches == 0) and (defined($last_kill_by_name{$matches[0]})) and ($last_kill_by_name{$matches[0]} ne 'none') and ($slot ne $matches[0])) {
-	            if ((&flood_protection('niceshot-player', 30, $slot)) or (&flood_protection('badshot-player', 30, $slot))) {
-	        	    # nice shot abuse
-    		        if ((&flood_protection('niceshot-player-two', 30, $slot)) or (&flood_protection('badshot-player-two', 30, $slot))) { }
-    		        elsif ($guid_by_slot{$matches[0]}) {
-    		            $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
-    		            $stats_sth->execute($guid_by_slot{$matches[0]}) or &die_nice("Unable to update stats\n");
-    	    	    }
-    	    	}
+	            if ((&flood_protection('niceshot', 30, $slot)) or (&flood_protection('badshot', 30, $slot))) { }
     	    	elsif ($last_kill_by_guid{$matches[0]}) {
     		        # update the Nice Shot counter.
 	    	        $stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
@@ -1903,7 +1878,7 @@ sub chat {
 		        sleep 1;
 		        &rcon_command("say ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney");
 		        sleep 1;
-		        &rcon_command("say ... with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
+		        &rcon_command("say with additional help from: Bulli, Badrobot, and Grisu Drache - thanks!");
 		        sleep 1;
 		    	&rcon_command("say ^3Downloadable at: ^2http://smaert.com/nannybot.zip");
 		    	sleep 1;
@@ -2529,7 +2504,7 @@ sub status {
 				        # update players count, count only active players
 	    	            $players_count++;
 	    		        # Check for banned IP
-	    	            &check_banned_ip($slot);
+						if ($ip) { &banned_player_check($slot,$ip); }
 				    }
 	    	        # we need to remember this for the next ping we check.
 	    	        $last_ping_by_slot{$slot} = $ping;
@@ -2557,51 +2532,61 @@ sub status {
 }
 # END: status
 
-# BEGIN: Check for Banned IP
-sub check_banned_ip {
+# BEGIN: banned_player_check($slot, $guid/$ip)
+sub banned_player_check {
 	my $slot = shift;
+	my $type = shift;
 	my @row;
-    $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	$bans_sth->execute($ip_by_slot{$slot});
-	while (@row = $bans_sth->fetchrow_array) {
-	    if ($row[3] ne 'unknown') {
-            sleep 1;
-	        &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остатся на этом сервере");
-	        sleep 1;
-	        &rcon_command("say $row[5]^7: Был забанен ^3" . scalar(localtime($row[1]))->dmy(".") . " ^7в^2 " . scalar(localtime($row[1]))->hms . " ^7(BAN ID#: ^1$row[0]^7)");
-	        sleep 1;
-	        if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: У вас перманентный бан."); }
-	        else { &rcon_command("say $name_by_slot{$slot}^7: Вы будете разбанены через " . &duration($row[2] - $time)); }
-	        sleep 1;
-	        &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot} ($row[3]) - (BAN ID#: $row[0])");
-	        &rcon_command("clientkick $slot");
+	my $bantime;
+	my $bandate;
+	if ($type =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
+        $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	    $bans_sth->execute($ip_by_slot{$slot});
+	    while (@row = $bans_sth->fetchrow_array) {
+	        if ($row[3] ne 'unknown') {
+		        if (!$ban_message_spam) {
+			        $bantime = scalar(localtime($row[1]))->hms;
+			    	$bandate = scalar(localtime($row[1]))->dmy(".");
+					sleep 1;
+	                &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остатся на этом сервере");
+	                sleep 1;
+	                &rcon_command("say $row[5]^7: Был забанен ^3$bandate ^7в ^2$bantime ^7(BAN ID#: ^1$row[0]^7)");
+	                sleep 1;
+	                if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: У вас перманентный бан."); }
+	                else { &rcon_command("say $name_by_slot{$slot}^7: Вы будете разбанены через " . &duration($row[2] - $time)); }
+	                sleep 1;
+	                &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot} ($row[3]) - (BAN ID#: $row[0])");
+	                &rcon_command("clientkick $slot");
+			        $ban_message_spam = $time + 3; # 3 seconds spam protection
+			    }
+	        }
+	    }
+	}
+	elsif ($type =~ /^\d+$/) {
+	    $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	    $bans_sth->execute($guid_by_slot{$slot});
+	    while (@row = $bans_sth->fetchrow_array) {
+	        if ($row[4] != 12345678) {
+		        if (!$ban_message_spam) {
+				    $bantime = scalar(localtime($row[1]))->hms;
+			    	$bandate = scalar(localtime($row[1]))->dmy(".");
+                    sleep 1;
+	                &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остатся на этом сервере");
+	                sleep 1;
+	                &rcon_command("say $row[5]^7: Был забанен ^3$bandate ^7в ^2$bantime ^7(BAN ID#: ^1$row[0]^7)");
+	                sleep 1;
+	                if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: У вас перманентный бан."); }
+	                else { &rcon_command("say $name_by_slot{$slot}^7: Вы будете разбанены через " . &duration($row[2] - $time)); }
+	                sleep 1;
+	                &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot} ($row[4]) - (BAN ID#: $row[0])");
+	                &rcon_command("clientkick $slot");
+			        $ban_message_spam = $time + 3; # 3 seconds spam protection
+			    }
+	        }
 	    }
 	}
 }
-# END: Check for Banned IP
-
-# BEGIN: Check for Banned GUID
-sub check_banned_guid {
-	my $slot = shift;
-	my @row;
-    $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	$bans_sth->execute($guid_by_slot{$slot});
-	while (@row = $bans_sth->fetchrow_array) {
-	    if ($row[4] != 12345678) {
-            sleep 1;
-	        &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остатся на этом сервере");
-	        sleep 1;
-	        &rcon_command("say $row[5]^7: Был забанен ^3" . scalar(localtime($row[1]))->dmy(".") . " ^7в^2 " . scalar(localtime($row[1]))->hms . " ^7(BAN ID#: ^1$row[0]^7)");
-	        sleep 1;
-	        if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: У вас перманентный бан."); }
-	        else { &rcon_command("say $name_by_slot{$slot}^7: Вы будете разбанены через " . &duration($row[2] - $time)); }
-	        sleep 1;
-	        &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot} ($row[4]) - (BAN ID#: $row[0])");
-	        &rcon_command("clientkick $slot");
-	    }
-	}
-}
-# END: Check for Banned GUID
+# END: banned_player_check
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
@@ -4650,11 +4635,11 @@ sub reset {
     # initialize FTP connection here.
     fileparse_set_fstype; # FTP uses UNIX rules
     $ftp_tmpFileName = tmpnam;
-    $ftp_verbose and warn "FTP $ftp_host\n";
+    $ftp_verbose and print "FTP $ftp_host\n";
     $ftp=Net::FTP->new($ftp_host,Timeout=>60) or &die_nice("FTP: Cannot ftp to $ftp_host: $!");
-    $ftp_verbose and warn "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
+    $ftp_verbose and print "USER: " . $config->{'ftp_username'} . " \t PASSWORD: ". '*'x length($config->{'ftp_password'}). "\n"; # hide password
     $ftp->login($config->{'ftp_username'},$config->{'ftp_password'}) or &die_nice("FTP: Can't login to $ftp_host: $!");
-    $ftp_verbose and warn "CWD: $ftp_dirname\n";
+    $ftp_verbose and print "CWD: $ftp_dirname\n";
     $ftp->cwd($ftp_dirname) or &die_nice("FTP: Can't cd  $!");
     if ($config->{'use_passive_ftp'}) {
 	    print "Using Passive ftp mode...\n\n";
@@ -4663,7 +4648,7 @@ sub reset {
     $ftp_lines and &ftp_getNlines;
     $ftp_type = $ftp->binary;
     $ftp_lastEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
-    $ftp_verbose and warn "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n\n";
+    $ftp_verbose and print "SIZE $ftp_basename: " . $ftp_lastEnd . " bytes\n\n";
 }
 
 sub ftp_getNlines {
@@ -4696,7 +4681,7 @@ sub ftp_getNchars {
     my $startPos = $size - $bytes;
     if ($startPos<0) { $startPos=0; $bytes=$size; } #file is smaller than requested number of bytes
     -e $ftp_tmpFileName and &die_nice("FTP: $ftp_tmpFileName exists");
-    $ftp_verbose and warn "GET: $ftp_basename, $ftp_tmpFileName, $startPos\n";
+    $ftp_verbose and print "GET: $ftp_basename, $ftp_tmpFileName, $startPos\n";
     $ftp->get($ftp_basename,$ftp_tmpFileName,$startPos);
     return $bytes;
 }
@@ -4706,8 +4691,8 @@ sub ftp_get_line {
 	$ftp_type = $ftp->binary;
         $ftp_currentEnd = $ftp->size($ftp_basename) or &die_nice("FTP: ERROR: $ftp_dirname/$ftp_basename does not exist or is empty\n");
         if ($ftp_currentEnd > $ftp_lastEnd) {
-            $ftp_verbose and warn "FTP: SIZE $ftp_basename increased: ".($ftp_currentEnd-$ftp_lastEnd)." bytes\n";
-            $ftp_verbose and warn "FTP: GET: $ftp_basename, $ftp_tmpFileName, $ftp_lastEnd\n";
+            $ftp_verbose and print "FTP: SIZE $ftp_basename increased: ".($ftp_currentEnd-$ftp_lastEnd)." bytes\n";
+            $ftp_verbose and print "FTP: GET: $ftp_basename, $ftp_tmpFileName, $ftp_lastEnd\n";
             -e $ftp_tmpFileName and &die_nice("FTP: $ftp_tmpFileName exists");
 	        while (!-e $ftp_tmpFileName) { $ftp->get($ftp_basename,$ftp_tmpFileName,$ftp_lastEnd); }
             open (TEMPFILE, $ftp_tmpFileName) or &die_nice("FTP: Could not open $ftp_tmpFileName");
