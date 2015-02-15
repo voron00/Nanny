@@ -59,6 +59,11 @@ sub execute {
 	my ($self, $command) = @_;
 	my $msg;
 	my $ans;
+	# BEGIN: say hack to match unicode characters
+	if ($command =~ /say\s(.*)/) { $command = "say " . '"' . "$1" . '"'; }
+	if ($command =~ /saybold\s(.*)/) { $command = "saybold " . '"' . "$1" . '"'; }
+	if ($command =~ /sayline\s(.*)/) { $command = "sayline " . '"' . "$1" . '"'; }
+	# END: say hack
 	if ($self->{"server_type"} == 1) {
 		# version x.1.0.6+ HL server
 		$msg = "\xFF\xFF\xFF\xFFchallenge rcon\n\0";
