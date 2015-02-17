@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r46';
+my $version = '3.4 RUS r47';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -585,12 +585,10 @@ while (1) {
     	    if ($line =~ /^J;(\d+);(\d+);(.*)/) {
 	    	    ($guid,$slot,$name) = ($1,$2,$3);
 	    	    # cache the guid and name
-	    	    if (($guid) and ($name)) {
-    		        &cache_guid_to_name($guid,$name);
-    		        $most_recent_guid = $guid;
-    		        $most_recent_slot = $slot;
-    		        $most_recent_time = $time;
-	    	    }
+	    	    if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
+    		    $most_recent_guid = $guid;
+    		    $most_recent_slot = $slot;
+    		    $most_recent_time = $time;
 	    	    $last_activity_by_slot{$slot} = $time;
 	    	    $idle_warn_level{$slot} = 0;
 	    	    $guid_by_slot{$slot} = $guid;
@@ -2532,7 +2530,7 @@ sub status {
 }
 # END: status
 
-# BEGIN: banned_player_check($slot, $guid/$ip)
+# BEGIN: banned_player_check($slot,$guid/$ip)
 sub banned_player_check {
 	my $slot = shift;
 	my $type = shift;
@@ -5108,7 +5106,7 @@ sub exchange {
     my $date;
     my $dollar;
     my $euro;
-    my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=" . $currentdate);
+    my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=$currentdate");
     if (defined($content)) {
 	    if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
 	    if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
