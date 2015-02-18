@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r47';
+my $version = '3.4 RUS r48';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -1813,6 +1813,15 @@ sub chat {
 	    if (&flood_protection('sayline', 30, $slot)) { }
         elsif (&check_access('sayline')) { &rcon_command("sayline $1"); }
     }
+	# !newname (only works with certain mods)
+    elsif ($message =~ /^!newname\s+(.+)/i) {
+	    if (&flood_protection('newname', 30, $slot)) { }
+        elsif (&check_access('newname')) { &rcon_command("newname $1"); }
+    }
+	# !rename (only works with certain mods)
+    elsif ($message =~ /^!rename\s+(.+)/i) {
+        if (&check_access('rename')) { &rename_command($1); }
+    }
 	# !rcon
     elsif ($message =~ /^!rcon\s+(.+)/i) {
 	    if (&check_access('rcon')) {
@@ -2503,6 +2512,8 @@ sub status {
 	    	            $players_count++;
 	    		        # Check for banned IP
 						if ($ip) { &banned_player_check($slot,$ip); }
+						# Since we have spam protection anyway, we can add this 
+						if ($guid) { &banned_player_check($slot,$guid); }
 				    }
 	    	        # we need to remember this for the next ping we check.
 	    	        $last_ping_by_slot{$slot} = $ping;
@@ -3574,6 +3585,27 @@ sub database_info {
 }
 # END: database_info
 
+# BEGIN: !rename($search_string)
+sub rename_command {
+    if (&flood_protection('rename', 30, $slot)) { return 1; }
+    my $search_string = shift;
+    if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
+	else {
+	    my @matches = &matching_users($search_string);
+		if ($#matches == 0) { $slot = $matches[0]; }
+	    elsif ($#matches == -1) {
+	        &rcon_command("say Нет совпадений с: $search_string");
+	        return 1;
+	    }
+	    elsif ($#matches > 0) {
+	        &rcon_command("say Слишком много совпадений с: $search_string");
+	        return 1;
+	    }
+	}
+	&rcon_command("rename $slot");
+}
+# END: kick
+
 # BEGIN: !kick($search_string)
 sub kick_command {
     if (&flood_protection('kick', 30, $slot)) { return 1; }
@@ -4149,7 +4181,7 @@ sub names {
         }
         if ($#names == -1) {
 	        if (&flood_protection('names-none', 10, $slot)) { return 1; }
-	        &rcon_command("say Не найдено имен для: ^1$name_by_slot{$matches[0]}");
+	        &rcon_command("say Не найдено имен для: $name_by_slot{$matches[0]}");
 	    }
         else {
 	        # Remove the duplicates from the @names hash, and strip the less colorful versions of names.
@@ -4193,7 +4225,7 @@ sub names {
 		            $found_none = 0;
                 }
             }
-	        if ($found_none) { &rcon_command("say Не найдено имен для ^1$name_by_slot{$matches[0]}"); }
+	        if ($found_none) { &rcon_command("say Не найдено имен для $name_by_slot{$matches[0]}"); }
         }
     }
     elsif ($#matches > 0) { &rcon_command("say Слишком много совпадений с: $search_string"); }
@@ -4459,7 +4491,7 @@ sub dictionary {
 		    print "ONLINE DEFINITION: $1\n";
 		    $counter++;
 		    # 8 definitions max by default
-		    if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2 $definition"); }
+		    if ($#definitions < 8) { push (@definitions, "^$counter$counter^7) ^2$definition"); }
 	    }
 	}
     if (!$counter) { &rcon_command("say К сожалению, не найдено определений для слова: ^2$word"); }
