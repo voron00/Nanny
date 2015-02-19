@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r48';
+my $version = '3.4 RUS r50';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -104,7 +104,6 @@ my $slot;
 my $ip;
 my $guid;
 my $name;
-my $colorless;
 my $ping;
 my $score;
 my $lastmsg;
@@ -1282,7 +1281,7 @@ sub idle_check {
 		            &rcon_command("say $name_by_slot{$slot}^7 " . $config->{'antiidle_kick_message'});
                     sleep 1;
 		            &rcon_command("clientkick $slot");
-		            &log_to_file('logs/kick.log', "IDLE: $name_by_slot{$slot} was kicked for being idle for too long" . duration($idle_for));
+		            &log_to_file('logs/kick.log', "IDLE: $name_by_slot{$slot} was kicked for being idle for too long " . duration($idle_for));
 		        }
 	        }
 	    }
@@ -1802,32 +1801,6 @@ sub chat {
     elsif ($message =~ /^!say\s+(.+)/i) {
 	    if (&flood_protection('say', 30, $slot)) { }
         elsif (&check_access('say')) { &rcon_command("say $1"); }
-    }
-	# !saybold (only works with certain mods)
-    elsif ($message =~ /^!saybold\s+(.+)/i) {
-	    if (&flood_protection('saybold', 30, $slot)) { }
-        elsif (&check_access('saybold')) { &rcon_command("saybold $1"); }
-    }
-	# !sayline (only works with certain mods)
-    elsif ($message =~ /^!sayline\s+(.+)/i) {
-	    if (&flood_protection('sayline', 30, $slot)) { }
-        elsif (&check_access('sayline')) { &rcon_command("sayline $1"); }
-    }
-	# !newname (only works with certain mods)
-    elsif ($message =~ /^!newname\s+(.+)/i) {
-	    if (&flood_protection('newname', 30, $slot)) { }
-        elsif (&check_access('newname')) { &rcon_command("newname $1"); }
-    }
-	# !rename (only works with certain mods)
-    elsif ($message =~ /^!rename\s+(.+)/i) {
-        if (&check_access('rename')) { &rename_command($1); }
-    }
-	# !rcon
-    elsif ($message =~ /^!rcon\s+(.+)/i) {
-	    if (&check_access('rcon')) {
-		    if (($1 =~ /rcon_password/mi) or ($1 =~ /killserver/mi) or ($1 =~ /quit/mi)) { }
-            else { &rcon_command("$1"); }
-	    }
     }
 	# !broadcast
     elsif ($message =~ /^!broadcast\s+(.+)/i) {
@@ -2467,12 +2440,6 @@ sub status {
 	        if (($guid) and ($name) and (length($name) < 32)) { &cache_guid_to_name($guid, $name); }
 	        # cache the ip_to_name mapping
 	        if (($ip) and ($name) and (length($name) < 32)) { &cache_ip_to_name($ip, $name); }
-	        # cache names without color codes, too.
-	    	$colorless = &strip_color($name);
-	        if ($colorless ne $name) {
-	    	    if (($ip) and ($colorless) and (length($colorless) < 32)) { &cache_ip_to_name($ip, $colorless); }
-	    	    if (($guid) and ($colorless) and (length($colorless) < 32)) { &cache_guid_to_name($guid, $colorless); }
-	        }
 	        # GUID Sanity Checking - detects when the server is not tracking GUIDs correctly.
 	        if ($guid) {
 	    	    # we know the GUID is non-zero.  Is it the one we most recently saw join?
@@ -3584,27 +3551,6 @@ sub database_info {
     }
 }
 # END: database_info
-
-# BEGIN: !rename($search_string)
-sub rename_command {
-    if (&flood_protection('rename', 30, $slot)) { return 1; }
-    my $search_string = shift;
-    if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
-	else {
-	    my @matches = &matching_users($search_string);
-		if ($#matches == 0) { $slot = $matches[0]; }
-	    elsif ($#matches == -1) {
-	        &rcon_command("say Нет совпадений с: $search_string");
-	        return 1;
-	    }
-	    elsif ($#matches > 0) {
-	        &rcon_command("say Слишком много совпадений с: $search_string");
-	        return 1;
-	    }
-	}
-	&rcon_command("rename $slot");
-}
-# END: kick
 
 # BEGIN: !kick($search_string)
 sub kick_command {
