@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r50';
+my $version = '3.4 RUS r51';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -411,8 +411,7 @@ while (1) {
     	if ($first_char eq 'K') {
     	    # A "KILL" Event has happened
     	    if ($line =~ /^K;(\d+);(\d+);(allies|axis|);([^;]+);(\d*);([\d\-]+);(allies|axis|world|spectator|);([^;]*);(\w+);(\d+);(\w+);(\w+)/) {
-    		    ($victim_guid, $victim_slot, $victim_team, $victim_name, $attacker_guid, $attacker_slot, $attacker_team,
-    		    $attacker_name, $attacker_weapon, $damage, $damage_type, $damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+    		    ($victim_guid,$victim_slot,$victim_team,$victim_name,$attacker_guid,$attacker_slot,$attacker_team,$attacker_name,$attacker_weapon,$damage,$damage_type,$damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
     		    # the RIDDLER fix, try #1
     		    $attacker_name =~ s/\s+$//;
     		    $victim_name =~ s/\s+$//;
@@ -565,8 +564,7 @@ while (1) {
     	elsif ($first_char eq 'D') {
     	    # A "DAMAGE" event has happened.
     	    if ($line =~ /^D;(\d+);(\d+);(allies|axis|);([^;]+);(\d*);([\d\-]+);(allies|axis|world|spectator|);([^;]*);(\w+);(\d+);(\w+);(\w+)/) {
-    		    ($victim_guid, $victim_slot, $victim_team, $victim_name, $attacker_guid, $attacker_slot, $attacker_team,
-    		    $attacker_name, $attacker_weapon, $damage, $damage_type, $damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+    		    ($victim_guid,$victim_slot,$victim_team,$victim_name,$attacker_guid,$attacker_slot,$attacker_team,$attacker_name,$attacker_weapon,$damage,$damage_type,$damage_location) = ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
                 if (($attacker_guid) and ($attacker_name)) { &cache_guid_to_name($attacker_guid, $attacker_name); }
        		    if (($victim_guid) and ($victim_name)) { &cache_guid_to_name($victim_guid, $victim_name); }
     		    $last_activity_by_slot{$attacker_slot} = $time;
@@ -2390,7 +2388,7 @@ sub locate {
 	    	        else { $location = $name_by_slot{$slot} . " ^7зашел к нам из ^2" . $location; }
 	    	        # location spoofing
 	        	    foreach $spoof_match (keys(%location_spoof)) {
-	    	            if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . "^7" . $location_spoof{$spoof_match}; }
+	    	            if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . " ^7" . $location_spoof{$spoof_match}; }
 	    	        }
 	    	        &rcon_command("say $location");
 	    	        sleep 1;
