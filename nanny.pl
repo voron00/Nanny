@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r51';
+my $version = '3.4 RUS r52';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -2540,7 +2540,7 @@ sub banned_player_check {
 	    $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
 	    $bans_sth->execute($guid_by_slot{$slot});
 	    while (@row = $bans_sth->fetchrow_array) {
-	        if ($row[4] != 12345678) {
+	        if ($row[4]) {
 		        if (!$ban_message_spam) {
 				    $bantime = scalar(localtime($row[1]))->hms;
 			    	$bandate = scalar(localtime($row[1]))->dmy(".");
@@ -3276,7 +3276,7 @@ sub ip_player {
 	        return 1;
         }
 	}
-	&rcon_command("say IP-Адрес: $name_by_slot{$slot}^7 - ^3$ip_by_slot{$slot}");
+	&rcon_command("say IP-Адрес: $name_by_slot{$slot}^7 - ^2$ip_by_slot{$slot}");
 }
 # END: ip
 
@@ -3297,7 +3297,7 @@ sub id_player {
 	        return 1;
         }
 	}
-	&rcon_command("say ClientID: $name_by_slot{$slot}^7 - ^3$slot");
+	&rcon_command("say ClientID: $name_by_slot{$slot}^7 - ^1$slot");
 }
 # END: id
 
@@ -3601,7 +3601,7 @@ sub tempban_command {
 	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 1; }
 	my $ban_name = 'unknown';
     my $ban_ip = 'unknown';
-	my $ban_guid = 12345678;
+	my $ban_guid = 0;
     my $unban_time = $time + $tempbantime*60;
     &rcon_command("say $name_by_slot{$slot} ^7был временно забанен админом на ^3$tempbantime ^7$minutes");
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
@@ -3634,7 +3634,7 @@ sub ban_command {
 	if ((!defined($name_by_slot{$slot})) or ($name_by_slot{$slot} eq 'SLOT_EMPTY')) { return 1; }
 	my $ban_name = 'unknown';
     my $ban_ip = 'unknown';
-	my $ban_guid = 12345678;
+	my $ban_guid = 0;
     my $unban_time = 2125091758;
     &rcon_command("say $name_by_slot{$slot} ^7был забанен админом");
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
@@ -3943,6 +3943,19 @@ sub best {
         sleep 1;
         while (@row = $stats_sth->fetchrow_array) {
             &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с ^6$row[12] ^7убийствами подряд");
+            sleep 1;
+        }
+	}
+	if ($config->{'nice_shots'}) {
+        # Best Nice Shots count
+        $counter = 1;
+        sleep 1;
+        $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE nice_shots > 0 ORDER BY nice_shots DESC LIMIT 5;");
+        $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+        &rcon_command("say ^2Наибольшее количество понравившихся убийств^7:");
+        sleep 1;
+        while (@row = $stats_sth->fetchrow_array) {
+            &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с ^2$row[13] ^7понравившимися убийствами");
             sleep 1;
         }
 	}
@@ -4375,7 +4388,7 @@ sub last_bans {
     $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE unban_time > $time ORDER BY id DESC LIMIT $number");
     $bans_sth->execute or &die_nice("Unable to do select recent bans\n");
     while (@row = $bans_sth->fetchrow_array) {
-        &rcon_command("say $row[5] ^7был забанен " . &duration($time - $row[1]) . " назад (BAN ID#: ^1$row[0]^7, IP - ^3$row[3]^7, GUID - ^3$row[4]^7)");
+        &rcon_command("say $row[5] ^7был забанен " . &duration($time - $row[1]) . " назад (BAN ID#: ^1$row[0]^7, IP - ^2$row[3]^7, GUID - ^3$row[4]^7)");
         sleep 1;
     }
 }
@@ -4546,7 +4559,7 @@ sub check_guid_zero_players {
 		        &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
 		    	my $ban_name = 'unknown';
 		        my $ban_ip = 'unknown';
-		    	my $ban_guid = 12345678;
+		    	my $ban_guid = 0;
 		        my $unban_time = $time + 28800;
 		    	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
 		        if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
@@ -4875,7 +4888,7 @@ sub update_name_by_slot {
 	    	    	    &rcon_command("say ^1ОБНАРУЖЕНА КРАЖА НИКНЕЙМОВ^7: ^3Slot #^1$slot ^7был перманентно забанен за кражу никнеймов!");
 	    	    	    my $ban_name = 'NAME STEALING JERKASS';
 	    	    	    my $ban_ip = 'unknown';
-	    	    	    my $ban_guid = 12345678;
+	    	    	    my $ban_guid = 0;
 	    	    	    my $unban_time = 2125091758;
 		        	    if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
 		        	    if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
