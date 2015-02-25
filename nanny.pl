@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# VERSION 3.xx RUS changelog is on github page https://github.com/voron00/Nanny/commits/cod2_russian
+# VERSION 3.x changelog is on github page https://github.com/voron00/Nanny/commits/cod2_russian
 
 # VERSION 2.99 changelog
 # beta 1 - the voting state is now read from the server on startup rather than assumed to be on - me 
@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RUS r52';
+my $version = '3.4 RU r53';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -252,7 +252,6 @@ $timestring = scalar(localtime($time));
 $currenttime = $timestring->hms;
 $currentdate = $timestring->dmy(".");
 $last_idlecheck = $time;
-$last_rconstatus = 0;
 $last_namecheck = $time;
 $last_guid0_audit = $time;
 $last_guid_sanity_check = $time;
@@ -266,7 +265,7 @@ if ($logfile_mode eq 'local') {
     # Seek to the end of the logfile
     seek(LOGFILE, 0, 2);
 }
-else { &ftp_connect }
+else { &ftp_connect; }
 
 # use interval for first announcement that defined in config
 $next_announcement = $time + ( 60* ($config->{'interval_min'} + int(rand($config->{'interval_max'} - $config->{'interval_min'} + 1))));
@@ -373,7 +372,7 @@ $last_rconstatus = $time;
 while (1) {
 
     if ($logfile_mode eq 'local') { $line = <LOGFILE>; }
-	elsif ($logfile_mode eq 'ftp') { $line = &ftp_get_line; }
+	else { $line = &ftp_get_line; }
     # We have a new line from the logfile.
     if (defined($line)) {
     	# make sure our line is complete.
@@ -3611,6 +3610,7 @@ sub tempban_command {
     $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
 	&log_to_file('logs/kick.log', "TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");
+	$ban_message_spam = $time + 3; # 3 seconds spam protection
 }
 # END: tempban
 
@@ -3644,6 +3644,7 @@ sub ban_command {
     $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
 	&log_to_file('logs/kick.log', "BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");
+	$ban_message_spam = $time + 3; # 3 seconds spam protection
 }
 # END: ban
 
@@ -3919,7 +3920,7 @@ sub best {
     &rcon_command("say ^2Игроки с лучшим к/д соотношением^7:");
     sleep 1;
     while (@row = $stats_sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с^8 " . ( int($row[2] / $row[3] * 100) / 100 ) . " ^7к/д соотношением");
+        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с^8 " . (int($row[2] / $row[3] * 100) / 100) . " ^7к/д соотношением");
         sleep 1;
     }
     # Best Headshot Percentages
@@ -3930,7 +3931,7 @@ sub best {
     &rcon_command("say ^2Лучший процент хедшотов^7:");
     sleep 1;
     while (@row = $stats_sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с^3 " . ( int($row[4] / $row[2] * 10000) / 100 ) . " ^7процентами хедшотов");
+        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с^3 " . (int($row[4] / $row[2] * 10000) / 100) . " ^7процентами хедшотов");
         sleep 1;
     }
     if ($config->{'killing_sprees'}) {
@@ -3993,9 +3994,9 @@ sub get_name_by_guid {
     $guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT name FROM guid_to_name WHERE guid=? ORDER BY id DESC LIMIT 1");
     $guid_to_name_sth->execute($guid) or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
 	@row = $guid_to_name_sth->fetchrow_array;
-	if (!$row[0]) { $row[0] = "^3$guid"; }
-	if ($row[0] =~ /\^\^\d\d/) { $row[0] = &strip_color($row[0]); }
-	return $row[0];
+	if (!$row[0]) { return "^3$guid"; }
+	elsif ($row[0] =~ /\^\^\d\d/) { return &strip_color($row[0]); }
+	else { return $row[0]; }
 }
 # END: get_name_by_guid
 
@@ -4010,7 +4011,7 @@ sub change_map {
 	    print "WARNING: change_map was called with an invalid map: $map\n";
         return 1;
 	}
-    if (&flood_protection('map', 30, $slot)) { return 1; }
+    if (&flood_protection('change_map', 30, $slot)) { return 1; }
     &rcon_command("say ^2Смена на^7:^3 " . &description($map));
     &rcon_command("map $map");
     &log_to_file('logs/commands.log', "$name changed map to: $map");
@@ -4028,7 +4029,7 @@ sub change_gametype {
 	    print "WARNING: change_gametype was called with an invalid game_type: $gametype\n";
         return 1;
 	}
-    if (&flood_protection('gametype', 30, $slot)) { return 1; }
+    if (&flood_protection('change_gametype', 30, $slot)) { return 1; }
     &rcon_command("say ^2Смена режима игры на^7:^3 " . &description($gametype));
     &rcon_command("g_gametype $gametype");
     &rcon_command("map_restart");
@@ -4213,7 +4214,7 @@ sub worst {
     &rcon_command("say ^1Игроки с худшим к/д соотношением^7:");
     sleep 1;
     while (@row = $stats_sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с^8 " . ( int($row[2] / $row[3] * 100) / 100 ) . " ^7к/д соотношением");
+        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7с^8 " . (int($row[2] / $row[3] * 100) / 100) . " ^7к/д соотношением");
         sleep 1;
     }
     # Worst headshot percentages
@@ -4224,7 +4225,7 @@ sub worst {
     &rcon_command("say ^1Худший процент хедшотов^7:");
     sleep 1;
     while (@row = $stats_sth->fetchrow_array) {
-        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7c^3 " . ( int($row[4] / $row[2] * 10000) / 100 ) . " ^7процентами хедшотов");
+        &rcon_command("say ^3" . ($counter++) . " ^7место: " . &get_name_by_guid($row[1]) . " ^7c^3 " . (int($row[4] / $row[2] * 10000) / 100) . " ^7процентами хедшотов");
         sleep 1;
     }
 }
