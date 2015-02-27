@@ -5146,7 +5146,7 @@ sub vote_start {
 	sleep 1;
 	&rcon_command("say Use ^5!yes ^7to vote ^2YES ^7or ^5!no ^7to vote ^1NO");
 	sleep 1;
-	&rcon_command("say USE ^5!votestatus ^7to check vote status");
+	&rcon_command("say Use ^5!votestatus ^7to check vote status");
 	$vote_started = 1;
 	&log_to_file('logs/voting.log', "!VOTE$type: $vote_initiator has started a vote: $vote_string $vote_target");
 }

@@ -1,6 +1,6 @@
 Nanny
 ========
-This is a custom version of NannyBot for Call of Duty 2. Original authour is smugllama. Written entirely in Perl.
+This is a custom version of NannyBot for Call of Duty 2. Original author is smugllama. Written entirely in Perl.
 Original can be downloaded here http://smaert.com/nannybot.zip
 
 Compare to the original, i fixed many bugs, optimized certain amount of code, some functions has been rewritten,
@@ -16,9 +16,9 @@ Instructions to run in Linux:
 
 1. Install through CPAN (http://www.cpan.org/modules/INSTALL.html) dependent modules: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Some of them might be already installed, depends on a distro)
 2. Setup every necessary parameters in nanny.cfg (rename example.cfg)
-3. Launch in terminal. In Linux can use nanny.sh
+3. Launch in terminal. In Linux you can use nanny.sh
 
-Instructions to run in Mac OSX (Untested):
+Instructions to run in Mac OSX:
 
 1. Setup every necessary parameters in nanny.cfg (rename example.cfg)
-2. Launch in terminal. In Linux can use nanny.sh
+2. Launch in terminal. In OSX you can use nanny.sh
