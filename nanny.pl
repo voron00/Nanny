@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r53';
+my $version = '3.4 RU r54';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -178,6 +178,7 @@ my $voting = 0;
 my $reactivate_voting = 0;
 my $fly_timer = 0;
 my $ban_message_spam = 0;
+my $kick_message_spam = 0;
 my %location_spoof;
 my $gametype;
 my $gamename;
@@ -883,6 +884,8 @@ while (1) {
 	    }
 		# Ban message anti-spam
 	    if (($ban_message_spam) and ($time >= $ban_message_spam)) { $ban_message_spam = 0; }
+		# Kick message anti-spam (penalty points)
+	    if (($kick_message_spam) and ($time >= $kick_message_spam)) { $kick_message_spam = 0; }
 	    # Check vote status
 	    if ($vote_started) {
             # Vote TIMEOUT
@@ -1369,11 +1372,12 @@ sub chat {
                 if (!defined($penalty_points{$slot})) { $penalty_points{$slot} = $penalty; }
                 elsif (!$ignore{$slot}) { $penalty_points{$slot} += $penalty; }
                 if ((!$ignore{$slot})) { print "Penalty Points total for: $name:  $penalty_points{$slot}\n"; }
-                if ((!$ignore{$slot}) and ($penalty_points{$slot} >= 100)) {
+                if ((!$ignore{$slot}) and ($penalty_points{$slot} >= 100) and (!$kick_message_spam)) {
                     &rcon_command("say $name^7: ^1Я думаю мы услышали достаточно, убирайся отсюда!");
                     sleep 1;
                     &rcon_command("clientkick $slot");
                     &log_to_file('logs/kick.log', "PENALTY: $name was kicked for exceeding their penalty points. Last Message: $message");
+					$kick_message_spam = $time + 5; # 5 seconds spam protection
                 }
             }
         }
