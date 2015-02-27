@@ -1,38 +1,24 @@
 Nanny
 ========
-Это кастомная русская версия программы NannyBot для игры Call of Duty 2. Оригинальным автором этой программы является smugllama. Написана полностью на Perl.
-Оригинал можно скачать по этой ссылке http://smaert.com/nannybot.zip
+This is a custom version of NannyBot for Call of Duty 2. Original authour is smugllama. Written entirely in Perl.
+Original can be downloaded here http://smaert.com/nannybot.zip
 
-По сравнению с оригиналом, все сообщения были переведены на русский язык,
-также было исправлено много ошибок, оптимизирован код, переработаны некоторые функции, добавлено много новых !команд и т.д
+Compare to the original, i fixed many bugs, optimized certain amount of code, some functions has been rewritten,
+added many new !commands, voting system, etc. etc.
 
-Примечание:
+Instructions to run in Windows:
 
-Так как русская версия Call of Duty 2 использует кодировку Windows-1251, то любые изменения в конфиг-файле
-или самой программе должны быть применены с учетом этой кодировки. Командная строка или терминал по умолчанию
-не используют данную кодировку, как добавить ее поддержку описано ниже.
+1. Download and install Strawberry Perl http://strawberryperl.com or ActivePerl http://www.activestate.com/activeperl/downloads
+2. Setup every necessary parameters in nanny.cfg (rename example.cfg)
+3. Launch. In Windows you can use nanny.bat
 
-Поддержка кодировки Windows-1251:
+Instructions to run in Linux:
 
-В Windows чтобы отображался русский язык необходимо в свойствах командной строки указать шрифт "Lucida Console"
+1. Install through CPAN (http://www.cpan.org/modules/INSTALL.html) dependent modules: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Some of them might be already installed, depends on a distro)
+2. Setup every necessary parameters in nanny.cfg (rename example.cfg)
+3. Launch in terminal. In Linux can use nanny.sh
 
-В Linux в параметрах терминала установить кодировку Windows-1251
+Instructions to run in Mac OSX (Untested):
 
-В Mac OSX поддержки кодировки нет
-
-Интсрукция по запуску в Windows:
-
-1. Скачать и установить Strawberry Perl http://strawberryperl.com или ActivePerl http://www.activestate.com/activeperl/downloads
-2. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg)
-3. Запустить. В Windows можно запускать через nanny.bat
-
-Интсрукция по запуску в Linux:
-
-1. Установить через CPAN зависимые модули: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Некоторые могут уже быть установлены, зависит от дистрибутива)
-2. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg)
-3. Запустить в терминале. В Linux можно запускать через nanny.sh
-
-Интсрукция по запуску в Mac OSX:
-
-1. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg)
-2. Запустить в терминале. В OSX можно запускать через nanny.sh
+1. Setup every necessary parameters in nanny.cfg (rename example.cfg)
+2. Launch in terminal. In Linux can use nanny.sh
