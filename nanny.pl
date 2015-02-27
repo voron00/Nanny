@@ -2889,7 +2889,7 @@ sub stats {
             my $sniper_ratio = (($row[9]) and ($row[2])) ? int($row[9] / $row[2] * 10000) / 100 : 0;
             my $rifle_ratio = (($row[10]) and ($row[2])) ? int($row[10] / $row[2] * 10000) / 100 : 0;
 	        my $machinegun_ratio = (($row[11]) and ($row[2])) ? int($row[11] / $row[2] * 10000) / 100 : 0;
-            $stats_msg .= " ^9$shotgun_ratio ^7shotgun ratio, ^9$sniper_ratio ^7sniper ratio, ^9$rifle_ratio ^7rifle ratio, ^9$machinegun_ratio ^7machineguns ratio";
+            $stats_msg .= " ^9$shotgun_ratio ^7shotgun ratio, ^9$sniper_ratio ^7sniper ratio, ^9$rifle_ratio ^7rifle ratio, ^9$machinegun_ratio ^7machinegun ratio";
 	        if (($row[8]) or ($row[9]) or ($row[10]) or ($row[11])) {
 	            &rcon_command("say $stats_msg");
 	            sleep 1;
