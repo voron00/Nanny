@@ -23,16 +23,16 @@ Nanny
 Интсрукция по запуску в Windows:
 
 1. Скачать и установить Strawberry Perl http://strawberryperl.com или ActivePerl http://www.activestate.com/activeperl/downloads
-2. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg)
+2. Настроить необходимые параметры в nanny.cfg
 3. Запустить. В Windows можно запускать через nanny.bat
 
 Интсрукция по запуску в Linux:
 
-1. Установить через CPAN зависимые модули: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Некоторые могут уже быть установлены, зависит от дистрибутива)
-2. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg)
+1. Установить через CPAN (http://www.cpan.org/modules/INSTALL.html) зависимые модули: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Некоторые могут уже быть установлены, зависит от дистрибутива)
+2. Настроить необходимые параметры в nanny.cfg
 3. Запустить в терминале. В Linux можно запускать через nanny.sh
 
 Интсрукция по запуску в Mac OSX:
 
-1. Настроить необходимые параметры в nanny.cfg (переименуйте example.cfg)
+1. Настроить необходимые параметры в nanny.cfg
 2. Запустить в терминале. В OSX можно запускать через nanny.sh

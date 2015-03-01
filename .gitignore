@@ -217,7 +217,6 @@ pip-log.txt
 ## Nanny
 #############
 
-nanny.cfg
 databases/bans.db
 databases/guid_to_name.db
 databases/ip_to_guid.db
