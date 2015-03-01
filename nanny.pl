@@ -2376,8 +2376,8 @@ sub locate {
 	            }
 	            if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/) {
 	    	        $location = &geolocate_ip($ip);
-	        	    if ($guessed) { $location = $name_by_slot{$slot} . " ^7proably joined us from ^2" . $location; }
-	    	        else { $location = $name_by_slot{$slot} . " ^7joined us from ^2" . $location; }
+	        	    if ($guessed) { $location = $name_by_slot{$slot} . " ^7proably has joined us from ^2" . $location; }
+	    	        else { $location = $name_by_slot{$slot} . " ^7has joined us from ^2" . $location; }
 	    	        # location spoofing
 	        	    foreach $spoof_match (keys(%location_spoof)) {
 	    	            if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) { $location = $name_by_slot{$slot} . " ^7" . $location_spoof{$spoof_match}; }
@@ -2677,13 +2677,13 @@ sub geolocate_ip {
 		        if ($ip ne $config->{'ip'}) {
 		            if ($metric) {
                         $dist = int($dist/1000);
-                        if (!$dist) { $geo_ip_info .= "^7, unknown distanse to server"; }
-                        else { $geo_ip_info .= "^7, ^1$dist ^7kilometers to server"; }
+                        if (!$dist) { $geo_ip_info .= "^7, unknown distanse to the server"; }
+                        else { $geo_ip_info .= "^7, ^1$dist ^7kilometers to the server"; }
 		            }
 		            else {
 		                $dist = int($dist/1609.344);
-		                if (!$dist) { $geo_ip_info .= "^7, unknown distanse to server"; }
-		                else { $geo_ip_info .= "^7, ^1$dist ^7miles to server"; }
+		                if (!$dist) { $geo_ip_info .= "^7, unknown distanse to the server"; }
+		                else { $geo_ip_info .= "^7, ^1$dist ^7miles to the server"; }
 		            }
 		        }
 	        }
@@ -3888,12 +3888,12 @@ sub best {
     if (&flood_protection('best', 300)) { return 1; }
     my $counter = 1;
 	my @row;
-    &rcon_command("say ^2Best ^7players on server:");
+    &rcon_command("say ^2Best ^7players of the server:");
     sleep 1;
     # Most Kills
     $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE kills > 0 ORDER BY kills DESC LIMIT 5;");
     $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-    &rcon_command("say ^2Best kills^7:");
+    &rcon_command("say ^2Most kills^7:");
     sleep 1;
     while (@row = $stats_sth->fetchrow_array) {
 	    &rcon_command("say ^3" . ($counter++) . " ^7place: " . &get_name_by_guid($row[1]) . " ^7with ^2$row[2] ^7kills");
@@ -3930,7 +3930,7 @@ sub best {
         &rcon_command("say ^2Best killing spree^7:");
         sleep 1;
         while (@row = $stats_sth->fetchrow_array) {
-            &rcon_command("say ^3" . ($counter++) . " ^7place: " . &get_name_by_guid($row[1]) . " ^7with ^6$row[12] ^7killing spree");
+            &rcon_command("say ^3" . ($counter++) . " ^7place: " . &get_name_by_guid($row[1]) . " ^7with ^6$row[12] ^7kills in a row");
             sleep 1;
         }
 	}
@@ -3940,10 +3940,10 @@ sub best {
         sleep 1;
         $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE nice_shots > 0 ORDER BY nice_shots DESC LIMIT 5;");
         $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-        &rcon_command("say ^2Best nice shots^7:");
+        &rcon_command("say ^2Most nice shot calls^7:");
         sleep 1;
         while (@row = $stats_sth->fetchrow_array) {
-            &rcon_command("say ^3" . ($counter++) . " ^7place: " . &get_name_by_guid($row[1]) . " ^7with ^2$row[13] ^7nice shots");
+            &rcon_command("say ^3" . ($counter++) . " ^7place: " . &get_name_by_guid($row[1]) . " ^7with ^2$row[13] ^7nice shot calls");
             sleep 1;
         }
 	}
@@ -3953,7 +3953,7 @@ sub best {
         sleep 1;
         $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;");
         $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-        &rcon_command("say ^2Best bomb plants^7:");
+        &rcon_command("say ^2Most bomb plants^7:");
         sleep 1;
         while (@row = $stats_sth->fetchrow_array) {
             &rcon_command("say ^3" . ($counter++) . " ^7place: " . &get_name_by_guid($row[1]) . " ^7with ^4$row[16] ^7planted bombs");
@@ -3964,7 +3964,7 @@ sub best {
         sleep 1;
         $stats_sth = $stats_dbh->prepare("SELECT * FROM stats WHERE bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;");
         $stats_sth->execute or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-        &rcon_command("say ^2Best bomb defuses^7:");
+        &rcon_command("say ^2Most bomb defuses^7:");
         sleep 1;
         while (@row = $stats_sth->fetchrow_array) {
             &rcon_command("say ^3" . ($counter++) . " ^7place: " . &get_name_by_guid($row[1]) . " ^7with ^5$row[17] ^7bomb defuses");
