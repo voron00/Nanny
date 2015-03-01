@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 EN r57';
+my $version = '3.4 EN r58';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -2512,6 +2512,7 @@ sub banned_player_check {
 	        if ($row[3] ne 'unknown') {
 		        if (!$ban_message_spam) {
 			        $bantime = scalar(localtime($row[1]))->hms;
+					$bantime =~ s/\:(\d+)$//g; # strip the ':seconds'
 			    	$bandate = scalar(localtime($row[1]))->dmy(".");
 					sleep 1;
 	                &rcon_command("say $name_by_slot{$slot}^7: You are banned. You are not allowed to stay on this server");
@@ -2535,6 +2536,7 @@ sub banned_player_check {
 	        if ($row[4]) {
 		        if (!$ban_message_spam) {
 				    $bantime = scalar(localtime($row[1]))->hms;
+					$bantime =~ s/\:(\d+)$//g; # strip the ':seconds'
 			    	$bandate = scalar(localtime($row[1]))->dmy(".");
                     sleep 1;
 	                &rcon_command("say $name_by_slot{$slot}^7: You are banned. You are not allowed to stay on this server");
@@ -2782,7 +2784,7 @@ sub seen {
 sub log_to_file {
     my ($logfile,$msg) = @_;
     open LOG, ">> $logfile" or return 0;
-    print LOG "$currentdate $currenttime: $msg\n";
+    print LOG "$currentdate $currenttime $msg\n";
     close LOG;
 }
 # END: log_to_file
