@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r54';
+my $version = '3.4 RU r55';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -4108,8 +4108,9 @@ sub check_player_names {
 
 # BEGIN: make_announcement
 sub make_announcement {
-    print "Making Announcement: " . $announcements[int(rand($#announcements))] . "\n";
-    &rcon_command("say " . $announcements[int(rand($#announcements))]);
+    my $message = $announcements[int(rand($#announcements))];
+    print "Making Announcement: $message\n";
+    &rcon_command("say $message");
 }
 # END: make_announcement
 
