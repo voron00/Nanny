@@ -1635,7 +1635,7 @@ sub chat {
     elsif ($message =~ /^!report\s+(.+)\s+=\s+(.+)/i) {
         if (&check_access('report')) { &report_player($1,$2); }
 	}
-    elsif ($message =~ /^!report\s*/i) {
+    elsif ($message =~ /^!report\s*$/i) {
         if (&check_access('report')) { &rcon_command("say !report Player = Reason"); }
 	}
     # !define (word)
