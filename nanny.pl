@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r59';
+my $version = '3.4 RU r58';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -1370,7 +1370,7 @@ sub chat {
             }
 	        if ((!$flooded) and (!$ignore{$slot})) { print "Positive Match:\nRule Name: $rule_name\nPenalty: $penalty\nResponse: $response\n\n"; }
                 if (!defined($penalty_points{$slot})) { $penalty_points{$slot} = $penalty; }
-                elsif ((!$ignore{$slot}) and (defined($penalty))) { $penalty_points{$slot} += $penalty; }
+                elsif (!$ignore{$slot}) { $penalty_points{$slot} += $penalty; }
                 if ((!$ignore{$slot})) { print "Penalty Points total for: $name:  $penalty_points{$slot}\n"; }
                 if ((!$ignore{$slot}) and ($penalty_points{$slot} >= 100) and (!$kick_message_spam)) {
                     &rcon_command("say $name^7: ^1Я думаю мы услышали достаточно, убирайся отсюда!");
