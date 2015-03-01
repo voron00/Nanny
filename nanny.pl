@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 EN r56';
+my $version = '3.4 EN r57';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -244,13 +244,11 @@ my $vote_time = 0;
 # turn on auto-flush for STDOUT
 local $| = 1;
 
-# shake the snow-globe.
-srand;
-
 # initialize the timers
 $time = time;
 $timestring = scalar(localtime($time));
 $currenttime = $timestring->hms;
+$currenttime =~ s/\:(\d+)$//g; # strip the ':seconds'
 $currentdate = $timestring->dmy(".");
 $last_idlecheck = $time;
 $last_namecheck = $time;
@@ -805,7 +803,8 @@ while (1) {
     		    $reactivate_voting = $time + 25;
     		}
     		# Buy some time so we don't do an rcon status during a level change
-    		if ($gametype eq 'sd') { $last_rconstatus = 0; }
+			# Also, on SD, we need to do rcon status right after a round restart, so we add this
+    		if ($gametype eq 'sd') { $last_rconstatus = $time - 29; }
     		else { $last_rconstatus = $time; }
     		# Update next map prediction
     	    $freshen_next_map_prediction = 1;
@@ -838,6 +837,7 @@ while (1) {
 	    $time = time;
 	    $timestring = scalar(localtime($time));
 		$currenttime = $timestring->hms;
+		$currenttime =~ s/\:(\d+)$//g; # strip the ':seconds'
         $currentdate = $timestring->dmy(".");
 	    # Freshen the rcon status if it's time
 	    if (($time - $last_rconstatus) >= ($rconstatus_interval)) {
@@ -5162,8 +5162,8 @@ sub vote_start {
 	$voting_players = $players_count;
 	if (!$voting_players) {
 	    &rcon_command("say Not enough players to start a vote, try again later");
-	        return 1;
-	    }
+	    return 1;
+	}
 	$vote_time = ($time + $vote_timelimit) + ($players_count * 5); # +5 seconds for each player
 	$required_yes = ($voting_players / 2) + 1;
 	if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }

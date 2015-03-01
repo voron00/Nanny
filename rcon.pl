@@ -1,12 +1,14 @@
 #!/usr/bin/perl
 
-use warnings;
 use strict;
+use warnings;
 use diagnostics;
 use Rcon::KKrcon;
 
 local $| = 1;
+
 &load_config_file('nanny.cfg');
+
 my $address;
 my $port;
 my $password;
@@ -15,20 +17,21 @@ my $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, T
 my $result = 0;
 my $interactive = 1 unless ($command);
 
-print "Type 'q' to quit.\n\n";
+print "Type 'exit' to quit.\n\n";
 
-while (1) {
-	    print "kkrcon> ";
-	    $command = <STDIN>;
-        if (!defined($command)) {
-		    print "\n";
-		    exit(0);
-		}
-	    chomp($command);
-	    if ($command =~ /^\s*$/) { next; }
-        if ($command eq "q" or $command eq "quit") { exit(0); }
-        $result = &execute($command);
-        exit($result) unless ($interactive);
+while (1)
+{
+	print "KKrcon> ";
+	$command = <STDIN>;
+    if (!defined($command)) {
+	    print "\n";
+	    exit(0);
+	}
+	chomp($command);
+	if ($command =~ /^\s*$/) { next; }
+    if ($command eq "q" or $command eq "quit" or $command eq "exit") { exit(0); }
+    $result = &execute($command);
+    exit($result) unless ($interactive);
 }
 
 sub load_config_file {
@@ -67,12 +70,12 @@ sub execute {
 	$command =~ s/\/\/+/\//g;
     print $rcon->execute($command) . "\n";
     if ($error = $rcon->error) {
-	if ($error eq 'Rcon timeout') {
-	    print "rebuilding rcon object\n";
-	    $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old');
-	}
-	else { print "WARNING: rcon error: $error\n"; }
-	return 1;
+	    if ($error eq 'Rcon timeout') {
+	        print "rebuilding rcon object\n";
+	        $rcon = new KKrcon (Host => $address, Port => $port, Password => $password, Type => 'old');
+	    }
+	    else { print "WARNING: rcon error: $error\n"; }
+	    return 1;
 	}
 	else { return 0; }
 }
