@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r55';
+my $version = '3.4 RU r56';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -1639,7 +1639,7 @@ sub chat {
         if (&check_access('dbinfo')) { &rcon_command("say !dbinfo База данных"); }
     }
     # !report (search_string)
-    elsif ($message =~ /^!report\s+(.+)\s+(.+)/i) {
+    elsif ($message =~ /^!report\s+(.+)\s+=\s+(.+)/i) {
         if (&check_access('report')) { &report_player($1,$2); }
 	}
     elsif ($message =~ /^!report\s*$/i) {
@@ -2178,7 +2178,7 @@ sub chat {
                 sleep 1;
             }
 	    	if (&check_access('report')) {
-                &rcon_command("say $name^7: Вы можете использовать ^1!report ^5игрок ^2причина ^7чтобы отправить жалобу на игрока");
+                &rcon_command("say $name^7: Вы можете использовать ^1!report ^5игрок = ^2причина ^7чтобы отправить жалобу на игрока");
                 sleep 1;
             }
 	    	if (&check_access('exchange')) {
@@ -4245,8 +4245,10 @@ sub guid_sanity_check {
     if ($config->{'guid_sanity_check'}) { }
     else { return 0; }
     print "Running GUID sanity check\n";
+	&log_to_file('logs/sanity.log', "Running GUID sanity check");
     # check to make sure that IP -> GUID = last guid
     print "Look Up GUID for $ip and make sure it's $should_be_guid\n";
+	&log_to_file('logs/sanity.log', "Look Up GUID for $ip and make sure it's $should_be_guid");
     # if guid is nonzero and is not last_guid, then we know sanity fails.
     my $total_tries = 3; # The total number of attempts to get an answer out of activision.
     my $read_timeout = 1; # Number of seconds to wait for activison to respond to a packet.
@@ -4258,7 +4260,8 @@ sub guid_sanity_check {
     my $still_waiting = 1;
     my $got_response = 0;
     my $portaddr;
-    print "\nAsking $activision_master if $ip has provided a valid key recently.\n\n";
+    print "\nAsking $activision_master if $ip has provided a valid CD-KEY recently.\n\n";
+	&log_to_file('logs/sanity.log', "Asking $activision_master if $ip has provided a valid CD-KEY recently.");
     socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
     my $random = int(rand(7654321));
     my $send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip 0";
@@ -4296,12 +4299,14 @@ sub guid_sanity_check {
 	    	    print "\tThis IP Address has not provided any CD Keys to the activision server\n";
     		    print "\tThis IP Address may not playing COD2 currently, or\n";
 	    	    print "\tActivision has not heard a key from this IP recently.\n";
+				&log_to_file('logs/sanity.log', "RESULTS: $reason");
 	        }
 	        if ($reason eq 'BANNED_CDKEY') {
 	    	    print "Explaination of: $reason\n";
 	    	    print "\tThis IP Address is using a well known stolen CD Key.\n";
 	    	    print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
 	    	    print "\tThis IP address is using a stolen copy of CoD2\n\n";
+				&log_to_file('logs/sanity.log', "RESULTS: $reason");
 	        }
 	        if ($reason eq 'INVALID_CDKEY') {
 	    	    print "Explaination of: $reason\n";
@@ -4309,26 +4314,32 @@ sub guid_sanity_check {
 	    	    print "\tActivision has already seen this Key recently used by a different IP.\n";
 	    	    print "\tThis is a valid CD Key, but is being used from multiple locations\n";
 	    	    print "\tActivision only allows one IP per key.\n\n";
+				&log_to_file('logs/sanity.log', "RESULTS: $reason");
 	        }
             # Now, check to make sure our GUID numbers match up.
 	        if ($guid) {
-	    	    if ($guid eq $should_be_guid) { print "\nOK: GUID Sanity check: PASSED\n\n"; }
+	    	    if ($guid == $should_be_guid) {
+				    print "\nOK: GUID Sanity check: PASSED\n\n";
+					&log_to_file('logs/sanity.log', "GUID Sanity check: PASSED: GUID $guid == $should_be_guid");
+				}
 	    	    else {
-	    	        &rcon_command("say ^1ПРЕДУПРЕЖДЕНИЕ: ^7Проверка корректности GUID не пройдена для $name_by_slot{$most_recent_slot}");
+	    	        &rcon_command("say ^1ПРЕДУПРЕЖДЕНИЕ^7: Проверка корректности GUID не пройдена для $name_by_slot{$most_recent_slot}");
 	    	        print "\nFAIL: GUID Sanity check: FAILED\n";
 	    	        print "\tIP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
-	    	        &log_to_file('logs/guid.log', "SANITY FAILED: $name_by_slot{$most_recent_slot}  IP: $ip was supposed to be GUID $should_be_guid but came back as $guid - Server has been up for: $uptime");
+	    	        &log_to_file('logs/sanity.log', "SANITY FAILED: $name_by_slot{$most_recent_slot}  IP: $ip was supposed to be GUID $should_be_guid but came back as $guid - Server has been up for: $uptime");
 	    	    }
 	        }
 	    }
 	    else {
 	        print "\nERROR:\n\tGot a response, but not in the format expected\n";
 	        print "\t$message\n\n";
+			&log_to_file('logs/sanity.log', "WARNING: Got a response, but not in the format expected: $message");
 	    }
     }
 	else {
 	    print "\nERROR:\n\t$activision_master is not currently responding to requests.\n";
 	    print "\n\tSorry.  Try again later.\n\n";
+		&log_to_file('logs/sanity.log', "WARNING: $activision_master is not currently responding to requests.");
     }
     $most_recent_guid = 0;
     $most_recent_slot = 0;
@@ -4473,14 +4484,14 @@ sub dictionary {
 # BEGIN: check_guid_zero_players
 sub check_guid_zero_players {
     my @possible;
-    my $start_time = $time;
-    my $max_time = 10;
     print "GUID ZERO audit in progress...\n";
+	&log_to_file('logs/audit.log', "GUID ZERO audit in progress...");
     foreach $slot (keys %guid_by_slot) {
 	    if ((defined($guid_by_slot{$slot})) and (defined($ip_by_slot{$slot})) and ($guid_by_slot{$slot} == 0) and ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) { push @possible, $slot; }
     }
     if ($#possible == -1) {
 	    print "GUID Zero Audit: PASSED, there are no GUID zero players.\n";
+		&log_to_file('logs/audit.log', "GUID Zero Audit: PASSED, there are no GUID zero players.");
 	    return 1;
     }
     &fisher_yates_shuffle(\@possible);
@@ -4503,81 +4514,94 @@ sub check_guid_zero_players {
     my $dirtbag;
     # Try as many as we can within our time limit
     foreach $slot (@possible) {
-	$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot} 0";
-	print "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}\n";
-	print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.\n\n";
-	socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
-	$selecta = IO::Select->new;
-	$selecta->add(\*SOCKET);
-	while (($current_try < $total_tries) and ($still_waiting)) {
-	    $current_try++;
-	    # Send the packet
-	    $portaddr = sockaddr_in($port, $d_ip);
-	    send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $activision_master($port): $!\n\n");
-	    # Check to see if there is a response yet.
-	    @ready = $selecta->can_read($read_timeout);
-	    if (defined($ready[0])) {
-		    # Yes, the socket is ready.
-		    $portaddr = recv(SOCKET, $message, $maximum_length, 0) or &die_nice("Socket error: recv: $!");
-		    # strip the 4 \xFF bytes at the begining.
-		    $message =~ s/^.{4}//;
-		    $got_response = 1;
-		    $still_waiting = 0;
+	    $send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot} 0";
+	    print "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}\n";
+	    &log_to_file('logs/audit.log', "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}");
+	    print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.\n\n";
+	    &log_to_file('logs/audit.log', "Asking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.");
+	    socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or &die_nice("Socket error: $!");
+	    $selecta = IO::Select->new;
+	    $selecta->add(\*SOCKET);
+	    while (($current_try < $total_tries) and ($still_waiting)) {
+	        $current_try++;
+	        # Send the packet
+	        $portaddr = sockaddr_in($port, $d_ip);
+	        send(SOCKET, $send_message, 0, $portaddr) == length($send_message) or &die_nice("cannot send to $activision_master($port): $!\n\n");
+	        # Check to see if there is a response yet.
+    	    @ready = $selecta->can_read($read_timeout);
+	        if (defined($ready[0])) {
+	    	    # Yes, the socket is ready.
+	    	    $portaddr = recv(SOCKET, $message, $maximum_length, 0) or &die_nice("Socket error: recv: $!");
+	    	    # strip the 4 \xFF bytes at the begining.
+	    	    $message =~ s/^.{4}//;
+	    	    $got_response = 1;
+		        $still_waiting = 0;
+	        }
 	    }
+	    if ($got_response) {
+	        if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
+	    	    my ($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
+	    	    print "RESULTS:\n";
+	    	    print "\tIP Address: $ip_by_slot{$slot}\n";
+	        	print "\tAction: $result\n";
+	    	    print "\tReason: $reason\n";
+	    	    print "\tGUID: $guid\n";
+	    	    print "\n";
+	    	    $dirtbag = 0;
+	    	    if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
+	    	        print "Explaination of: $reason\n";
+	    	        print "\tThis IP Address has not provided any CD Keys to the activision server\n";
+	    	        print "\tThis IP Address may not playing COD2 currently, or\n";
+		            print "\tActivision has not heard a key from this IP recently.\n";
+		    		&log_to_file('logs/audit.log', "RESULTS: $reason");
+	    	    }
+	    	    if ($reason eq 'BANNED_CDKEY') {
+	    	        print "Explaination of: $reason\n";
+	    	        print "\tThis IP Address is using a well known stolen CD Key.\n";
+	    	        print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
+	    	        print "\tThis IP address is using a stolen copy of CoD2\n\n";
+	    			&log_to_file('logs/audit.log', "RESULTS: $reason");
+	    	        $dirtbag = 1;
+		            $kick_reason = "was kicked for using a banned CD-KEY";
+	    	    }
+	    	    if ($reason eq 'INVALID_CDKEY') {
+	    	        print "Explaination of: $reason\n";
+	    	        print "\tThis IP Address is trying to use the same CD Key from multiple IPs.\n";
+	    	        print "\tActivision has already seen this Key recently used by a different IP.\n";
+	    	        print "\tThis is a valid CD Key, but is being used from multiple locations\n";
+	    	        print "\tActivision only allows one IP per key.\n\n";
+	    			&log_to_file('logs/audit.log', "RESULTS: $reason");
+	    	        $dirtbag = 1;
+	    	        $kick_reason = "was kicked for using an invalid CD-KEY. Perhaps this CD-KEY is already in use";
+	    	    }
+	    	    if (($dirtbag) and ($reason eq 'BANNED_CDKEY')) {
+	    	        &rcon_command("say $name_by_slot{$slot} ^7$kick_reason");
+		            sleep 1;
+		            &rcon_command("clientkick $slot");
+	    	        &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
+	    	    	my $ban_name = 'unknown';
+	                my $ban_ip = 'unknown';
+	    	    	my $ban_guid = 0;
+	    	        my $unban_time = $time + 28800;
+		        	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
+	    	        if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
+	    	    	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
+	    	        $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
+		            $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
+	    	    }
+	        }
+	    	else {
+	            print "\nERROR:\n\tGot a response, but not in the format expected\n";
+	            print "\t$message\n\n";
+	    		&log_to_file('logs/audit.log', "WARNING: Got a response, but not in the format expected: $message");
+	        }
+    	}
+	    else {
+	        print "\nERROR:\n\t$activision_master is not currently responding to requests.\n";
+	        print "\n\tSorry.  Try again later.\n\n";
+	    	&log_to_file('logs/audit.log', "WARNING: $activision_master is not currently responding to requests.");
+        }
 	}
-	if ($got_response) {
-	    if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
-		    my ($session_id, $result, $reason, $guid) = ($1,$2,$3,$4);
-		    print "RESULTS:\n";
-		    print "\tIP Address: $ip_by_slot{$slot}\n";
-	    	print "\tAction: $result\n";
-		    print "\tReason: $reason\n";
-		    print "\tGUID: $guid\n";
-		    print "\n";
-		    $dirtbag = 0;
-		    if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
-		        print "Explaination of: $reason\n";
-		        print "\tThis IP Address has not provided any CD Keys to the activision server\n";
-		        print "\tThis IP Address may not playing COD2 currently, or\n";
-		        print "\t  Activision has not heard a key from this IP recently.\n";
-		    }
-		    if ($reason eq 'BANNED_CDKEY') {
-		        print "Explaination of: $reason\n";
-		        print "\tThis IP Address is using a well known stolen CD Key.\n";
-		        print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
-		        print "\tThis IP address is using a stolen copy of CoD2\n\n";
-		        $dirtbag = 1;
-		        $kick_reason = "был выкинут за использование заблокированного ключа диска";
-		    }
-		    if ($reason eq 'INVALID_CDKEY') {
-		        print "Explaination of: $reason\n";
-		        print "\tThis IP Address is trying to use the same CD Key from multiple IPs.\n";
-		        print "\tActivision has already seen this Key recently used by a different IP.\n";
-		        print "\tThis is a valid CD Key, but is being used from multiple locations\n";
-		        print "\tActivision only allows one IP per key.\n\n";
-		        $dirtbag = 1;
-		        $kick_reason = "был выкинут за использование неверного ключа диска. Вероятно этот ключ уже где-то используется";
-		    }
-		    if (($dirtbag) and ($reason eq 'BANNED_CDKEY')) {
-		        &rcon_command("say $name_by_slot{$slot} ^7$kick_reason");
-		        sleep 1;
-		        &rcon_command("clientkick $slot");
-		        &log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
-		    	my $ban_name = 'unknown';
-		        my $ban_ip = 'unknown';
-		    	my $ban_guid = 0;
-		        my $unban_time = $time + 28800;
-		    	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
-		        if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) { $ban_ip = $ip_by_slot{$slot}; }
-		    	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
-		        $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-		        $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
-		    }
-	    }
-	}
-	# abort the rest if we are out of time.
-	if ((time - $start_time) > $max_time) { last; }
-    }
 }
 # END: check_guid_zero_players
 
