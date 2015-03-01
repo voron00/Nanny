@@ -37,9 +37,9 @@ sub new {
 	bless($self, $class_name);
 	my %server_types = (new=>1, old=>2);
 	# Check parameters
-	$params{"Host"} = "127.0.0.1"  unless($params{"Host"});
-	$params{"Port"} = "28960"        unless($params{"Port"});
-	$params{"Type"} = "new"        unless($params{"Type"});
+	$params{"Host"} = "127.0.0.1" unless($params{"Host"});
+	$params{"Port"} = "28960" unless($params{"Port"});
+	$params{"Type"} = "new" unless($params{"Type"});
 	# Initialise properties
 	$self->{"rcon_password"} = $params{"Password"} or die("KKrcon: a Password is required\n");
 	$self->{"server_host"} = $params{"Host"};
