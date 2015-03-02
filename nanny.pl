@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 EN r58';
+my $version = '3.4 EN r59';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -98,6 +98,7 @@ my %idle_warn_level;
 my %name_warn_level;
 my $last_namecheck;
 my $config;
+my $config_name = 'nanny.cfg';
 my $line;
 my $first_char;
 my $slot;
@@ -256,7 +257,7 @@ $last_guid0_audit = $time;
 $last_guid_sanity_check = $time;
 
 # Read the configuration from the .cfg file.
-&load_config_file('nanny.cfg');
+&load_config_file($config_name);
 
 # Open the server logfile for reading.
 if ($logfile_mode eq 'local') {
@@ -1832,8 +1833,8 @@ sub chat {
 	# !reset
 	elsif ($message =~ /^!reset/i) {
 	    if (&check_access('reset')) {
-            &reset;
 		    &rcon_command("say Ok $name^7, resetting values...");
+			&reset;
 		}
 	}
 	# !reboot
@@ -1841,6 +1842,13 @@ sub chat {
 	    if (&check_access('reboot')) {
 		    &rcon_command("say Ok $name^7, rebooting myself...");
             exec 'perl nanny.pl';
+	    }
+	}
+	# !reconfig
+	elsif ($message =~ /^!reconfig/i) {
+	    if (&check_access('reconfig')) {
+		    &rcon_command("say Ok $name^7, reloading config file...");
+            &load_config_file($config_name);
 	    }
 	}
 	# !version
@@ -2136,6 +2144,10 @@ sub chat {
             }
 	    	if (&check_access('reboot')) {
                 &rcon_command("say $name^7: You can use ^1!reboot ^7to reboot the program");
+                sleep 1;
+            }
+			if (&check_access('reconfig')) {
+                &rcon_command("say $name^7: You can use ^1!reconfig ^7to reload a configuration file");
                 sleep 1;
             }
 	    	if (&check_access('ignore')) {
