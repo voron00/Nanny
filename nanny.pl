@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r58';
+my $version = '3.4 RU r59';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -98,6 +98,7 @@ my %idle_warn_level;
 my %name_warn_level;
 my $last_namecheck;
 my $config;
+my $config_name = 'nanny.cfg';
 my $line;
 my $first_char;
 my $slot;
@@ -256,7 +257,7 @@ $last_guid0_audit = $time;
 $last_guid_sanity_check = $time;
 
 # Read the configuration from the .cfg file.
-&load_config_file('nanny.cfg');
+&load_config_file($config_name);
 
 # Open the server logfile for reading.
 if ($logfile_mode eq 'local') {
@@ -1839,8 +1840,8 @@ sub chat {
 	# !reset
 	elsif ($message =~ /^!reset/i) {
 	    if (&check_access('reset')) {
-            &reset;
 		    &rcon_command("say Хорошо $name^7, обнуляю значения...");
+			&reset;
 		}
 	}
 	# !reboot
@@ -1848,6 +1849,13 @@ sub chat {
 	    if (&check_access('reboot')) {
 		    &rcon_command("say Хорошо $name^7, перезапускаю себя...");
             exec 'perl nanny.pl';
+	    }
+	}
+	# !reboot
+	elsif ($message =~ /^!reconfig/i) {
+	    if (&check_access('reconfig')) {
+		    &rcon_command("say Хорошо $name^7, перезагружаю конфиг...");
+            &load_config_file($config_name);
 	    }
 	}
 	# !version
@@ -2143,6 +2151,10 @@ sub chat {
             }
 	    	if (&check_access('reboot')) {
                 &rcon_command("say $name^7: Вы можете использовать ^1!reboot ^7чтобы перезапустить программу");
+                sleep 1;
+            }
+			if (&check_access('reconfig')) {
+                &rcon_command("say $name^7: Вы можете использовать ^1!reconfig ^7чтобы обновить параметры из конфигурационного файла");
                 sleep 1;
             }
 	    	if (&check_access('ignore')) {
@@ -2526,7 +2538,7 @@ sub banned_player_check {
 					$bantime =~ s/\:(\d+)$//g; # strip the ':seconds'
 			    	$bandate = scalar(localtime($row[1]))->dmy(".");
 					sleep 1;
-	                &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остатся на этом сервере");
+	                &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остаться на этом сервере");
 	                sleep 1;
 	                &rcon_command("say $row[5]^7: Был забанен ^3$bandate ^7в ^2$bantime ^7(BAN ID#: ^1$row[0]^7)");
 	                sleep 1;
@@ -2550,7 +2562,7 @@ sub banned_player_check {
 					$bantime =~ s/\:(\d+)$//g; # strip the ':seconds'
 			    	$bandate = scalar(localtime($row[1]))->dmy(".");
                     sleep 1;
-	                &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остатся на этом сервере");
+	                &rcon_command("say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остаться на этом сервере");
 	                sleep 1;
 	                &rcon_command("say $row[5]^7: Был забанен ^3$bandate ^7в ^2$bantime ^7(BAN ID#: ^1$row[0]^7)");
 	                sleep 1;
