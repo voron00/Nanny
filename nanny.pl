@@ -2559,7 +2559,7 @@ sub banned_player_kick {
 	    sleep 1;
 	    &rcon_command("say $ban_name^7: Был забанен ^3$bandate ^7в ^2$bantime ^7(BAN ID#: ^1$ban_id^7)");
 	    sleep 1;
-	    if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: У вас перманентный бан."); }
+	    if ($unban_time == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: У вас перманентный бан."); }
 	    else { &rcon_command("say $name_by_slot{$slot}^7: Вы будете разбанены через " . &duration($unban_time - $time)); }
 	    sleep 1;
 	    &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - BANNED: IP - $ban_ip GUID - $ban_guid BAN ID# - $ban_id");
