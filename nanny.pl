@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 EN r59';
+my $version = '3.4 EN r60';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -607,7 +607,7 @@ while (1) {
     		    if (($config->{'show_game_joins'}) and ($gametype ne 'sd')) { &rcon_command("say $name_by_slot{$slot} ^7has joined the game"); }
     		    if ($config->{'show_joins'}) { print "JOIN: $name_by_slot{$slot} has joined the game\n"; }
     		    # Check for banned GUID
-    		    if ($guid) { &banned_player_check($slot,$guid); }
+    		    if ($guid) { &banned_guid_check($slot); }
             }
     	    else { print "WARNING: unrecognized syntax for join line:\n\t$line\n"; }
     	}
@@ -2480,9 +2480,9 @@ sub status {
 				        # update players count, count only active players
 	    	            $players_count++;
 	    		        # Check for banned IP
-						if ($ip) { &banned_player_check($slot,$ip); }
+						if ($ip) { &banned_ip_check($slot); }
 						# Since we have spam protection anyway, we can add this 
-						if ($guid) { &banned_player_check($slot,$guid); }
+						if ($guid) { &banned_guid_check($slot); }
 				    }
 	    	        # we need to remember this for the next ping we check.
 	    	        $last_ping_by_slot{$slot} = $ping;
@@ -2510,63 +2510,53 @@ sub status {
 }
 # END: status
 
-# BEGIN: banned_player_check($slot,$guid/$ip)
-sub banned_player_check {
+# BEGIN: banned_ip_check($slot)
+sub banned_ip_check {
 	my $slot = shift;
-	my $type = shift;
 	my @row;
-	my $bantime;
-	my $bandate;
-	if ($type =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-        $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	    $bans_sth->execute($ip_by_slot{$slot});
-	    while (@row = $bans_sth->fetchrow_array) {
-	        if ($row[3] ne 'unknown') {
-		        if (!$ban_message_spam) {
-			        $bantime = scalar(localtime($row[1]))->hms;
-					$bantime =~ s/\:(\d+)$//g; # strip the ':seconds'
-			    	$bandate = scalar(localtime($row[1]))->dmy(".");
-					sleep 1;
-	                &rcon_command("say $name_by_slot{$slot}^7: You are banned. You are not allowed to stay on this server");
-	                sleep 1;
-	                &rcon_command("say $row[5]^7: Was banned ^3$bandate ^7in ^2$bantime ^7(BAN ID#: ^1$row[0]^7)");
-	                sleep 1;
-	                if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: You are permanently banned."); }
-	                else { &rcon_command("say $name_by_slot{$slot}^7: You will be unbanned in " . &duration($row[2] - $time)); }
-	                sleep 1;
-	                &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned IP: $ip_by_slot{$slot} ($row[3]) - (BAN ID#: $row[0])");
-	                &rcon_command("clientkick $slot");
-			        $ban_message_spam = $time + 3; # 3 seconds spam protection
-			    }
-	        }
-	    }
-	}
-	elsif ($type =~ /^\d+$/) {
-	    $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
-	    $bans_sth->execute($guid_by_slot{$slot});
-	    while (@row = $bans_sth->fetchrow_array) {
-	        if ($row[4]) {
-		        if (!$ban_message_spam) {
-				    $bantime = scalar(localtime($row[1]))->hms;
-					$bantime =~ s/\:(\d+)$//g; # strip the ':seconds'
-			    	$bandate = scalar(localtime($row[1]))->dmy(".");
-                    sleep 1;
-	                &rcon_command("say $name_by_slot{$slot}^7: You are banned. You are not allowed to stay on this server");
-	                sleep 1;
-	               &rcon_command("say $row[5]^7: Was banned ^3$bandate ^7in ^2$bantime ^7(BAN ID#: ^1$row[0]^7)");
-	                sleep 1;
-	                if ($row[2] == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: You are permanently banned."); }
-	                else { &rcon_command("say $name_by_slot{$slot}^7: You will be unbanned in " . &duration($row[2] - $time)); }
-	                sleep 1;
-	                &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - banned GUID: $guid_by_slot{$slot} ($row[4]) - (BAN ID#: $row[0])");
-	                &rcon_command("clientkick $slot");
-			        $ban_message_spam = $time + 3; # 3 seconds spam protection
-			    }
-	        }
-	    }
+    $bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE ip=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	$bans_sth->execute($ip_by_slot{$slot});
+	while (@row = $bans_sth->fetchrow_array) {
+	    if ($row[3] ne 'unknown') { &banned_player_kick($slot, $row[0], $row[1], $row[2], $row[3], $row[4], $row[5]); }
 	}
 }
-# END: banned_player_check
+# END: banned_ip_check
+
+# BEGIN: banned_guid_check($slot)
+sub banned_guid_check {
+	my $slot = shift;
+	my @row;
+	$bans_sth = $bans_dbh->prepare("SELECT * FROM bans WHERE guid=? AND unban_time > $time ORDER BY id DESC LIMIT 1");
+	$bans_sth->execute($guid_by_slot{$slot});
+	while (@row = $bans_sth->fetchrow_array) {
+	    if ($row[4]) { &banned_player_kick($slot, $row[0], $row[1], $row[2], $row[3], $row[4], $row[5]); }
+    }
+}
+# END: banned_guid_check
+
+# BEGIN: banned_player_kick
+sub banned_player_kick {
+    my ($slot, $ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = (@_);
+	my $bandate;
+	my $bantime;
+	if (!$ban_message_spam) {
+		$bantime = scalar(localtime($ban_time))->hms;
+		$bantime =~ s/\:(\d+)$//g; # strip the ':seconds'
+		$bandate = scalar(localtime($ban_time))->dmy(".");
+		sleep 1;
+	    &rcon_command("say $name_by_slot{$slot}^7: You are banned. You are not allowed to stay on this server");
+	    sleep 1;
+	    &rcon_command("say $ban_name^7: Was banned ^3$bandate ^7in ^2$bantime ^7(BAN ID#: ^1$ban_id^7)");
+	    sleep 1;
+	    if ($unban_time == 2125091758) { &rcon_command("say $name_by_slot{$slot}^7: You are permanently banned."); }
+	    else { &rcon_command("say $name_by_slot{$slot}^7: You will be unbanned in " . &duration($unban_time - $time)); }
+	    sleep 1;
+	    &log_to_file('logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - BANNED: IP - $ban_ip GUID - $ban_guid BAN ID# - $ban_id");
+	    &rcon_command("clientkick $slot");
+		$ban_message_spam = $time + 3; # 3 seconds spam protection
+	}
+}
+# END: banned_player_kick
 
 # BEGIN: rcon_command($command)
 sub rcon_command {
@@ -4585,6 +4575,7 @@ sub check_guid_zero_players {
 	    	    	if ($guid_by_slot{$slot}) { $ban_guid = $guid_by_slot{$slot}; }
 	    	        $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
 		            $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
+					$ban_message_spam = $time + 3; # 3 seconds spam protection
 	    	    }
 	        }
 	    	else {
@@ -4922,7 +4913,8 @@ sub update_name_by_slot {
 		        	    &rcon_command("clientkick $slot");
 		        	    &log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip | $guid_by_slot{$slot} was permanently for being a name thief: $name | $name_by_slot{$slot}");
 		        	    $bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-		        	    $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");					
+		        	    $bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
+						$ban_message_spam = $time + 3; # 3 seconds spam protection
 		            }  
 		        }
 		        # End of Name Thief Detection
