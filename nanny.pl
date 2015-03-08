@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r61';
+my $version = '3.4 RU r62';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -537,11 +537,11 @@ while (1) {
 	        	# Killing Spree
         		if (($config->{'killing_sprees'}) and ($damage_type ne 'MOD_SUICIDE') and ($damage_type ne 'MOD_FALLING') and ($attacker_team ne 'world') and ($attacker_slot ne $victim_slot)) {
 	        	    if (!defined($kill_spree{$attacker_slot})) { $kill_spree{$attacker_slot} = 1; }
-	        		else { $kill_spree{$attacker_slot} += 1; } 
+	        		else { $kill_spree{$attacker_slot} += 1; }
 	    	        if (defined($kill_spree{$victim_slot})) {
 	    		        if (!defined($best_spree{$victim_slot})) { $best_spree{$victim_slot} = 0; }
 	        		    if (($kill_spree{$victim_slot} > 2) and ($kill_spree{$victim_slot} > $best_spree{$victim_slot})) {
-	        		        $best_spree{$victim_slot} = $kill_spree{$victim_slot};  
+	        		        $best_spree{$victim_slot} = $kill_spree{$victim_slot};
 	        		        $stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE guid=?");
 	        		        $stats_sth->execute($victim_guid) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 	        		        @row = $stats_sth->fetchrow_array;
@@ -719,8 +719,6 @@ while (1) {
 	    	    if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have WON this game of $gametype on $mapname\n"; }
 	    	    else { print "GAME OVER: $name has WON this game of $gametype on $mapname\n"; }
 				# BEGIN: Update best_killspree stats
-				my $slot;
-	            my @row;
                 foreach $slot (keys %kill_spree) {
                     if (defined($kill_spree{$slot}) and $kill_spree{$slot} > 2) {
 	                    $stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE guid=?");
@@ -2517,18 +2515,18 @@ sub status {
 	    }
     }
 	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
-	my $slot;
-	my @row;
-    foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
+    foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
 	    if ($slot >= 0) {
 	        if ($guid_by_slot{$slot}) { $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1"); }
 	        else { $sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1"); }
 	        if ((!defined($ip_by_slot{$slot})) or ($ip_by_slot{$slot} eq 'not_yet_known')) {
 		        $ip_by_slot{$slot} = 'unknown';
-		        $sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+		        if ($guid_by_slot{$slot}) { $sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n"); }
+				else { $sth->execute($name_by_slot{$slot}) or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n"); }
 		        while (@row = $sth->fetchrow_array) {
 		            $ip_by_slot{$slot} = $row[0] . '?';
-		            print "Guessed an IP for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n";
+		            if ($guid_by_slot{$slot}) { print "Guessed an IP by GUID for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n"; }
+					else { print "Guessed an IP by NAME for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n"; }
 	            }
 	        }
 	    }
@@ -5150,8 +5148,8 @@ sub exchange {
     my $content = get("http://cbr.ru/scripts/XML_daily.asp?date_req=$currentdate");
     if (defined($content)) {
 	    if ($content =~ /<ValCurs\s+Date="([\d\/.]+)"\s+name="Foreign\s+Currency\s+Market">/) { $date = $1; }
-	    if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1 }
-	    if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1 }
+	    if ($content =~ /<CharCode>USD<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $dollar = $1; }
+	    if ($content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/) { $euro = $1; }
 	    if ($currency =~ /^USD|dollar|доллар|доллара$/i) { &rcon_command("say Курс доллара на ^2$date ^7по ЦБ РФ составляет: ^3$dollar ^7рублей"); }
 	    if ($currency =~ /^EUR|euro|евро$/i) { &rcon_command("say Курс евро на ^2$date ^7по ЦБ РФ составляет: ^3$euro ^7рублей"); }
     }
