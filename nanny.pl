@@ -2823,7 +2823,7 @@ sub lastkill {
     my $search_string = shift;
 	if ($search_string) {
 	    my @matches = &matching_users($search_string);
-	    if (($#matches == 0) and (defined($last_kill_by_name{$matches[0]})) and ($last_kill_by_name{$matches[0]} ne 'none')) { &rcon_command("say $name_by_slot{$matches[0]} ^7убил игрока $last_kill_by_name{$matches[0]}"); }
+	    if (($#matches == 0) and (defined($last_kill_by_name{$matches[0]})) and ($last_kill_by_name{$matches[0]} ne 'none')) { &rcon_command("say В последний раз $name_by_slot{$matches[0]} ^7убил $last_kill_by_name{$matches[0]}"); }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say Слишком много совпадений с: $search_string");
 	        return 1;
@@ -2833,7 +2833,7 @@ sub lastkill {
 	        return 1;
 	    }
 	}
-	elsif ((defined($last_kill_by_name{$slot})) and ($last_kill_by_name{$slot} ne 'none')) { &rcon_command("say $name_by_slot{$slot}^7: Вы убили игрока $last_kill_by_name{$slot}"); }
+	elsif ((defined($last_kill_by_name{$slot})) and ($last_kill_by_name{$slot} ne 'none')) { &rcon_command("say $name_by_slot{$slot}^7: В последний раз вы убили $last_kill_by_name{$slot}"); }
 }
 # END: lastkill
 
@@ -2844,7 +2844,7 @@ sub lastkilled {
     my $search_string = shift;
 	if ($search_string) {
 	    my @matches = &matching_users($search_string);
-	    if (($#matches == 0) and (defined($last_killed_by_name{$matches[0]})) and ($last_killed_by_name{$matches[0]} ne 'none')) { &rcon_command("say $name_by_slot{$matches[0]} ^7был убит игроком $last_killed_by_name{$matches[0]}"); }
+	    if (($#matches == 0) and (defined($last_killed_by_name{$matches[0]})) and ($last_killed_by_name{$matches[0]} ne 'none')) { &rcon_command("say В последний раз $name_by_slot{$matches[0]} ^7был убит игроком $last_killed_by_name{$matches[0]}"); }
 	    elsif ($#matches > 0) {
 	        &rcon_command("say Слишком много совпадений с: $search_string");
 	        return 1;
@@ -2854,7 +2854,7 @@ sub lastkilled {
 	        return 1;
 	    }
 	}
-	elsif ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none')) { &rcon_command("say $name_by_slot{$slot}^7: Вы были убиты игроком $last_killed_by_name{$slot}"); }
+	elsif ((defined($last_killed_by_name{$slot})) and ($last_killed_by_name{$slot} ne 'none')) { &rcon_command("say $name_by_slot{$slot}^7: В последний раз вы были убиты игроком $last_killed_by_name{$slot}"); }
 }
 # END: lastkilled
 
@@ -3389,7 +3389,7 @@ sub name_player {
     $names_sth->execute() or &die_nice("Unable to execute query: $names_dbh->errstr\n");
 	@row = $names_sth->fetchrow_array;
 	if (!$row[0]) { &rcon_command("say К сожалению, не найдено имен в базе данных"); }
-	else { &rcon_command("say Игрока $name_by_slot{$slot} ^7зовут ^3$row[1]"); }
+	else { &rcon_command("say $name_by_slot{$slot} ^7зовут ^3$row[1]"); }
 }
 # END: name
 
