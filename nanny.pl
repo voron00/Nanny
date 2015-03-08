@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r60';
+my $version = '3.4 RU r61';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -718,6 +718,21 @@ while (1) {
 	    	    if (($guid) and ($name)) { &cache_guid_to_name($guid,$name); }
 	    	    if ((defined($attacker_team)) and ($attacker_team =~ /./)) { print "GAME OVER: $attacker_team have WON this game of $gametype on $mapname\n"; }
 	    	    else { print "GAME OVER: $name has WON this game of $gametype on $mapname\n"; }
+				# BEGIN: Update best_killspree stats
+				my $slot;
+	            my @row;
+                foreach $slot (keys %kill_spree) {
+                    if (defined($kill_spree{$slot}) and $kill_spree{$slot} > 2) {
+	                    $stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE guid=?");
+	                    $stats_sth->execute($guid_by_slot{$slot}) or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+	                    @row = $stats_sth->fetchrow_array;
+	                    if (($guid_by_slot{$slot}) and (defined($row[0])) and ($row[0] < $kill_spree{$slot})) {
+			                $stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE guid=?");
+	        	            $stats_sth->execute($kill_spree{$slot}, $guid_by_slot{$slot}) or &die_nice("Unable to update stats\n");
+			            }
+	                }
+                }
+				# END: Update best_killspree stats
 	        }
 	    	# sometimes this line happens on sd, when there are no players and round has ended
 	    	elsif ($line =~ /^W;([^;]*)/) {
@@ -2432,7 +2447,6 @@ sub status {
     print "$status\n";
     my @lines = split(/\n/,$status);
 	$players_count = 0;
-	my @row;
     foreach (@lines) {
 	    if (/^map:\s+(\w+)$/) { $mapname = $1; }
 	    if (/^[\sX]+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
@@ -2503,6 +2517,8 @@ sub status {
 	    }
     }
 	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
+	my $slot;
+	my @row;
     foreach $slot (sort { $a <=> $b } keys %guid_by_slot) {
 	    if ($slot >= 0) {
 	        if ($guid_by_slot{$slot}) { $sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1"); }
