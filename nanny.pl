@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r62';
+my $version = '3.4 RU r63';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -3920,7 +3920,7 @@ sub no {
 
 # BEGIN: !best
 sub best {
-    if (&flood_protection('best', 300)) { return 1; }
+    if ((&flood_protection('best', 300)) or (&flood_protection('worst', 300))) { return 1; }
     my $counter = 1;
 	my @row;
     &rcon_command("say ^2Лучшие ^7игроки сервера:");
@@ -4215,7 +4215,7 @@ sub names {
 
 # BEGIN: !worst
 sub worst {
-    if (&flood_protection('worst', 300)) { return 1; }
+    if ((&flood_protection('worst', 300)) or (&flood_protection('best', 300))) { return 1; }
     &rcon_command("say ^1Худшие ^7игроки сервера:");
     my $counter = 1;
 	my @row;
@@ -4372,8 +4372,8 @@ sub flood_protection {
     # Make sure that flood protection is enabled. Otherwise, all is allowed.
     if ($config->{'flood_protection'}) { }
     else { return 0; }
-    # Exemption for global admins (3 seconds delay)
-    if (&check_access('flood_exemption')) { $min_interval = 3; }
+    # Exemption for global admins (1 second delay)
+    if (&check_access('flood_exemption')) { $min_interval = 1; }
     # Ensure that all values are defined.
     if ((!defined($min_interval)) or ($min_interval !~ /^\d+$/)) { $min_interval = 30; }
     if ((!defined($slot)) or ($slot !~ /^\d+$/)) { $slot = 'global'; }
@@ -5131,6 +5131,7 @@ sub broadcast_message {
 
 # BEGIN: nuke
 sub nuke {
+    if (&flood_protection('nuke', 30, $slot)) { return 1; }
     &rcon_command("say О НЕТ, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!");
     sleep 1;
     &rcon_command("kick all");
@@ -5214,7 +5215,7 @@ sub vote {
 
 # BEGIN: vote_start($vote_string)
 sub vote_start {
-    if (&flood_protection('vote', 120)) { return 1; }
+    if (&flood_protection('vote', 300)) { return 1; }
 	$vote_string = shift;
 	my $type = uc $vote_type;
     &rcon_command("say $vote_initiator ^7предложил голосование: $vote_string " . &description($vote_target));
