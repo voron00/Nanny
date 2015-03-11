@@ -88,11 +88,13 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 EN r63';
+my $version = '3.4 EN r64';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
 my $guid_sanity_check_interval = 597;
+my $guid0_audit_interval = 295;
+my $vote_timelimit = 60;
 my %WARNS;
 my %idle_warn_level;
 my %name_warn_level;
@@ -202,7 +204,6 @@ my $protocol;
 my $allow_anonymous = 0;
 my $flood_protect = 1;
 my $last_guid0_audit;
-my $guid0_audit_interval = 295;
 my %ignore;
 my $ftp_lines = 0;
 my $ftp_verbose = 1;
@@ -234,7 +235,6 @@ my $vote_type;
 my $vote_target;
 my $vote_target_slot;
 my $vote_string;
-my $vote_timelimit = 60;
 my $vote_started = 0;
 my $voted_yes = 0;
 my $voted_no = 0;
@@ -2651,7 +2651,7 @@ sub geolocate_ip {
             # and we know the region name
             if ($record->city ne $record->region_name) {
                 # the city and region name are different, all three are relevant.
-                $geo_ip_info = $record->city . '^7,^2 ' . $record->region_name . ' - ' . $record->country_name;
+                $geo_ip_info = $record->city . '^7,^2 ' . $record->region_name . ' ^7-^2 ' . $record->country_name;
             }
 			else {
                 # the city and region name are the same.  Use city and country.
@@ -2671,13 +2671,17 @@ sub geolocate_ip {
         # We may not know much, but we know the country.
         $geo_ip_info = $record->country_name;
     }
+	elsif ($record->country_code3) {
+        # How about a 3 letter country code?
+        $geo_ip_info = $record->country_code3;
+    }
 	elsif ($record->country_code) {
         # How about a 2 letter country code at least?
         $geo_ip_info = $record->country_code;
     }
 	else {
         # I give up.
-        $geo_ip_info = "Cannot detect location";
+        $geo_ip_info = "Unknown location";
     }
     if ($record->country_code eq 'US') { $metric = 0; }
     else { $metric = 1; }
@@ -2695,13 +2699,11 @@ sub geolocate_ip {
 		        if ($ip ne $config->{'ip'}) {
 		            if ($metric) {
                         $dist = int($dist/1000);
-                        if (!$dist) { $geo_ip_info .= "^7, unknown distanse to the server"; }
-                        else { $geo_ip_info .= "^7, ^1$dist ^7kilometers to the server"; }
+                        $geo_ip_info .= "^7, ^1$dist ^7kilometers to the server";
 		            }
 		            else {
 		                $dist = int($dist/1609.344);
-		                if (!$dist) { $geo_ip_info .= "^7, unknown distanse to the server"; }
-		                else { $geo_ip_info .= "^7, ^1$dist ^7miles to the server"; }
+		                $geo_ip_info .= "^7, ^1$dist ^7miles to the server";
 		            }
 		        }
 	        }
