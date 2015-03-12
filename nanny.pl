@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 EN r64';
+my $version = '3.4 EN r65';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -2369,6 +2369,14 @@ sub strip_color {
 }
 # END: strip_color
 
+# BEGIN: strip_space($string)
+sub strip_space {
+    my $string = shift;
+    $string =~ s/\s//g;
+    return $string;
+}
+# END: strip_space
+
 # BEGIN: description($string)
 sub description {
     my $string = shift;
@@ -3139,7 +3147,7 @@ sub matching_users {
     my $key;
     my @matches;
     foreach $key (keys %name_by_slot) {
-	    if (($name_by_slot{$key} =~ /$search_string/i) or (&strip_color($name_by_slot{$key}) =~ /$search_string/i)) {
+	    if (($name_by_slot{$key} =~ /$search_string/i) or (&strip_color($name_by_slot{$key}) =~ /$search_string/i) or (&strip_space($name_by_slot{$key}) =~ /$search_string/i)) {
 	        if ($name_by_slot{$key} ne 'SLOT_EMPTY') {
                 print "MATCH: $name_by_slot{$key}\n";
 	            push @matches, $key;
