@@ -2598,6 +2598,7 @@ my %country_region_names = (
         '18' => 'Svay Rieng',
         '19' => 'Takeo',
         '22' => 'Phnum Penh',
+        '23' => 'Ratanakiri',
         '25' => 'Banteay Meanchey',
         '28' => 'Preah Seihanu',
         '29' => 'Batdambang',
@@ -3074,6 +3075,7 @@ my %country_region_names = (
         'D2' => 'Debar',
         'D3' => 'Demir Hisar',
         'D4' => 'Gostivar',
+        'D5' => 'Jegunovce',
         'D6' => 'Kavadarci',
         'D7' => 'Kumanovo',
         'D8' => 'Makedonski Brod',
@@ -5538,7 +5540,7 @@ sub database_info {
     my $i  = 0;
     my $buf;
     my $retval;
-    my $hasStructureInfo;
+    my $hasStructureInfo = 0;
     seek( $gi->{fh}, -3, 2 );
     for ( my $i = 0 ; $i < STRUCTURE_INFO_MAX_SIZE ; $i++ ) {
         read( $gi->{fh}, $buf, 3 );
