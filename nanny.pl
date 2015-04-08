@@ -88,7 +88,7 @@ my $names_dbh = DBI->connect("dbi:SQLite:dbname=databases/names.db","","");
 my $ranks_dbh = DBI->connect("dbi:SQLite:dbname=databases/ranks.db","","");
 
 # Global variable declarations
-my $version = '3.4 RU r65';
+my $version = '3.4 RU r66';
 my $rconstatus_interval = 30;
 my $namecheck_interval = 40;
 my $idlecheck_interval = 45;
@@ -1894,7 +1894,7 @@ sub chat {
     elsif ($message =~ /^!next([s_])?(map|level)?\b/i) {
         if (&check_access('nextmap')) {
 		    if (&flood_protection('nextmap', 30, $slot)) { }
-		    elsif ($next_map and $next_gametype) { &rcon_command("say $name^7: Следующая карта будет:^3" . &description($next_map) .  " ^7(^2" . &description($next_gametype) . "^7)"); }
+		    elsif ($next_map and $next_gametype) { &rcon_command("say $name^7: Следующая карта будет: ^3" . &description($next_map) .  " ^7(^2" . &description($next_gametype) . "^7)"); }
         }
     }
 	# !rotate
@@ -2203,7 +2203,7 @@ sub chat {
                 sleep 1;
             }
 	    	if (&check_access('report')) {
-                &rcon_command("say $name^7: Вы можете использовать ^1!report ^5игрок = ^2причина ^7чтобы отправить жалобу на игрока");
+                &rcon_command("say $name^7: Вы можете использовать ^1!report ^5игрок ^7= ^2причина ^7чтобы отправить жалобу на игрока");
                 sleep 1;
             }
 	    	if (&check_access('exchange')) {
