@@ -2491,7 +2491,6 @@ sub chat {
 			if ( &check_access( 'map' ) ) {
 				if ( &flood_protection( 'map', 30, $slot ) ) { }
 				else {
-
 					&change_map( $1 );
 				}
 			}
