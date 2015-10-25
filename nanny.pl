@@ -2475,7 +2475,7 @@ sub chat {
 				}
 			}
 		}
-		
+
 		# !map
 		elsif ( $message =~ /^!map\s+(\w+)\b/i ) {
 			if ( &check_access( 'map' ) ) {
