@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/names.db",    
 my $ranks_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/ranks.db",        "", "" );
 
 # Global variable declarations
-my $version                    = '3.4 RU r66';
+my $version                    = '3.4 RU r67';
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
 my $idlecheck_interval         = 45;
@@ -2481,7 +2481,18 @@ sub chat {
 			if ( &check_access( 'nextmap' ) ) {
 				if ( &flood_protection( 'nextmap', 30, $slot ) ) { }
 				elsif ( $next_map and $next_gametype ) {
-					&rcon_command( "say $name^7: Следующая карта будет: ^3" . &description( $next_map ) . " ^7(^2" . &description( $next_gametype ) . "^7)" );
+					&rcon_command( "say $name^7: Следующая карта будет: ^2" . &description( $next_map ) . " ^7(^3" . &description( $next_gametype ) . "^7)" );
+				}
+			}
+		}
+
+		# !map
+		elsif ( $message =~ /^!map\s+(\w+)\b/i ) {
+			if ( &check_access( 'map' ) ) {
+				if ( &flood_protection( 'map', 30, $slot ) ) { }
+				else {
+
+					&change_map( $1 );
 				}
 			}
 		}
@@ -2890,7 +2901,7 @@ sub chat {
 		}
 
 		# !fly
-		elsif ( $message =~ /^!(fly|ufo)\b/i ) {
+		elsif ( $message =~ /^!fly\b/i ) {
 			if ( &check_access( 'fly' ) ) {
 				if ( &flood_protection( 'fly', 30, $slot ) ) { }
 				else {
@@ -5272,14 +5283,17 @@ sub change_map {
 		print "WARNING: change_map was called without a map\n";
 		return 1;
 	}
-	if ( $map !~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|trainstation|harbor|rhine)$/ ) {
-		print "WARNING: change_map was called with an invalid map: $map\n";
+	$map = lc $map;
+	if ( &flood_protection( 'change_map', 30, $slot ) ) { return 1; }
+	&rcon_command( "say ^2Смена на^7: ^3" . &description( $map ) );
+	$temporary = &rcon_query( "map $map" );
+	sleep 1;
+
+	if ( $temporary =~ /Can't find map maps\/mp\/(\w+).d3dbsp/mi ) {
+		&rcon_command( "say На сервере отсутствует карта (^2$1^7)" );
 		return 1;
 	}
-	if ( &flood_protection( 'change_map', 30, $slot ) ) { return 1; }
-	&rcon_command( "say ^2Смена на^7:^3 " . &description( $map ) );
-	&rcon_command( "map $map" );
-	&log_to_file( 'logs/commands.log', "$name changed map to: $map" );
+	else { &log_to_file( 'logs/commands.log', "$name changed map to: $map" ); }
 }
 
 # END: change_map
@@ -5296,7 +5310,7 @@ sub change_gametype {
 		return 1;
 	}
 	if ( &flood_protection( 'change_gametype', 30, $slot ) ) { return 1; }
-	&rcon_command( "say ^2Смена режима игры на^7:^3 " . &description( $gametype ) );
+	&rcon_command( "say ^2Смена типа игры на^7:^3 " . &description( $gametype ) );
 	&rcon_command( "g_gametype $gametype" );
 	&rcon_command( "map_restart" );
 	&log_to_file( 'logs/commands.log', "$name changed gametype to: $gametype" );
@@ -6725,15 +6739,12 @@ sub vote {
 		elsif ( $vote_target =~ /^(rhine|wallendar)\b/i ) {
 			$vote_target = 'mp_rhine';
 		}
-		else { $vote_target = 'unknown'; }
 		if (    ( $cod_version eq '1.0' )
 			and ( $vote_target =~ /mp_(harbor|rhine)/ ) )
 		{
 			return 1;
 		}
-		elsif ( $vote_target =~ /^mp_(farmhouse|breakout|brecourt|burgundy|carentan|dawnville|decoy|downtown|leningrad|matmata|railyard|toujane|trainstation|harbor|rhine)$/ ) {
-			&vote_start( "Смена карты на" );
-		}
+		&vote_start( "Смена карты на^2" );
 	}
 	elsif ( $vote_type eq 'type' ) {
 		if    ( $vote_target =~ /^dm\b/i )  { $vote_target = 'dm'; }
@@ -6744,7 +6755,7 @@ sub vote {
 		else                                { $vote_target = 'unknown'; }
 
 		if ( $vote_target =~ /^(dm|tdm|hq|ctf|sd)$/ ) {
-			&vote_start( "Смена типа игры на" );
+			&vote_start( "Смена типа игры на^3" );
 		}
 	}
 }
