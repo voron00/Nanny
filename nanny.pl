@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/names.db",    
 my $ranks_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/ranks.db",        "", "" );
 
 # Global variable declarations
-my $version                    = '3.4 RU r67';
+my $version                    = '3.4 RU r68';
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
 my $idlecheck_interval         = 45;
@@ -5286,8 +5286,6 @@ sub change_map {
 	if ( &flood_protection( 'change_map', 30, $slot ) ) { return 1; }
 	&rcon_command( "say ^2Смена на^7: ^3" . &description( $map ) );
 	$temporary = &rcon_query( "map $map" );
-	sleep 1;
-
 	if ( $temporary =~ /Can't find map maps\/mp\/(\w+).d3dbsp/mi ) {
 		&rcon_command( "say На сервере отсутствует карта (^2$1^7)" );
 		return 1;
