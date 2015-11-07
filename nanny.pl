@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/names.db",    
 my $ranks_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/ranks.db",        "", "" );
 
 # Global variable declarations
-my $version                    = '3.4 RU r69';
+my $version                    = '3.4 RU r68';
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
 my $idlecheck_interval         = 45;
@@ -285,25 +285,25 @@ local $SIG{ __WARN__ } = sub {
 # Startup message
 print "================================================================================\n";
 
-print "                     Г‘ГЁГ¤ГҐГ«ГЄГ  Г¤Г«Гї Г±ГҐГ°ГўГҐГ°Г  Call of Duty 2\n";
-print "                          Г‚ГҐГ°Г±ГЁГї $version\n";
-print "                            ГЂГўГІГ®Г° - smugllama\n";
-print "                       Г„Г®Г°Г ГЎГ®ГІГЄГ  ГЁ ГЇГҐГ°ГҐГўГ®Г¤ - VoroN\n\n";
+print "                     Сиделка для сервера Call of Duty 2\n";
+print "                          Версия $version\n";
+print "                            Автор - smugllama\n";
+print "                       Доработка и перевод - VoroN\n\n";
 
-print "                       RCON-Г¬Г®Г¤ГіГ«Гј Г®Г±Г­Г®ГўГ Г­ Г­Г  KKrcon\n";
+print "                       RCON-модуль основан на KKrcon\n";
 print "                       http://kkrcon.sourceforge.net\n\n";
 
-print "                    IP-ГѓГҐГ®Г«Г®ГЄГ Г¶ГЁГї ГЇГ°ГҐГ¤Г®Г±ГІГ ГўГ«ГҐГ­Г  MaxMind\n";
+print "                    IP-Геолокация предоставлена MaxMind\n";
 print "                         http://www.maxmind.com\n\n";
 
-print "                    ГЏГ®Г¤Г¤ГҐГ°Г¦ГЄГ  ГіГ¤Г Г«ГҐГ­Г­Г»Гµ FTP Г«Г®ГЈ-ГґГ Г©Г«Г®Гў\n";
-print "                    Г®Г±Г­Г®ГўГ Г­Г  Г­Г  ftptail Г®ГІ Will Moffat\n";
+print "                    Поддержка удаленных FTP лог-файлов\n";
+print "                    основана на ftptail от Will Moffat\n";
 print "                  http://hamstersoup.wordpress.com/ftptail\n\n";
 
-print "                 ГЋГ°ГЁГЈГЁГ­Г Г­Г«ГјГ­Г Гї ГўГҐГ°Г±ГЁГї NannyBot Г¤Г®Г±ГІГіГЇГ­Г  Г­Г :\n";
+print "                 Оригинанльная версия NannyBot доступна на:\n";
 print "                      http://smaert.com/nannybot.zip\n\n";
 
-print "                   ГЏГ®Г±Г«ГҐГ¤Г­ГїГї ГђГіГ±Г±ГЄГ Гї ГўГҐГ°Г±ГЁГї Г¤Г®Г±ГІГіГЇГ­Г  Г­Г :\n";
+print "                   Последняя Русская версия доступна на:\n";
 print "                     https://github.com/voron00/Nanny\n\n";
 
 print "================================================================================\n";
@@ -602,7 +602,7 @@ while ( 1 ) {
 					and ( $attacker_slot >= 0 ) )
 				{
 					$first_blood = 1;
-					&rcon_command( "say ^1ГЏГ…ГђГ‚ГЂГџ ГЉГђГЋГ‚Гњ^7: $name_by_slot{$attacker_slot} ^7ГіГЎГЁГ« $name_by_slot{$victim_slot}" );
+					&rcon_command( "say ^1ПЕРВАЯ КРОВЬ^7: $name_by_slot{$attacker_slot} ^7убил $name_by_slot{$victim_slot}" );
 					print "FIRST BLOOD: $name_by_slot{$attacker_slot} killed $name_by_slot{$victim_slot}\n";
 
 					# First blood stats tracking
@@ -644,10 +644,10 @@ while ( 1 ) {
 								$stats_sth = $stats_dbh->prepare( "UPDATE stats SET best_killspree=? WHERE guid=?" );
 								$stats_sth->execute( $best_spree{ $victim_slot }, $victim_guid )
 									or &die_nice( "Unable to update stats\n" );
-								&rcon_command( "say $name_by_slot{$attacker_slot} ^7Г®Г±ГІГ Г­Г®ГўГЁГ« ^2*^1ГђГ…ГЉГЋГђГ„ГЌГ“Гћ^2* ^7Г±ГҐГ°ГЁГѕ ГіГЎГЁГ©Г±ГІГў Г¤Г«Гї ГЁГЈГ°Г®ГЄГ  $name_by_slot{$victim_slot} ^7ГЄГ®ГІГ®Г°Г»Г© ГіГЎГЁГ« ^6$kill_spree{$victim_slot} ^7Г·ГҐГ«Г®ГўГҐГЄ" );
+								&rcon_command( "say $name_by_slot{$attacker_slot} ^7остановил ^2*^1РЕКОРДНУЮ^2* ^7серию убийств для игрока $name_by_slot{$victim_slot} ^7который убил ^6$kill_spree{$victim_slot} ^7человек" );
 							}
 							else {
-								&rcon_command( "say $name_by_slot{$attacker_slot} ^7Г®Г±ГІГ Г­Г®ГўГЁГ« Г±ГҐГ°ГЁГѕ ГіГЎГЁГ©Г±ГІГў ГЁГЈГ°Г®ГЄГ  $name_by_slot{$victim_slot} ^7ГЄГ®ГІГ®Г°Г»Г© ГіГЎГЁГ« ^6$kill_spree{$victim_slot} ^7Г·ГҐГ«Г®ГўГҐГЄ" );
+								&rcon_command( "say $name_by_slot{$attacker_slot} ^7остановил серию убийств игрока $name_by_slot{$victim_slot} ^7который убил ^6$kill_spree{$victim_slot} ^7человек" );
 							}
 						}
 					}
@@ -720,7 +720,7 @@ while ( 1 ) {
 				if (    ( $config->{ 'show_game_joins' } )
 					and ( $gametype ne 'sd' ) )
 				{
-					&rcon_command( "say $name_by_slot{$slot} ^7ГЇГ°ГЁГ±Г®ГҐГ¤ГҐГ­ГЁГ«Г±Гї ГЄ ГЁГЈГ°ГҐ" );
+					&rcon_command( "say $name_by_slot{$slot} ^7присоеденился к игре" );
 				}
 				if ( $config->{ 'show_joins' } ) {
 					print "JOIN: $name_by_slot{$slot} has joined the game\n";
@@ -745,7 +745,7 @@ while ( 1 ) {
 				}
 				&update_name_by_slot( $name, $slot );
 				if ( $config->{ 'show_game_quits' } ) {
-					&rcon_command( "say $name_by_slot{$slot} ^7ГЇГ®ГЄГЁГ­ГіГ« ГЁГЈГ°Гі" );
+					&rcon_command( "say $name_by_slot{$slot} ^7покинул игру" );
 				}
 				if ( $config->{ 'show_quits' } ) {
 					print "QUIT: $name_by_slot{$slot} has left the game\n";
@@ -1122,7 +1122,7 @@ while ( 1 ) {
 		if ( ( $fly_timer ) and ( $time >= $fly_timer ) ) {
 			$fly_timer = 0;
 			&rcon_command( "g_gravity 800" );
-			&rcon_command( "say Г„ГіГ¬Г Гѕ Г±ГІГ®ГЁГІ ГЇГ°Г®Г¤Г®Г«Г¦ГЁГІГј Г­Г®Г°Г¬Г Г«ГјГ­ГіГѕ ГЁГЈГ°Гі" );
+			&rcon_command( "say Думаю стоит продолжить нормальную игру" );
 		}
 
 		# Ban message anti-spam
@@ -1140,14 +1140,14 @@ while ( 1 ) {
 
 			# Vote TIMEOUT
 			if ( ( $vote_time ) and ( $time >= $vote_time ) ) {
-				&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ: $vote_string " . &description( $vote_target ) . "^7: ^1ГЌГ… Г“Г„ГЂГ‹ГЋГ‘Гњ^7: ГѓГ®Г«Г®Г±Г®Гў ^2Г‡ГЂ^7: ^2$voted_yes^7, ^1ГЏГђГЋГ’Г€Г‚^7: ^1$voted_no" );
+				&rcon_command( "say Голосование: $vote_string " . &description( $vote_target ) . "^7: ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7: ^2$voted_yes^7, ^1ПРОТИВ^7: ^1$voted_no" );
 				&log_to_file( 'logs/voting.log', "RESULTS: Vote FAILED: Reason: TIMEOUT, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no" );
 				&vote_cleanup;
 			}
 
 			# Vote PASS, required YES reached
 			elsif ( $voted_yes >= $required_yes ) {
-				&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ: $vote_string " . &description( $vote_target ) . "^7: ^2Г‡ГЂГ‚Г…ГђГГ…ГЌГЋ^7: ГѓГ®Г«Г®Г±Г®Гў ^2Г‡ГЂ^7: ^2$voted_yes^7, ^1ГЏГђГЋГ’Г€Г‚^7: ^1$voted_no" );
+				&rcon_command( "say Голосование: $vote_string " . &description( $vote_target ) . "^7: ^2ЗАВЕРШЕНО^7: Голосов ^2ЗА^7: ^2$voted_yes^7, ^1ПРОТИВ^7: ^1$voted_no" );
 				sleep 1;
 				if ( $vote_type eq 'kick' ) {
 					if ( $name_by_slot{ $vote_target_slot } eq $vote_target ) {
@@ -1182,7 +1182,7 @@ while ( 1 ) {
 
 			# Vote FAIL, too many NO
 			elsif ( $voted_no >= $required_yes ) {
-				&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ: $vote_string " . &description( $vote_target ) . "^7: ^1ГЌГ… Г“Г„ГЂГ‹ГЋГ‘Гњ^7: ГѓГ®Г«Г®Г±Г®Гў ^2Г‡ГЂ^7: ^2$voted_yes^7, ^1ГЏГђГЋГ’Г€Г‚^7: ^1$voted_no" );
+				&rcon_command( "say Голосование: $vote_string " . &description( $vote_target ) . "^7: ^1НЕ УДАЛОСЬ^7: Голосов ^2ЗА^7: ^2$voted_yes^7, ^1ПРОТИВ^7: ^1$voted_no" );
 				&log_to_file( 'logs/voting.log', "RESULTS: Vote FAILED: Reason: Too many NO, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no" );
 				&vote_cleanup;
 			}
@@ -1658,14 +1658,14 @@ sub idle_check {
 					and ( $idle_for >= $config->{ 'antiidle_warn_level_1' } ) )
 				{
 					print "IDLE_WARN1: Idle Time for $name_by_slot{$slot} has exceeded warn1 threshold: " . duration( $config->{ 'antiidle_warn_level_1' } ) . "\n";
-					&rcon_command( "say $name_by_slot{$slot}^7 " . $config->{ 'antiidle_warn_message_1' } . " (Г­ГҐГ ГЄГІГЁГўГҐГ­ " . duration( $idle_for ) . ")" );
+					&rcon_command( "say $name_by_slot{$slot}^7 " . $config->{ 'antiidle_warn_message_1' } . " (неактивен " . duration( $idle_for ) . ")" );
 					$idle_warn_level{ $slot } = 1;
 				}
 				if (    ( $idle_warn_level{ $slot } < 2 )
 					and ( $idle_for >= $config->{ 'antiidle_warn_level_2' } ) )
 				{
 					print "IDLE_WARN2: Idle Time for $name_by_slot{$slot} has exceeded warn2 threshold: " . duration( $config->{ 'antiidle_warn_level_2' } ) . "\n";
-					&rcon_command( "say $name_by_slot{$slot}^7 " . $config->{ 'antiidle_warn_message_2' } . " (Г­ГҐГ ГЄГІГЁГўГҐГ­ " . duration( $idle_for ) . ")" );
+					&rcon_command( "say $name_by_slot{$slot}^7 " . $config->{ 'antiidle_warn_message_2' } . " (неактивен " . duration( $idle_for ) . ")" );
 					$idle_warn_level{ $slot } = 2;
 				}
 				if ( $idle_for >= $config->{ 'antiidle_kick_level' } ) {
@@ -1806,7 +1806,7 @@ sub chat {
 					and ( $penalty_points{ $slot } >= 100 )
 					and ( !$kick_message_spam ) )
 				{
-					&rcon_command( "say $name^7: ^1Гџ Г¤ГіГ¬Г Гѕ Г¬Г» ГіГ±Г«Г»ГёГ Г«ГЁ Г¤Г®Г±ГІГ ГІГ®Г·Г­Г®, ГіГЎГЁГ°Г Г©Г±Гї Г®ГІГ±ГѕГ¤Г !" );
+					&rcon_command( "say $name^7: ^1Я думаю мы услышали достаточно, убирайся отсюда!" );
 					sleep 1;
 					&rcon_command( "clientkick $slot" );
 					&log_to_file( 'logs/kick.log', "PENALTY: $name was kicked for exceeding their penalty points. Last Message: $message" );
@@ -1834,7 +1834,7 @@ sub chat {
 					$stats_sth = $stats_dbh->prepare( "UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?" );
 					$stats_sth->execute( $last_killed_by_guid{ $slot } )
 						or &die_nice( "Unable to update stats\n" );
-					&rcon_command( "say $name ^7Г­ГҐ ГЇГ®Г­Г°Г ГўГЁГ«Г®Г±Гј ГІГ® ГЄГ ГЄ ГҐГЈГ® ГіГЎГЁГ« $last_killed_by_name{$slot}" );
+					&rcon_command( "say $name ^7не понравилось то как его убил $last_killed_by_name{$slot}" );
 				}
 			}
 		}
@@ -1856,7 +1856,7 @@ sub chat {
 					$stats_sth = $stats_dbh->prepare( "UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?" );
 					$stats_sth->execute( $last_kill_by_guid{ $matches[ 0 ] } )
 						or &die_nice( "Unable to update stats\n" );
-					&rcon_command( "say $name ^7Г­ГҐ ГЇГ®Г­Г°Г ГўГЁГ«Г®Г±Гј ГІГ® ГЄГ ГЄ $name_by_slot{$matches[0]} ^7ГіГЎГЁГ« $last_kill_by_name{$matches[0]}" );
+					&rcon_command( "say $name ^7не понравилось то как $name_by_slot{$matches[0]} ^7убил $last_kill_by_name{$matches[0]}" );
 				}
 			}
 		}
@@ -1880,7 +1880,7 @@ sub chat {
 					$stats_sth = $stats_dbh->prepare( "UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?" );
 					$stats_sth->execute( $last_killed_by_guid{ $slot } )
 						or &die_nice( "Unable to update stats\n" );
-					&rcon_command( "say $name ^7ГЇГ®Г­Г°Г ГўГЁГ«Г®Г±Гј ГІГ® ГЄГ ГЄ ГҐГЈГ® ГіГЎГЁГ« $last_killed_by_name{$slot}" );
+					&rcon_command( "say $name ^7понравилось то как его убил $last_killed_by_name{$slot}" );
 				}
 			}
 		}
@@ -1902,7 +1902,7 @@ sub chat {
 					$stats_sth = $stats_dbh->prepare( "UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?" );
 					$stats_sth->execute( $last_kill_by_guid{ $matches[ 0 ] } )
 						or &die_nice( "Unable to update stats\n" );
-					&rcon_command( "say $name ^7ГЇГ®Г­Г°Г ГўГЁГ«Г®Г±Гј ГІГ® ГЄГ ГЄ $name_by_slot{$matches[0]} ^7ГіГЎГЁГ« $last_kill_by_name{$matches[0]}" );
+					&rcon_command( "say $name ^7понравилось то как $name_by_slot{$matches[0]} ^7убил $last_kill_by_name{$matches[0]}" );
 				}
 			}
 		}
@@ -1948,7 +1948,7 @@ sub chat {
 		elsif ( $message =~ /^!(geo)?locate\s*$/i ) {
 			if ( &check_access( 'locate' ) ) {
 				if   ( &flood_protection( 'locate-miss', 10, $slot ) ) { }
-				else                                                   { &rcon_command( "say !locate ГЄГ®ГЈГ®?" ); }
+				else                                                   { &rcon_command( "say !locate кого?" ); }
 			}
 		}
 
@@ -1959,7 +1959,7 @@ sub chat {
 		elsif ( $message =~ /^!ignore\s*$/i ) {
 			if ( &check_access( 'ignore' ) ) {
 				if   ( &flood_protection( 'ignore-nomatch', 10, $slot ) ) { }
-				else                                                      { &rcon_command( "say !ignore ГЄГ®ГЈГ®?" ); }
+				else                                                      { &rcon_command( "say !ignore кого?" ); }
 			}
 		}
 
@@ -1970,7 +1970,7 @@ sub chat {
 		elsif ( $message =~ /^!forgive\s*$/i ) {
 			if ( &check_access( 'forgive' ) ) {
 				if   ( &flood_protection( 'forgive-nomatch', 10, $slot ) ) { }
-				else                                                       { &rcon_command( "say !forgive ГЄГ®ГЈГ®?" ); }
+				else                                                       { &rcon_command( "say !forgive кого?" ); }
 			}
 		}
 
@@ -1981,7 +1981,7 @@ sub chat {
 		elsif ( $message =~ /^!seen\s*$/i ) {
 			if ( &check_access( 'seen' ) ) {
 				if   ( &flood_protection( 'seen-nomatch', 10, $slot ) ) { }
-				else                                                    { &rcon_command( "say !seen ГЄГ®ГЈГ®?" ); }
+				else                                                    { &rcon_command( "say !seen кого?" ); }
 			}
 		}
 
@@ -1991,7 +1991,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!kick\s*$/i ) {
 			if ( &check_access( 'kick' ) ) {
-				&rcon_command( "say !kick ГЄГ®ГЈГ®?" );
+				&rcon_command( "say !kick кого?" );
 			}
 		}
 
@@ -2004,7 +2004,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!tempban\s*$/i ) {
 			if ( &check_access( 'tempban' ) ) {
-				&rcon_command( "say !tempban ГЄГ®ГЈГ®?" );
+				&rcon_command( "say !tempban кого?" );
 			}
 		}
 
@@ -2013,16 +2013,16 @@ sub chat {
 			if ( &check_access( 'ban' ) ) { &ban_command( $1 ); }
 		}
 		elsif ( $message =~ /^!ban\s*$/i ) {
-			if ( &check_access( 'ban' ) ) { &rcon_command( "say !ban ГЄГ®ГЈГ®?" ); }
+			if ( &check_access( 'ban' ) ) { &rcon_command( "say !ban кого?" ); }
 		}
 
 		# !exchange
-		elsif ( $message =~ /^!(exchange|ГЄГіГ°Г±)\s+(.+)/i ) {
+		elsif ( $message =~ /^!(exchange|курс)\s+(.+)/i ) {
 			if ( &check_access( 'exchange' ) ) { &exchange( $2 ); }
 		}
-		elsif ( $message =~ /^!(exchange|ГЄГіГ°Г±)\s*$/i ) {
+		elsif ( $message =~ /^!(exchange|курс)\s*$/i ) {
 			if ( &check_access( 'exchange' ) ) {
-				&rcon_command( "say !$1 ГўГ Г«ГѕГІГ " );
+				&rcon_command( "say !$1 валюта" );
 			}
 		}
 
@@ -2032,7 +2032,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!unban\s*$/i ) {
 			if ( &check_access( 'ban' ) ) {
-				&rcon_command( "say Г‘Г­ГїГІГј ГЎГ Г­ Г¬Г®Г¦Г­Г® ГЇГ°ГЁ ГЇГ®Г¬Г®Г№ГЁ BAN ID, ГЇГ°Г®ГўГҐГ°ГјГІГҐ !lastbans Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј ID ГЁГЈГ°Г®ГЄГ®Гў ГЄГ®ГІГ®Г°Г»ГҐ ГЎГ»Г«ГЁ Г§Г ГЎГ Г­ГҐГ­Г»" );
+				&rcon_command( "say Снять бан можно при помощи BAN ID, проверьте !lastbans чтобы узнать ID игроков которые были забанены" );
 			}
 		}
 
@@ -2042,7 +2042,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!clearstats\s*$/i ) {
 			if ( &check_access( 'clearstats' ) ) {
-				&rcon_command( "say !clearstats Г¤Г«Гї ГЄГ®ГЈГ®?" );
+				&rcon_command( "say !clearstats для кого?" );
 			}
 		}
 
@@ -2052,7 +2052,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!clearnames\s*$/i ) {
 			if ( &check_access( 'clearnames' ) ) {
-				&rcon_command( "say !clearnames Г¤Г«Гї ГЄГ®ГЈГ®?" );
+				&rcon_command( "say !clearnames для кого?" );
 			}
 		}
 
@@ -2110,7 +2110,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!addname\s*$/i ) {
 			if ( &check_access( 'addname' ) ) {
-				&rcon_command( "say !addname Г€Г¬Гї" );
+				&rcon_command( "say !addname Имя" );
 			}
 		}
 
@@ -2120,7 +2120,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!addrank\s*$/i ) {
 			if ( &check_access( 'addrank' ) ) {
-				&rcon_command( "say !addrank ГђГ Г­ГЈ" );
+				&rcon_command( "say !addrank Ранг" );
 			}
 		}
 
@@ -2130,7 +2130,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!clearname\s*$/i ) {
 			if ( &check_access( 'clearname' ) ) {
-				&rcon_command( "say !clearname Г€Г¬Гї" );
+				&rcon_command( "say !clearname Имя" );
 			}
 		}
 
@@ -2140,7 +2140,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!clearrank\s*$/i ) {
 			if ( &check_access( 'clearrank' ) ) {
-				&rcon_command( "say !clearrank ГђГ Г­ГЈ" );
+				&rcon_command( "say !clearrank Ранг" );
 			}
 		}
 
@@ -2150,7 +2150,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!dbinfo\s*$/i ) {
 			if ( &check_access( 'dbinfo' ) ) {
-				&rcon_command( "say !dbinfo ГЃГ Г§Г  Г¤Г Г­Г­Г»Гµ" );
+				&rcon_command( "say !dbinfo База данных" );
 			}
 		}
 
@@ -2160,7 +2160,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!report\s*$/i ) {
 			if ( &check_access( 'report' ) ) {
-				&rcon_command( "say !report Г€ГЈГ°Г®ГЄ ГЏГ°ГЁГ·ГЁГ­Г " );
+				&rcon_command( "say !report Игрок Причина" );
 			}
 		}
 
@@ -2175,7 +2175,7 @@ sub chat {
 			if ( &check_access( 'define' ) ) {
 				if ( &flood_protection( 'dictionary-miss', 10, $slot ) ) { }
 				else {
-					&rcon_command( "say $name^7: ^7Г—ГІГ® Г­ГіГ¦Г­Г® Г¤Г®ГЎГ ГўГЁГІГј Гў Г±Г«Г®ГўГ Г°Гј?" );
+					&rcon_command( "say $name^7: ^7Что нужно добавить в словарь?" );
 				}
 			}
 		}
@@ -2195,13 +2195,13 @@ sub chat {
 						or &die_nice( "Unable to execute query: $definitions_dbh->errstr\n" );
 
 					if ( $row[ 0 ] == 1 ) {
-						&rcon_command( "say ^2Г“Г¤Г Г«ГҐГ­Г® Г®Г¤Г­Г® Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГҐ Г¤Г«Гї: ^1$undefine" );
+						&rcon_command( "say ^2Удалено одно определение для: ^1$undefine" );
 					}
 					elsif ( $row[ 0 ] > 1 ) {
-						&rcon_command( "say ^2Г“Г¤Г Г«ГҐГ­Г® ^3$row[0] ^2Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГ© Г¤Г«Гї: ^1$undefine" );
+						&rcon_command( "say ^2Удалено ^3$row[0] ^2определений для: ^1$undefine" );
 					}
 					else {
-						&rcon_command( "say ^2ГЃГ®Г«ГјГёГҐ Г­ГҐГІ Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГ© Г¤Г«Гї: ^1$undefine" );
+						&rcon_command( "say ^2Больше нет определений для: ^1$undefine" );
 					}
 				}
 			}
@@ -2222,10 +2222,10 @@ sub chat {
 						$definitions_sth = $definitions_dbh->prepare( "DELETE FROM definitions WHERE definition=?;" );
 						$definitions_sth->execute( $row[ 0 ] )
 							or &die_nice( "Unable to execute query: $definitions_dbh->errstr\n" );
-						&rcon_command( "say ^2Г“Г¤Г Г«ГҐГ­Г® ГЇГ®Г±Г«ГҐГ¤Г­ГҐГҐ Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГҐ Г¤Г«Гї: ^1$undef" );
+						&rcon_command( "say ^2Удалено последнее определение для: ^1$undef" );
 					}
 					else {
-						&rcon_command( "say ^2ГЃГ®Г«ГјГёГҐ Г­ГҐГІ Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГ© Г¤Г«Гї: ^1$undef" );
+						&rcon_command( "say ^2Больше нет определений для: ^1$undef" );
 					}
 				}
 			}
@@ -2295,96 +2295,96 @@ sub chat {
 		# !smoke
 		elsif ( $message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "Г„Г»Г¬Г®ГўГ»ГҐ ГЈГ°Г Г­Г ГІГ»", $2 );
+				&toggle_weapon( "Дымовые гранаты", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(smokes?|smoke_grenades?|smoke_nades?)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
 		# !grenades
 		elsif ( $message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "ГЋГ±ГЄГ®Г«Г®Г·Г­Г»ГҐ ГЈГ°Г Г­Г ГІГ»", $2 );
+				&toggle_weapon( "Осколочные гранаты", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(nades?|grenades?|frag_grenades?|frag_nades?)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
 		# !shotguns
 		elsif ( $message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "Г„Г°Г®ГЎГ®ГўГЁГЄГЁ", $2 );
+				&toggle_weapon( "Дробовики", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(shotguns?|trenchguns?|shot_guns?|trench_guns?)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
 		# !rifles
 		elsif ( $message =~ /^!(rifles?|bolt)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "Г‚ГЁГ­ГІГ®ГўГЄГЁ", $2 );
+				&toggle_weapon( "Винтовки", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(rifles?|bolt)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
 		# !semirifles
 		elsif ( $message =~ /^!(semirifles?)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "ГЏГ®Г«ГіГ ГўГІГ®Г¬Г ГІГЁГ·ГҐГ±ГЄГЁГҐ ГўГЁГ­ГІГ®ГўГЄГЁ", $2 );
+				&toggle_weapon( "Полуавтоматические винтовки", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(semirifles?)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
 		# !snipers
 		elsif ( $message =~ /^!(snipers?|sniper_rifles?|sniper rifles?)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "Г‘Г­Г Г©ГЇГҐГ°Г±ГЄГЁГҐ ГўГЁГ­ГІГ®ГўГЄГЁ", $2 );
+				&toggle_weapon( "Снайперские винтовки", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(snipers?|sniper_rifles?|sniper rifles?)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
 		# !mgs
 		elsif ( $message =~ /^!(mgs?|machineguns?|machine_guns?)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "ГЏГіГ«ГҐГ¬ГҐГІГ»", $2 );
+				&toggle_weapon( "Пулеметы", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(mgs?|machineguns?|machine_guns?)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
 		# !smgs
 		elsif ( $message =~ /^!(smgs?|submachineguns?|submachine_guns?)\s+(.+)/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&toggle_weapon( "ГЂГўГІГ®Г¬Г ГІГ»", $2 );
+				&toggle_weapon( "Автоматы", $2 );
 			}
 		}
 		elsif ( $message =~ /^!(smgs?|submachineguns?|submachine_guns?)\s*$/i ) {
 			if ( &check_access( 'weapon_control' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!$1 on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!$1 off" );
+				&rcon_command( "say $name^7: Вы можете включить ^1!$1 on ^7или выключить ^1!$1 off" );
 			}
 		}
 
@@ -2411,9 +2411,9 @@ sub chat {
 				else {
 					$server_name = $2;
 					&rcon_command( "sv_hostname $server_name" );
-					&rcon_command( "say Г€Г§Г¬ГҐГ­ГїГѕ Г­Г Г§ГўГ Г­ГЁГҐ Г±ГҐГ°ГўГҐГ°Г ..." );
+					&rcon_command( "say Изменяю название сервера..." );
 					sleep 1;
-					&rcon_command( "say ^2OK^7. ГЌГ Г§ГўГ Г­ГЁГҐ Г±ГҐГ°ГўГҐГ°Г  ГЁГ§Г¬ГҐГ­ГҐГ­Г® Г­Г : $server_name" );
+					&rcon_command( "say ^2OK^7. Название сервера изменено на: $server_name" );
 				}
 			}
 		}
@@ -2425,7 +2425,7 @@ sub chat {
 					if ( $temporary =~ /\"sv_hostname\" is: \"([^\"]+)\^7\"/m ) {
 						$server_name = $1;
 						if ( $server_name =~ /./ ) {
-							&rcon_command( "say Г‘ГҐГ©Г·Г Г± Г±ГҐГ°ГўГҐГ° Г­Г Г§Г»ГўГ ГҐГІГ±Гї $server_name^7, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ !hostname Г·ГІГ®ГЎГ» ГЁГ§Г¬ГҐГ­ГЁГІГј Г­Г Г§ГўГ Г­ГЁГҐ Г±ГҐГ°ГўГҐГ°Г " );
+							&rcon_command( "say Сейчас сервер называется $server_name^7, используйте !hostname чтобы изменить название сервера" );
 						}
 					}
 				}
@@ -2435,7 +2435,7 @@ sub chat {
 		# !reset
 		elsif ( $message =~ /^!reset/i ) {
 			if ( &check_access( 'reset' ) ) {
-				&rcon_command( "say Г•Г®Г°Г®ГёГ® $name^7, Г®ГЎГ­ГіГ«ГїГѕ Г§Г­Г Г·ГҐГ­ГЁГї..." );
+				&rcon_command( "say Хорошо $name^7, обнуляю значения..." );
 				&reset;
 			}
 		}
@@ -2443,7 +2443,7 @@ sub chat {
 		# !reboot
 		elsif ( $message =~ /^!reboot/i ) {
 			if ( &check_access( 'reboot' ) ) {
-				&rcon_command( "say Г•Г®Г°Г®ГёГ® $name^7, ГЇГҐГ°ГҐГ§Г ГЇГіГ±ГЄГ Гѕ Г±ГҐГЎГї..." );
+				&rcon_command( "say Хорошо $name^7, перезапускаю себя..." );
 				exec 'perl nanny.pl';
 			}
 		}
@@ -2451,7 +2451,7 @@ sub chat {
 		# !reboot
 		elsif ( $message =~ /^!reconfig/i ) {
 			if ( &check_access( 'reconfig' ) ) {
-				&rcon_command( "say Г•Г®Г°Г®ГёГ® $name^7, ГЇГҐГ°ГҐГ§Г ГЈГ°ГіГ¦Г Гѕ ГЄГ®Г­ГґГЁГЈ..." );
+				&rcon_command( "say Хорошо $name^7, перезагружаю конфиг..." );
 				&load_config_file( $config_name );
 			}
 		}
@@ -2469,9 +2469,9 @@ sub chat {
 					sleep 1;
 					&rcon_command( "say ^3Downloadable at: ^2http://smaert.com/nannybot.zip" );
 					sleep 1;
-					&rcon_command( "say Г„Г®Г°Г ГЎГ®ГІГЄГ  ГЁ ГЇГҐГ°ГҐГўГ®Г¤ - ^5V^0oro^5N" );
+					&rcon_command( "say Доработка и перевод - ^5V^0oro^5N" );
 					sleep 1;
-					&rcon_command( "say ^3Г€Г±ГµГ®Г¤Г­Г»Г© ГЄГ®Г¤ Г¤Г Г­Г­Г®Г© ГўГҐГ°Г±ГЁГЁ Г¬Г®Г¦Г­Г® Г­Г Г©ГІГЁ ГІГіГІ: ^2https://github.com/voron00/Nanny" );
+					&rcon_command( "say ^3Исходный код данной версии можно найти тут: ^2https://github.com/voron00/Nanny" );
 				}
 			}
 		}
@@ -2481,7 +2481,7 @@ sub chat {
 			if ( &check_access( 'nextmap' ) ) {
 				if ( &flood_protection( 'nextmap', 30, $slot ) ) { }
 				elsif ( $next_map and $next_gametype ) {
-					&rcon_command( "say $name^7: Г‘Г«ГҐГ¤ГіГѕГ№Г Гї ГЄГ Г°ГІГ  ГЎГіГ¤ГҐГІ: ^2" . &description( $next_map ) . " ^7(^3" . &description( $next_gametype ) . "^7)" );
+					&rcon_command( "say $name^7: Следующая карта будет: ^2" . &description( $next_map ) . " ^7(^3" . &description( $next_gametype ) . "^7)" );
 				}
 			}
 		}
@@ -2500,7 +2500,7 @@ sub chat {
 		elsif ( $message =~ /^!rotate\b/i ) {
 			if ( &check_access( 'map_control' ) ) {
 				if ( $next_map and $next_gametype ) {
-					&rcon_command( "say ^2Г‘Г¬ГҐГ­Г  ГЄГ Г°ГІГ»^7..." );
+					&rcon_command( "say ^2Смена карты^7..." );
 					sleep 1;
 					&rcon_command( "map_rotate" );
 				}
@@ -2510,7 +2510,7 @@ sub chat {
 		# !restart
 		elsif ( $message =~ /^!restart\b/i ) {
 			if ( &check_access( 'map_control' ) ) {
-				&rcon_command( "say ^2ГЏГҐГ°ГҐГ§Г ГЈГ°ГіГ§ГЄГ  ГЄГ Г°ГІГ»^7..." );
+				&rcon_command( "say ^2Перезагрузка карты^7..." );
 				sleep 1;
 				&rcon_command( "map_restart" );
 			}
@@ -2519,7 +2519,7 @@ sub chat {
 		# !fastrestart
 		elsif ( $message =~ /^!(quick|fast)\s?restart\b/i ) {
 			if ( &check_access( 'map_control' ) ) {
-				&rcon_command( "say ^2ГЃГ»Г±ГІГ°Г Гї ГЇГҐГ°ГҐГ§Г ГЈГ°ГіГ§ГЄГ  ГЄГ Г°ГІГ»^7..." );
+				&rcon_command( "say ^2Быстрая перезагрузка карты^7..." );
 				sleep 1;
 				&rcon_command( "fast_restart" );
 			}
@@ -2531,7 +2531,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!(voting|vote|allowvote|allowvoting)\s*$/i ) {
 			if ( &check_access( 'voting' ) ) {
-				&rcon_command( "say !voting on ГЁГ«ГЁ !voting off ?" );
+				&rcon_command( "say !voting on или !voting off ?" );
 			}
 		}
 
@@ -2541,7 +2541,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!(voice|voicechat|sv_voice)\s*$/i ) {
 			if ( &check_access( 'voice' ) ) {
-				&rcon_command( "say !voice on ГЁГ«ГЁ !voice off ?" );
+				&rcon_command( "say !voice on или !voice off ?" );
 			}
 		}
 
@@ -2551,7 +2551,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!(g_)?antilag\s*$/i ) {
 			if ( &check_access( 'antilag' ) ) {
-				&rcon_command( "say !antilag on ГЁГ«ГЁ !antilag off ?" );
+				&rcon_command( "say !antilag on или !antilag off ?" );
 			}
 		}
 
@@ -2576,16 +2576,16 @@ sub chat {
 			if ( &flood_protection( 'vote-nomatch', 10, $slot ) ) { }
 			elsif ( $vote_started ) { }
 			elsif ( ( &check_access( 'vote_kick' ) and ( $1 eq 'kick' ) ) ) {
-				&rcon_command( "say !vote$1 ГЄГ®ГЈГ®?" );
+				&rcon_command( "say !vote$1 кого?" );
 			}
 			elsif ( ( &check_access( 'vote_ban' ) and ( $1 eq 'ban' ) ) ) {
-				&rcon_command( "say !vote$1 ГЄГ®ГЈГ®?" );
+				&rcon_command( "say !vote$1 кого?" );
 			}
 			elsif ( ( &check_access( 'vote_map' ) and ( $1 eq 'map' ) ) ) {
-				&rcon_command( "say !vote$1 ГЄГ ГЄГіГѕ ГЄГ Г°ГІГі?" );
+				&rcon_command( "say !vote$1 какую карту?" );
 			}
 			elsif ( ( &check_access( 'vote_type' ) and ( $1 eq 'type' ) ) ) {
-				&rcon_command( "say !vote$1 ГЄГ ГЄГ®Г© ГІГЁГЇ?" );
+				&rcon_command( "say !vote$1 какой тип?" );
 			}
 		}
 
@@ -2603,10 +2603,10 @@ sub chat {
 		elsif ( $message =~ /^!votestatus\s*$/i ) {
 			if ( &check_access( 'vote_status' ) ) {
 				if ( $vote_started ) {
-					&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ: $vote_string " . &description( $vote_target ) . "^7: ГЋГ±ГІГ Г«Г®Г±Гј^4 " . ( $vote_time - $time ) . " ^7Г±ГҐГЄГіГ­Г¤: ГѓГ®Г«Г®Г±Г®Гў ^2Г‡ГЂ^7: ^2$voted_yes^7, ^1ГЏГђГЋГ’Г€Г‚^7: ^1$voted_no" );
+					&rcon_command( "say Голосование: $vote_string " . &description( $vote_target ) . "^7: Осталось^4 " . ( $vote_time - $time ) . " ^7секунд: Голосов ^2ЗА^7: ^2$voted_yes^7, ^1ПРОТИВ^7: ^1$voted_no" );
 				}
 				else {
-					&rcon_command( "say Г‚ Г¤Г Г­Г­Г»Г© Г¬Г®Г¬ГҐГ­ГІ ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г­ГҐ ГЇГ°Г®ГўГ®Г¤ГЁГІГ±Гї." );
+					&rcon_command( "say В данный момент голосование не проводится." );
 				}
 			}
 		}
@@ -2616,7 +2616,7 @@ sub chat {
 			if ( &check_access( 'vote_end' ) ) {
 				if ( $vote_started ) { $vote_time = $time; }
 				else {
-					&rcon_command( "say Г‚ Г¤Г Г­Г­Г»Г© Г¬Г®Г¬ГҐГ­ГІ ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г­ГҐ ГЇГ°Г®ГўГ®Г¤ГЁГІГ±Гї." );
+					&rcon_command( "say В данный момент голосование не проводится." );
 				}
 			}
 		}
@@ -2624,7 +2624,7 @@ sub chat {
 		# !playerscount
 		elsif ( $message =~ /^!playerscount\s*$/i ) {
 			if ( &check_access( 'players_count' ) ) {
-				&rcon_command( "say ГЉГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г ГЄГІГЁГўГ­Г»Гµ ГЁГЈГ°Г®ГЄГ®Гў Г­Г  Г±ГҐГ°ГўГҐГ°ГҐ - ^3$players_count" );
+				&rcon_command( "say Количество активных игроков на сервере - ^3$players_count" );
 			}
 		}
 
@@ -2634,7 +2634,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!killcam\s*$/i ) {
 			if ( &check_access( 'killcam' ) ) {
-				&rcon_command( "say !killcam on ГЁГ«ГЁ !killcam off ?" );
+				&rcon_command( "say !killcam on или !killcam off ?" );
 			}
 		}
 
@@ -2646,7 +2646,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!forcerespawn\s*$/i ) {
 			if ( &check_access( 'forcerespawn' ) ) {
-				&rcon_command( "say !forcerespawn on ГЁГ«ГЁ !forcerespawn off ?" );
+				&rcon_command( "say !forcerespawn on или !forcerespawn off ?" );
 			}
 		}
 
@@ -2658,7 +2658,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!teambalance\s*$/i ) {
 			if ( &check_access( 'teambalance' ) ) {
-				&rcon_command( "say !teambalance on ГЁГ«ГЁ !teambalance off ?" );
+				&rcon_command( "say !teambalance on или !teambalance off ?" );
 			}
 		}
 
@@ -2670,7 +2670,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!spectatefree\s*$/i ) {
 			if ( &check_access( 'spectatefree' ) ) {
-				&rcon_command( "say !spectatefree on ГЁГ«ГЁ !spectatefree off ?" );
+				&rcon_command( "say !spectatefree on или !spectatefree off ?" );
 			}
 		}
 
@@ -2686,27 +2686,27 @@ sub chat {
 			or ( $message =~ /^!team[ _\-]?kill\s*$/i ) )
 		{
 			if ( &check_access( 'friendlyfire' ) ) {
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!friendlyfire ^50 ^7Г·ГІГ®ГЎГ» Г‚Г›ГЉГ‹ГћГ—Г€Г’Гњ Г®ГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬" );
+				&rcon_command( "say $name^7: Вы можете ^1!friendlyfire ^50 ^7чтобы ВЫКЛЮЧИТЬ огонь по союзникам" );
 				sleep 1;
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!friendlyfire ^51 ^7Г·ГІГ®ГЎГ» Г‚ГЉГ‹ГћГ—Г€Г’Гњ Г®ГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬" );
+				&rcon_command( "say $name^7: Вы можете ^1!friendlyfire ^51 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам" );
 				sleep 1;
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!friendlyfire ^52 ^7Г·ГІГ®ГЎГ» Г‚ГЉГ‹ГћГ—Г€Г’Гњ Г®ГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Г± Г°ГЁГЄГ®ГёГҐГІГ­Г»Г¬ ГіГ°Г®Г­Г®Г¬" );
+				&rcon_command( "say $name^7: Вы можете ^1!friendlyfire ^52 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам с рикошетным уроном" );
 				sleep 1;
-				&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!friendlyfire ^53 ^7Г·ГІГ®ГЎГ» Г‚ГЉГ‹ГћГ—Г€Г’Гњ Г®ГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Г± Г±Г®ГўГ¬ГҐГ±ГІГ­Г»Г¬ ГіГ°Г®Г­Г®Г¬" );
+				&rcon_command( "say $name^7: Вы можете ^1!friendlyfire ^53 ^7чтобы ВКЛЮЧИТЬ огонь по союзникам с совместным уроном" );
 				sleep 1;
 				my $state_string = 'unknown';
 
 				if ( $friendly_fire == 0 ) {
-					$state_string = "ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Гў Г­Г Г±ГІГ®ГїГ№ГЁГ© Г¬Г®Г¬ГҐГ­ГІ Г‚Г›ГЉГ‹ГћГ—Г…ГЌ";
+					$state_string = "Огонь по союзникам в настоящий момент ВЫКЛЮЧЕН";
 				}
 				elsif ( $friendly_fire == 1 ) {
-					$state_string = "ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Гў Г­Г Г±ГІГ®ГїГ№ГЁГ© Г¬Г®Г¬ГҐГ­ГІ Г‚ГЉГ‹ГћГ—Г…ГЌ";
+					$state_string = "Огонь по союзникам в настоящий момент ВКЛЮЧЕН";
 				}
 				elsif ( $friendly_fire == 2 ) {
-					$state_string = "ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Гў Г­Г Г±ГІГ®ГїГ№ГЁГ© Г¬Г®Г¬ГҐГ­ГІ ГђГ€ГЉГЋГГ…Г’ГЌГ›Г‰ Г“ГђГЋГЌ";
+					$state_string = "Огонь по союзникам в настоящий момент РИКОШЕТНЫЙ УРОН";
 				}
 				elsif ( $friendly_fire == 3 ) {
-					$state_string = "ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Гў Г­Г Г±ГІГ®ГїГ№ГЁГ© Г¬Г®Г¬ГҐГ­ГІ Г‘ГЋГ‚ГЊГ…Г‘Г’ГЌГ›Г‰ Г“ГђГЋГЌ";
+					$state_string = "Огонь по союзникам в настоящий момент СОВМЕСТНЫЙ УРОН";
 				}
 				if ( $state_string ne 'unknown' ) {
 					&rcon_command( "say $name^7: $state_string" );
@@ -2720,7 +2720,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!glitch\s*$/i ) {
 			if ( &check_access( 'glitch' ) ) {
-				&rcon_command( "say !glitch on ГЁГ«ГЁ !glitch off ?" );
+				&rcon_command( "say !glitch on или !glitch off ?" );
 			}
 		}
 
@@ -2730,7 +2730,7 @@ sub chat {
 		}
 		elsif ( $message =~ /^!(names)\s*$/i ) {
 			if ( &check_access( 'names' ) ) {
-				&rcon_command( "say !names Г¤Г«Гї ГЄГ®ГЈГ®?" );
+				&rcon_command( "say !names для кого?" );
 			}
 		}
 
@@ -2739,161 +2739,161 @@ sub chat {
 			if ( &check_access( 'uptime' ) ) {
 				if ( &flood_protection( 'uptime', 30, $slot ) ) { }
 				elsif ( $uptime =~ /(\d+):(\d+)/ ) {
-					&rcon_command( "say ГќГІГ®ГІ Г±ГҐГ°ГўГҐГ° Г§Г ГЇГіГ№ГҐГ­ ГЁ Г°Г ГЎГ®ГІГ ГҐГІ ГіГ¦ГҐ " . &duration( ( $1 * 60 ) + $2 ) );
+					&rcon_command( "say Этот сервер запущен и работает уже " . &duration( ( $1 * 60 ) + $2 ) );
 				}
 			}
 		}
 
 		# !help
-		elsif ( $message =~ /^!(help|ГЇГ®Г¬Г®Г№Гј)/i ) {
+		elsif ( $message =~ /^!(help|помощь)/i ) {
 			if ( &flood_protection( 'help', 120 ) ) { }
 			else {
 				if ( &check_access( 'stats' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!stats ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј Г±ГўГ®Гѕ ГЇГ®Г¤Г°Г®ГЎГ­ГіГѕ Г±ГІГ ГІГЁГ±ГІГЁГЄГі" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!stats ^7чтобы узнать свою подробную статистику" );
 					sleep 1;
 				}
 				if ( &check_access( 'seen' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!seen ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј ГЄГ®ГЈГ¤Г  Г®Г­ ГЎГ»Г« Г­Г  Г±ГҐГ°ГўГҐГ°ГҐ ГЁ Г·ГІГ® ГЈГ®ГўГ®Г°ГЁГ«" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!seen ^5игрок ^7чтобы узнать когда он был на сервере и что говорил" );
 					sleep 1;
 				}
 				if ( &check_access( 'locate' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!locate ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј ГҐГЈГ® ГЇГ°ГЁГЎГ«ГЁГ§ГЁГІГҐГ«ГјГ­Г®ГҐ Г¬ГҐГ±ГІГ®ГЇГ®Г«Г®Г¦ГҐГ­ГЁГҐ" );
+					&rcon_command( "say $name^7: Вы можете ^1!locate ^5игрок ^7чтобы узнать его приблизительное местоположение" );
 					sleep 1;
 				}
 				if ( &check_access( 'lastkill' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!lastkill ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј ГЄГ®ГЈГ® ГўГ» Гў ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© Г°Г Г§ ГіГЎГЁГ«ГЁ" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!lastkill ^7чтобы узнать кого вы в последний раз убили" );
 					sleep 1;
 				}
 				if ( &check_access( 'lastkilled' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!lastkilled ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј ГЄГІГ® Гў ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© Г°Г Г§ ГіГЎГЁГ« ГўГ Г±" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!lastkilled ^7чтобы узнать кто в последний раз убил вас" );
 					sleep 1;
 				}
 				if ( &check_access( 'map_control' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ Г±Г¬ГҐГ­ГЁГІГј ГІГЁГЇ ГЁГЈГ°Г» ГЇГ°ГЁ ГЇГ®Г¬Г®Г№ГЁ: ^1!dm !tdm !ctf !sd !hq" );
+					&rcon_command( "say $name^7: Вы можете сменить тип игры при помощи: ^1!dm !tdm !ctf !sd !hq" );
 					sleep 1;
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!restart ^7ГЄГ Г°ГІГ» ГЁГ«ГЁ ^1!rotate ^7Г·ГІГ®ГЎГ» ГЇГҐГ°ГҐГ©ГІГЁ ГЄ Г±Г«ГҐГ¤ГіГѕГ№ГҐГ©" );
+					&rcon_command( "say $name^7: Вы можете ^1!restart ^7карты или ^1!rotate ^7чтобы перейти к следующей" );
 					sleep 1;
-					&rcon_command( "say $name^7: ГЁГ«ГЁ: ^1!beltot !brecourt !burgundy !caen !carentan !el-alamein !moscow !leningrad !matmata !st.mereeglise !stalingrad !toujane !villers" );
+					&rcon_command( "say $name^7: или: ^1!beltot !brecourt !burgundy !caen !carentan !el-alamein !moscow !leningrad !matmata !st.mereeglise !stalingrad !toujane !villers" );
 					sleep 1;
 				}
 				if ( &check_access( 'kick' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!kick ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» ГўГ»ГЄГЁГ­ГіГІГј ГҐГЈГ® Г± Г±ГҐГ°ГўГҐГ°Г " );
+					&rcon_command( "say $name^7: Вы можете ^1!kick ^5игрок ^7чтобы выкинуть его с сервера" );
 					sleep 1;
 				}
 				if ( &check_access( 'tempban' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!tempban ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» ГўГ°ГҐГ¬ГҐГ­Г­Г® Г§Г ГЎГ Г­ГЁГІГј ГЁГЈГ°Г®ГЄГ " );
+					&rcon_command( "say $name^7: Вы можете ^1!tempban ^5игрок ^7чтобы временно забанить игрока" );
 					sleep 1;
 				}
 				if ( &check_access( 'ban' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!ban ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» Г­Г ГўГ±ГҐГЈГ¤Г  Г§Г ГЎГ Г­ГЁГІГј ГЁГЈГ°Г®ГЄГ " );
+					&rcon_command( "say $name^7: Вы можете ^1!ban ^5игрок ^7чтобы навсегда забанить игрока" );
 					sleep 1;
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!unban ^5ГЁГЈГ°Г®ГЄ ^7ГЁГ«ГЁ ^1!unban ^5banID# ^7Г·ГІГ®ГЎГ» Г±Г­ГїГІГј ГЎГ Г­" );
+					&rcon_command( "say $name^7: Вы можете ^1!unban ^5игрок ^7или ^1!unban ^5banID# ^7чтобы снять бан" );
 					sleep 1;
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!lastbans ^5Г·ГЁГ±Г«Г® ^7Г·ГІГ®ГЎГ» ГЇГ®Г±Г¬Г®ГІГ°ГҐГІГј Г±ГЇГЁГ±Г®ГЄ ГЇГ®Г±Г«ГҐГ¤Г­ГЁГµ Г§Г ГЎГ Г­ГҐГ­Г­Г»Гµ ГЁГЈГ°Г®ГЄГ®Гў" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!lastbans ^5число ^7чтобы посмотреть список последних забаненных игроков" );
 					sleep 1;
 				}
 				if ( &check_access( 'voting' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ ^1!voting ^5on ^7or ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ГҐГЈГ® ^1!voting ^5off" );
+					&rcon_command( "say $name^7: Вы можете включить голосование ^1!voting ^5on ^7or или выключить его ^1!voting ^5off" );
 					sleep 1;
 				}
 				if ( &check_access( 'killcam' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!killcam ^5on ^7ГЁГ«ГЁ ГўГ»ГЄГ«ГѕГ·ГЁГІГј ^1!killcam ^5off" );
+					&rcon_command( "say $name^7: Вы можете включить ^1!killcam ^5on ^7или выключить ^1!killcam ^5off" );
 					sleep 1;
 				}
 				if ( &check_access( 'teamkill' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!friendlyfire ^5[0-4] ^7Г·ГІГ®ГЎГ» ГіГ±ГІГ Г­Г®ГўГЁГІГј Г°ГҐГ¦ГЁГ¬ Г®ГЈГ­Гї ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬" );
+					&rcon_command( "say $name^7: Вы можете ^1!friendlyfire ^5[0-4] ^7чтобы установить режим огня по союзникам" );
 					sleep 1;
 				}
 				if ( &check_access( 'fly' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!fly ^7Г·ГІГ®ГЎГ» ГўГ»ГЄГ«ГѕГ·ГЁГІГј ГЈГ°Г ГўГЁГІГ Г¶ГЁГѕ Г­Г  20 Г±ГҐГЄГіГ­Г¤" );
+					&rcon_command( "say $name^7: Вы можете ^1!fly ^7чтобы выключить гравитацию на 20 секунд" );
 					sleep 1;
 				}
 				if ( &check_access( 'gravity' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!gravity ^5Г·ГЁГ±Г«Г® ^7Г·ГІГ®ГЎГ» ГіГ±ГІГ Г­Г®ГўГЁГІГј Г°ГҐГ¦ГЁГ¬ ГЈГ°Г ГўГЁГІГ Г¶ГЁГЁ" );
+					&rcon_command( "say $name^7: Вы можете ^1!gravity ^5число ^7чтобы установить режим гравитации" );
 					sleep 1;
 				}
 				if ( &check_access( 'speed' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!speed ^5Г·ГЁГ±Г«Г® ^7Г·ГІГ®ГЎГ» ГіГ±ГІГ Г­Г®ГўГЁГІГј Г°ГҐГ¦ГЁГ¬ Г±ГЄГ®Г°Г®Г±ГІГЁ" );
+					&rcon_command( "say $name^7: Вы можете ^1!speed ^5число ^7чтобы установить режим скорости" );
 					sleep 1;
 				}
 				if ( &check_access( 'glitch' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГўГЄГ«ГѕГ·ГЁГІГј ^1!glitch ^5on ^7Г·ГІГ®ГЎГ» ГўГЄГ«ГѕГ·ГЁГІГј Г°ГҐГ¦ГЁГ¬ Г­ГҐ ГіГЎГЁГўГ Г­ГЁГї ^1!glitch ^5off ^7Г·ГІГ®ГЎГ» ГўГҐГ°Г­ГіГІГј Г­Г®Г°Г¬Г Г«ГјГ­Г»Г© Г°ГҐГ¦ГЁГ¬" );
+					&rcon_command( "say $name^7: Вы можете включить ^1!glitch ^5on ^7чтобы включить режим не убивания ^1!glitch ^5off ^7чтобы вернуть нормальный режим" );
 					sleep 1;
 				}
 				if ( &check_access( 'names' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!names ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј Г± ГЄГ ГЄГЁГ¬ГЁ Г­ГЁГЄГ Г¬ГЁ Г®Г­ ГЁГЈГ°Г Г«" );
+					&rcon_command( "say $name^7: Вы можете ^1!names ^5игрок ^7чтобы узнать с какими никами он играл" );
 					sleep 1;
 				}
 				if ( &check_access( 'best' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!best ^7Г·ГІГ®ГЎГ» ГЇГ®Г±Г¬Г®ГІГ°ГҐГІГј Г±ГЇГЁГ±Г®ГЄ Г«ГіГ·ГёГЁГµ ГЁГЈГ°Г®ГЄГ®Гў Г­Г  Г±ГҐГ°ГўГҐГ°ГҐ" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!best ^7чтобы посмотреть список лучших игроков на сервере" );
 					sleep 1;
 				}
 				if ( &check_access( 'worst' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!worst ^7Г·ГІГ®ГЎГ» ГЇГ®Г±Г¬Г®ГІГ°ГҐГІГј Г±ГЇГЁГ±Г®ГЄ ГµГіГ¤ГёГЁГµ ГЁГЈГ°Г®ГЄГ®Гў Г­Г  Г±ГҐГ°ГўГҐГ°ГҐ" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!worst ^7чтобы посмотреть список худших игроков на сервере" );
 					sleep 1;
 				}
 				if ( &check_access( 'uptime' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!uptime ^7Г·ГІГ®ГЎГ» ГЇГ®Г±Г¬Г®ГІГ°ГҐГІГј Г±ГЄГ®Г«ГјГЄГ® ГўГ°ГҐГ¬ГҐГ­ГЁ Г±ГҐГ°ГўГҐГ° Г°Г ГЎГ®ГІГ ГҐГІ" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!uptime ^7чтобы посмотреть сколько времени сервер работает" );
 					sleep 1;
 				}
 				if ( &check_access( 'define' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!define ^5Г±Г«Г®ГўГ® ^7Г·ГІГ®ГЎГ» Г¤Г®ГЎГ ГўГЁГІГј ГҐГЈГ® Гў Г±Г«Г®ГўГ Г°Гј" );
+					&rcon_command( "say $name^7: Вы можете ^1!define ^5слово ^7чтобы добавить его в словарь" );
 					sleep 1;
 				}
 				if ( &check_access( 'version' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!version ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј ГўГҐГ°Г±ГЁГѕ ГЇГ°Г®ГЈГ°Г Г¬Г¬Г» ГЁ Г ГўГІГ®Г°Г®Гў Г  ГІГ ГЄГ¦ГҐ Г±Г±Г»Г«ГЄГЁ Г­Г  Г±ГЄГ Г·ГЁГўГ Г­ГЁГҐ" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!version ^7чтобы узнать версию программы и авторов а также ссылки на скачивание" );
 					sleep 1;
 				}
 				if ( &check_access( 'reset' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!reset ^7Г·ГІГ®ГЎГ» Г®ГЎГ­ГіГ«ГЁГІГј ГІГҐГЄГіГ№ГЁГҐ Г§Г­Г Г·ГҐГ­ГЁГї" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!reset ^7чтобы обнулить текущие значения" );
 					sleep 1;
 				}
 				if ( &check_access( 'reboot' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!reboot ^7Г·ГІГ®ГЎГ» ГЇГҐГ°ГҐГ§Г ГЇГіГ±ГІГЁГІГј ГЇГ°Г®ГЈГ°Г Г¬Г¬Гі" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!reboot ^7чтобы перезапустить программу" );
 					sleep 1;
 				}
 				if ( &check_access( 'reconfig' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!reconfig ^7Г·ГІГ®ГЎГ» Г®ГЎГ­Г®ГўГЁГІГј ГЇГ Г°Г Г¬ГҐГІГ°Г» ГЁГ§ ГЄГ®Г­ГґГЁГЈГіГ°Г Г¶ГЁГ®Г­Г­Г®ГЈГ® ГґГ Г©Г«Г " );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!reconfig ^7чтобы обновить параметры из конфигурационного файла" );
 					sleep 1;
 				}
 				if ( &check_access( 'ignore' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!ignore ^5ГЁГЈГ°Г®ГЄ^7 Г·ГІГ®ГЎГ» Г§Г ГЇГ°ГҐГІГЁГІГј Г¬Г­ГҐ Г±Г«ГіГёГ ГІГј Г·ГІГ® Г®Г­ Г±ГЄГ Г§Г Г«" );
+					&rcon_command( "say $name^7: Вы можете ^1!ignore ^5игрок^7 чтобы запретить мне слушать что он сказал" );
 					sleep 1;
 				}
 				if ( &check_access( 'broadcast' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!broadcast ^5Г±Г®Г®ГЎГ№ГҐГ­ГЁГҐ ^7Г·ГІГ®ГЎГ» Г®ГІГЇГ°Г ГўГЁГІГј ГҐГЈГ® Г­Г  Г¤Г°ГіГЈГЁГҐ Г±ГҐГ°ГўГҐГ°Г»" );
+					&rcon_command( "say $name^7: Вы можете ^1!broadcast ^5сообщение ^7чтобы отправить его на другие серверы" );
 					sleep 1;
 				}
 				if ( &check_access( 'hostname' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!hostname ^5Г€Г¬Гї ^7Г·ГІГ®ГЎГ» ГЇГҐГ°ГҐГЁГ¬ГҐГ­Г®ГўГ ГІГј Г±ГҐГ°ГўГҐГ°" );
+					&rcon_command( "say $name^7: Вы можете ^1!hostname ^5Имя ^7чтобы переименовать сервер" );
 					sleep 1;
 				}
 				if ( &check_access( 'forgive' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ^1!forgive ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» ГЇГ°Г®Г±ГІГЁГІГј ГЁГЈГ°Г®ГЄГі ГҐГЈГ® ГўГ»ГµГ®Г¤ГЄГЁ" );
+					&rcon_command( "say $name^7: Вы можете ^1!forgive ^5игрок ^7чтобы простить игроку его выходки" );
 					sleep 1;
 				}
 				if ( &check_access( 'vote_kick' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!votekick ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» Г­Г Г·Г ГІГј ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г§Г  ГўГ»ГЄГЁГ¤Г»ГўГ Г­ГЁГҐ ГЁГЈГ°Г®ГЄГ " );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!votekick ^5игрок ^7чтобы начать голосование за выкидывание игрока" );
 					sleep 1;
 				}
 				if ( &check_access( 'vote_ban' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!voteban ^5ГЁГЈГ°Г®ГЄ ^7Г·ГІГ®ГЎГ» Г­Г Г·Г ГІГј ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г§Г  ГўГ°ГҐГ¬ГҐГ­Г­Г»Г© ГЎГ Г­ ГЁГЈГ°Г®ГЄГ " );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!voteban ^5игрок ^7чтобы начать голосование за временный бан игрока" );
 					sleep 1;
 				}
 				if ( &check_access( 'vote_map' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!votemap ^5ГЄГ Г°ГІГ  ^7Г·ГІГ®ГЎГ» Г­Г Г·Г ГІГј ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г§Г  Г±Г¬ГҐГ­Гі ГЄГ Г°ГІГ»" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!votemap ^5карта ^7чтобы начать голосование за смену карты" );
 					sleep 1;
 				}
 				if ( &check_access( 'vote_type' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!votetype ^5ГІГЁГЇ ^7Г·ГІГ®ГЎГ» Г­Г Г·Г ГІГј ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г§Г  Г±Г¬ГҐГ­Гі ГІГЁГЇГ  ГЁГЈГ°Г»" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!votetype ^5тип ^7чтобы начать голосование за смену типа игры" );
 					sleep 1;
 				}
 				if ( &check_access( 'report' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!report ^5ГЁГЈГ°Г®ГЄ ^7= ^2ГЇГ°ГЁГ·ГЁГ­Г  ^7Г·ГІГ®ГЎГ» Г®ГІГЇГ°Г ГўГЁГІГј Г¦Г Г«Г®ГЎГі Г­Г  ГЁГЈГ°Г®ГЄГ " );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!report ^5игрок ^7= ^2причина ^7чтобы отправить жалобу на игрока" );
 					sleep 1;
 				}
 				if ( &check_access( 'exchange' ) ) {
-					&rcon_command( "say $name^7: Г‚Г» Г¬Г®Г¦ГҐГІГҐ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј ^1!exchange ^5USD/EUR ^7Г·ГІГ®ГЎГ» ГіГ§Г­Г ГІГј ГІГҐГЄГіГ№ГЁГ© ГЄГіГ°Г± ГўГ Г«ГѕГІГ»" );
+					&rcon_command( "say $name^7: Вы можете использовать ^1!exchange ^5USD/EUR ^7чтобы узнать текущий курс валюты" );
 					sleep 1;
 				}
 			}
@@ -2904,7 +2904,7 @@ sub chat {
 			if ( &check_access( 'fly' ) ) {
 				if ( &flood_protection( 'fly', 30, $slot ) ) { }
 				else {
-					&rcon_command( "say Г‹ГҐГІГЁГІГҐ ГЄГ ГЄ ГЇГІГЁГ¶Г»!!!" );
+					&rcon_command( "say Летите как птицы!!!" );
 					&rcon_command( "g_gravity 10" );
 					$fly_timer = $time + 20;
 				}
@@ -3101,7 +3101,7 @@ sub chat {
 			if ( &check_access( 'time' ) ) {
 				if ( &flood_protection( 'time', 30, $slot ) ) { }
 				else {
-					&rcon_command( "say ГЊГ®Г±ГЄГ®ГўГ±ГЄГ®ГҐ ГўГ°ГҐГ¬Гї: ^2$currenttime ^7| ^3$currentdate" );
+					&rcon_command( "say Московское время: ^2$currenttime ^7| ^3$currentdate" );
 				}
 			}
 		}
@@ -3110,7 +3110,7 @@ sub chat {
 		elsif ( $message =~ /^!(rage(quit)?|rq)\b/i ) {
 			if ( &flood_protection( 'rage', 30, $slot ) ) { }
 			else {
-				&rcon_command( "say $name ^7ГЇГ®ГЄГ°Г»Г« ГўГ±ГҐГµ Г¬Г ГІГ®Г¬, Г®ГЎГЁГ¤ГҐГ«Г±Гї ГЁ ГўГ»ГёГҐГ« ГЁГ§ ГЁГЈГ°Г»." );
+				&rcon_command( "say $name ^7покрыл всех матом, обиделся и вышел из игры." );
 				sleep 1;
 				&rcon_command( "clientkick $slot" );
 			}
@@ -3171,7 +3171,7 @@ sub locate {
 		and ( $search_string !~ /^console|nanny|server\b/i ) )
 	{
 		if ( &flood_protection( 'locate-nomatch', 10, $slot ) ) { return 1; }
-		&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Нет совпадений с: $search_string" );
 	}
 	else {
 		if (    ( $search_string =~ /^\.$|^\*$|^all$|^.$/i )
@@ -3191,10 +3191,10 @@ sub locate {
 				if ( $ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/ ) {
 					$location = &geolocate_ip( $ip );
 					if ( $guessed ) {
-						$location = $name_by_slot{ $slot } . " ^7ГўГҐГ°Г®ГїГІГ­Г® Г§Г ГёГҐГ« ГЄ Г­Г Г¬ ГЁГ§ ^2" . $location;
+						$location = $name_by_slot{ $slot } . " ^7вероятно зашел к нам из ^2" . $location;
 					}
 					else {
-						$location = $name_by_slot{ $slot } . " ^7Г§Г ГёГҐГ« ГЄ Г­Г Г¬ ГЁГ§ ^2" . $location;
+						$location = $name_by_slot{ $slot } . " ^7зашел к нам из ^2" . $location;
 					}
 
 					# location spoofing
@@ -3211,13 +3211,13 @@ sub locate {
 	}
 	if ( $search_string =~ /^console|nanny|server\b/i ) {
 		$location = &geolocate_ip( $config->{ 'ip' } );
-		$location = "ГќГІГ®ГІ Г±ГҐГ°ГўГҐГ° Г­Г ГµГ®Г¤ГЁГІГ±Гї Гў ^2" . $location;
+		$location = "Этот сервер находится в ^2" . $location;
 		&rcon_command( "say $location" );
 		sleep 1;
 	}
 	elsif ( $search_string =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/ ) {
 		$location = &geolocate_ip( $1 );
-		$location = "^3$1 ^7Г­Г ГµГ®Г¤ГЁГІГ±Гї Гў ^2" . $location;
+		$location = "^3$1 ^7находится в ^2" . $location;
 		&rcon_command( "say $location" );
 		sleep 1;
 	}
@@ -3297,7 +3297,7 @@ sub status {
 							and ( $config->{ '999_quick_kick' } ) )
 						{
 							print "PING ENFORCEMENT: 999 ping for $name_by_slot{$slot}\n";
-							&rcon_command( "say $name_by_slot{$slot} ^7ГЎГ»Г« ГўГ»ГЄГЁГ­ГіГІ Г§Г  999 ГЇГЁГ­ГЈ" );
+							&rcon_command( "say $name_by_slot{$slot} ^7был выкинут за 999 пинг" );
 							sleep 1;
 							&rcon_command( "clientkick $slot" );
 							&log_to_file( 'logs/kick.log', "PING: $name_by_slot{$slot} was kicked for having a 999 ping for too long" );
@@ -3311,7 +3311,7 @@ sub status {
 							and ( $config->{ 'ping_enforcement' } ) )
 						{
 							print "PING ENFORCEMENT: too high ping for $name_by_slot{$slot}\n";
-							&rcon_command( "say $name_by_slot{$slot} ^7ГЎГ»Г« ГўГ»ГЄГЁГ­ГіГІ Г§Г  Г±Г«ГЁГёГЄГ®Г¬ ГўГ»Г±Г®ГЄГЁГ© ГЇГЁГ­ГЈ ($ping_by_slot{$slot} | $config->{'max_ping'})" );
+							&rcon_command( "say $name_by_slot{$slot} ^7был выкинут за слишком высокий пинг ($ping_by_slot{$slot} | $config->{'max_ping'})" );
 							sleep 1;
 							&rcon_command( "clientkick $slot" );
 							&log_to_file( 'logs/kick.log', "$name_by_slot{$slot} was kicked for having too high ping ($ping_by_slot{$slot} | $config->{'max_ping'})" );
@@ -3418,16 +3418,16 @@ sub banned_player_kick {
 		$bantime =~ s/\:(\d+)$//g;    # strip the ':seconds'
 		$bandate = scalar( localtime( $ban_time ) )->dmy( "." );
 		sleep 1;
-		&rcon_command( "say $name_by_slot{$slot}^7: Г‚Г» Г§Г ГЎГ Г­ГҐГ­Г». Г‚Г» Г­ГҐ Г¬Г®Г¦ГҐГІГҐ Г®Г±ГІГ ГІГјГ±Гї Г­Г  ГЅГІГ®Г¬ Г±ГҐГ°ГўГҐГ°ГҐ" );
+		&rcon_command( "say $name_by_slot{$slot}^7: Вы забанены. Вы не можете остаться на этом сервере" );
 		sleep 1;
-		&rcon_command( "say $ban_name^7: ГЃГ»Г« Г§Г ГЎГ Г­ГҐГ­ ^3$bandate ^7Гў ^2$bantime ^7(BAN ID#: ^1$ban_id^7)" );
+		&rcon_command( "say $ban_name^7: Был забанен ^3$bandate ^7в ^2$bantime ^7(BAN ID#: ^1$ban_id^7)" );
 		sleep 1;
 
 		if ( $unban_time == 2125091758 ) {
-			&rcon_command( "say $name_by_slot{$slot}^7: Г“ ГўГ Г± ГЇГҐГ°Г¬Г Г­ГҐГ­ГІГ­Г»Г© ГЎГ Г­." );
+			&rcon_command( "say $name_by_slot{$slot}^7: У вас перманентный бан." );
 		}
 		else {
-			&rcon_command( "say $name_by_slot{$slot}^7: Г‚Г» ГЎГіГ¤ГҐГІГҐ Г°Г Г§ГЎГ Г­ГҐГ­Г» Г·ГҐГ°ГҐГ§ " . &duration( $unban_time - $time ) );
+			&rcon_command( "say $name_by_slot{$slot}^7: Вы будете разбанены через " . &duration( $unban_time - $time ) );
 		}
 		sleep 1;
 		&log_to_file( 'logs/kick.log', "KICK: BANNED: $name_by_slot{$slot} was kicked - BANNED: IP - $ban_ip GUID - $ban_guid BAN ID# - $ban_id" );
@@ -3509,16 +3509,16 @@ sub rcon_query {
 sub geolocate_ip {
 	my $ip     = shift;
 	my $metric = 1;
-	if ( !$ip ) { return "ГЌГҐ ГіГЄГ Г§Г Г­ IP-ГЂГ¤Г°ГҐГ±"; }
-	if ( $ip =~ /^192\.168\.|^10\.|^169\.254\./ ) { return "Г‹Г®ГЄГ Г«ГјГ­Г®Г© Г±ГҐГІГЁ"; }
+	if ( !$ip ) { return "Не указан IP-Адрес"; }
+	if ( $ip =~ /^192\.168\.|^10\.|^169\.254\./ ) { return "Локальной сети"; }
 
 	if ( $ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/ ) {
-		return "ГЌГҐГўГҐГ°Г­Г»Г© IP-ГЂГ¤Г°ГҐГ±: $ip";
+		return "Неверный IP-Адрес: $ip";
 	}
 	my $gi = Geo::IP->open( "Geo/GeoLiteCity.dat", GEOIP_STANDARD );
 	my $record = $gi->record_by_addr( $ip );
 	my $geo_ip_info;
-	if ( !$record ) { return "ГЌГҐ Г­Г Г©Г¤ГҐГ­Г® Г¬ГҐГ±ГІГ®ГЇГ®Г«Г®Г¦ГҐГ­ГЁГҐ Г¤Г«Гї ГЅГІГ®ГЈГ® IP-ГЂГ¤Г°ГҐГ±Г "; }
+	if ( !$record ) { return "Не найдено местоположение для этого IP-Адреса"; }
 
 	if ( defined( $record->country_code ) ) {
 		print "\n\tCountry Code: " . $record->country_code . "\n";
@@ -3600,7 +3600,7 @@ sub geolocate_ip {
 	}
 	else {
 		# I give up.
-		$geo_ip_info = "ГЊГҐГ±ГІГ®ГЇГ®Г«Г®Г¦ГҐГ­ГЁГҐ Г­ГҐ Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­Г®";
+		$geo_ip_info = "Местоположение не определено";
 	}
 	if   ( $record->country_code eq 'US' ) { $metric = 0; }
 	else                                   { $metric = 1; }
@@ -3627,11 +3627,11 @@ sub geolocate_ip {
 
 					if ( $metric ) {
 						$dist = int( $dist / 1000 );
-						$geo_ip_info .= "^7, ^1$dist ^7ГЄГЁГ«Г®Г¬ГҐГІГ°Г®Гў Г¤Г® Г±ГҐГ°ГўГҐГ°Г ";
+						$geo_ip_info .= "^7, ^1$dist ^7километров до сервера";
 					}
 					else {
 						$dist = int( $dist / 1609.344 );
-						$geo_ip_info .= "^7, ^1$dist ^7Г¬ГЁГ«Гј Г¤Г® Г±ГҐГ°ГўГҐГ°Г ";
+						$geo_ip_info .= "^7, ^1$dist ^7миль до сервера";
 					}
 				}
 			}
@@ -3753,7 +3753,7 @@ sub seen {
 		or &die_nice( "Unable to execute query: $seen_dbh->errstr\n" );
 
 	while ( @row = $seen_sth->fetchrow_array ) {
-		&rcon_command( "say $row[0] ^7ГЎГ»Г« Г§Г Г¬ГҐГ·ГҐГ­ Г­Г  Г±ГҐГ°ГўГҐГ°ГҐ " . duration( $time - $row[ 1 ] ) . " Г­Г Г§Г Г¤ ГЁ Г±ГЄГ Г§Г Г«: $row[2]" );
+		&rcon_command( "say $row[0] ^7был замечен на сервере " . duration( $time - $row[ 1 ] ) . " назад и сказал: $row[2]" );
 		sleep 1;
 	}
 }
@@ -3781,21 +3781,21 @@ sub lastkill {
 			and ( defined( $last_kill_by_name{ $matches[ 0 ] } ) )
 			and ( $last_kill_by_name{ $matches[ 0 ] } ne 'none' ) )
 		{
-			&rcon_command( "say Г‚ ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© Г°Г Г§ $name_by_slot{$matches[0]} ^7ГіГЎГЁГ« $last_kill_by_name{$matches[0]}" );
+			&rcon_command( "say В последний раз $name_by_slot{$matches[0]} ^7убил $last_kill_by_name{$matches[0]}" );
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 	}
 	elsif ( ( defined( $last_kill_by_name{ $slot } ) )
 		and ( $last_kill_by_name{ $slot } ne 'none' ) )
 	{
-		&rcon_command( "say $name_by_slot{$slot}^7: Г‚ ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© Г°Г Г§ ГўГ» ГіГЎГЁГ«ГЁ $last_kill_by_name{$slot}" );
+		&rcon_command( "say $name_by_slot{$slot}^7: В последний раз вы убили $last_kill_by_name{$slot}" );
 	}
 }
 
@@ -3812,21 +3812,21 @@ sub lastkilled {
 			and ( defined( $last_killed_by_name{ $matches[ 0 ] } ) )
 			and ( $last_killed_by_name{ $matches[ 0 ] } ne 'none' ) )
 		{
-			&rcon_command( "say Г‚ ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© Г°Г Г§ $name_by_slot{$matches[0]} ^7ГЎГ»Г« ГіГЎГЁГІ ГЁГЈГ°Г®ГЄГ®Г¬ $last_killed_by_name{$matches[0]}" );
+			&rcon_command( "say В последний раз $name_by_slot{$matches[0]} ^7был убит игроком $last_killed_by_name{$matches[0]}" );
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 	}
 	elsif ( ( defined( $last_killed_by_name{ $slot } ) )
 		and ( $last_killed_by_name{ $slot } ne 'none' ) )
 	{
-		&rcon_command( "say $name_by_slot{$slot}^7: Г‚ ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© Г°Г Г§ ГўГ» ГЎГ»Г«ГЁ ГіГЎГЁГІГ» ГЁГЈГ°Г®ГЄГ®Г¬ $last_killed_by_name{$slot}" );
+		&rcon_command( "say $name_by_slot{$slot}^7: В последний раз вы были убиты игроком $last_killed_by_name{$slot}" );
 	}
 }
 
@@ -3841,11 +3841,11 @@ sub stats {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -3853,7 +3853,7 @@ sub stats {
 	$name = $name_by_slot{ $slot };
 	$guid = $guid_by_slot{ $slot };
 	if ( !defined( $name or $guid ) ) { return 1; }
-	my $stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
+	my $stats_msg = "Статистика $name^7:";
 	$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE guid=?" );
 	$stats_sth->execute( $guid )
 		or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
@@ -3865,22 +3865,22 @@ sub stats {
 		my $kills     = $row[ 2 ];
 		my $deaths    = $row[ 3 ];
 		my $headshots = $row[ 4 ];
-		$stats_msg .= " ^2$kills ^7ГіГЎГЁГ©Г±ГІГў, ^1$deaths ^7Г±Г¬ГҐГ°ГІГҐГ©, ^3$headshots ^7ГµГҐГ¤ГёГ®ГІГ®Гў, ";
+		$stats_msg .= " ^2$kills ^7убийств, ^1$deaths ^7смертей, ^3$headshots ^7хедшотов, ";
 
 		# k2d_ratio
 		if ( $row[ 2 ] and $row[ 3 ] ) {
 			my $k2d_ratio = int( $row[ 2 ] / $row[ 3 ] * 100 ) / 100;
-			$stats_msg .= "^8$k2d_ratio ^7ГЄ/Г¤ Г±Г®Г®ГІГ­Г®ГёГҐГ­ГЁГҐ, ";
+			$stats_msg .= "^8$k2d_ratio ^7к/д соотношение, ";
 		}
 
 		# headshot_percent
 		if ( $row[ 2 ] and $row[ 4 ] ) {
 			my $headshot_percent = int( $row[ 4 ] / $row[ 2 ] * 10000 ) / 100;
-			$stats_msg .= "^3$headshot_percent ^7ГЇГ°Г®Г¶ГҐГ­ГІГ®Гў ГµГҐГ¤ГёГ®ГІГ®Гў";
+			$stats_msg .= "^3$headshot_percent ^7процентов хедшотов";
 		}
 		&rcon_command( "say $stats_msg" );
 		sleep 1;
-		$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
+		$stats_msg = "Статистика $name^7:";
 
 		# pistol_ratio,grenade_ratio,bash_ratio
 		if ( $row[ 2 ] ) {
@@ -3890,7 +3890,7 @@ sub stats {
 				( $row[ 6 ] ) ? int( $row[ 6 ] / $row[ 2 ] * 10000 ) / 100 : 0;
 			my $bash_ratio =
 				( $row[ 7 ] ) ? int( $row[ 7 ] / $row[ 2 ] * 10000 ) / 100 : 0;
-			$stats_msg .= " ^9$pistol_ratio ^7ГЇГЁГ±ГІГ®Г«ГҐГІГ®Гў, ^9$grenade_ratio ^7ГЈГ°Г Г­Г ГІ, ^9$bash_ratio ^7ГЎГ«ГЁГ¦Г­ГҐГЈГ® ГЎГ®Гї";
+			$stats_msg .= " ^9$pistol_ratio ^7пистолетов, ^9$grenade_ratio ^7гранат, ^9$bash_ratio ^7ближнего боя";
 
 			if ( ( $row[ 5 ] ) or ( $row[ 6 ] ) or ( $row[ 7 ] ) ) {
 				&rcon_command( "say $stats_msg" );
@@ -3898,7 +3898,7 @@ sub stats {
 			}
 
 			# shotgun_ratio,sniper_ratio,rifle_ratio,machinegun_ratio
-			$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
+			$stats_msg = "Статистика $name^7:";
 			my $shotgun_ratio =
 				( ( $row[ 8 ] ) and ( $row[ 2 ] ) )
 				? int( $row[ 8 ] / $row[ 2 ] * 10000 ) / 100
@@ -3915,7 +3915,7 @@ sub stats {
 				( ( $row[ 11 ] ) and ( $row[ 2 ] ) )
 				? int( $row[ 11 ] / $row[ 2 ] * 10000 ) / 100
 				: 0;
-			$stats_msg .= " ^9$shotgun_ratio ^7Г¤Г°Г®ГЎГ®ГўГЁГЄГ®Гў, ^9$sniper_ratio ^7Г±Г­Г Г©ГЇ.ГўГЁГ­ГІГ®ГўГ®ГЄ, ^9$rifle_ratio ^7ГўГЁГ­ГІГ®ГўГ®ГЄ, ^9$machinegun_ratio ^7Г ГўГІГ®Г¬Г ГІГ®Гў";
+			$stats_msg .= " ^9$shotgun_ratio ^7дробовиков, ^9$sniper_ratio ^7снайп.винтовок, ^9$rifle_ratio ^7винтовок, ^9$machinegun_ratio ^7автоматов";
 
 			if (   ( $row[ 8 ] )
 				or ( $row[ 9 ] )
@@ -3929,8 +3929,8 @@ sub stats {
 			# best_killspree
 			my $best_killspree = $row[ 12 ];
 			if ( $best_killspree and ( $config->{ 'killing_sprees' } ) ) {
-				$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
-				$stats_msg .= " Г‹ГіГ·ГёГ Гї Г±ГҐГ°ГЁГї ГіГЎГЁГ©Г±ГІГў - ^6$best_killspree";
+				$stats_msg = "Статистика $name^7:";
+				$stats_msg .= " Лучшая серия убийств - ^6$best_killspree";
 				&rcon_command( "say $stats_msg" );
 				sleep 1;
 			}
@@ -3942,8 +3942,8 @@ sub stats {
 				? int( $row[ 13 ] / $row[ 2 ] * 10000 ) / 100
 				: 0;
 			if ( ( $nice_shots ) and ( $config->{ 'nice_shots' } ) ) {
-				$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
-				$stats_msg .= " ГЏГ®Г­Г°Г ГўГЁГўГёГЁГµГ±Гї ГіГЎГЁГ©Г±ГІГў: ^2$row[13] ^7(^2$niceshot_ratio ^7ГЇГ°Г®Г¶ГҐГ­ГІГ®Гў)";
+				$stats_msg = "Статистика $name^7:";
+				$stats_msg .= " Понравившихся убийств: ^2$row[13] ^7(^2$niceshot_ratio ^7процентов)";
 				&rcon_command( "say $stats_msg" );
 				sleep 1;
 			}
@@ -3955,8 +3955,8 @@ sub stats {
 				? int( $row[ 14 ] / $row[ 2 ] * 10000 ) / 100
 				: 0;
 			if ( ( $bad_shots ) and ( $config->{ 'bad_shots' } ) ) {
-				$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
-				$stats_msg .= " ГЌГҐ ГЇГ®Г­Г°Г ГўГЁГўГёГЁГµГ±Гї ГіГЎГЁГ©Г±ГІГў: ^1$row[14] ^7(^1$badshot_ratio ^7ГЇГ°Г®Г¶ГҐГ­ГІГ®Гў)";
+				$stats_msg = "Статистика $name^7:";
+				$stats_msg .= " Не понравившихся убийств: ^1$row[14] ^7(^1$badshot_ratio ^7процентов)";
 				&rcon_command( "say $stats_msg" );
 				sleep 1;
 			}
@@ -3964,8 +3964,8 @@ sub stats {
 			# first_bloods
 			my $first_bloods = $row[ 15 ];
 			if ( ( $first_bloods ) and ( $config->{ 'first_blood' } ) ) {
-				$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
-				$stats_msg .= " ГЏГҐГ°ГўГ®Г© ГЄГ°Г®ГўГЁ: ^1$first_bloods";
+				$stats_msg = "Статистика $name^7:";
+				$stats_msg .= " Первой крови: ^1$first_bloods";
 				&rcon_command( "say $stats_msg" );
 				sleep 1;
 			}
@@ -3975,8 +3975,8 @@ sub stats {
 			# bomb_plants
 			my $bomb_plants = $row[ 16 ];
 			if ( $bomb_plants ) {
-				$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
-				$stats_msg .= " Г‚Г§Г°Г»ГўГ·Г ГІГЄГЁ Г§Г Г«Г®Г¦ГҐГ­Г®: ^4$bomb_plants";
+				$stats_msg = "Статистика $name^7:";
+				$stats_msg .= " Взрывчатки заложено: ^4$bomb_plants";
 				&rcon_command( "say $stats_msg" );
 				sleep 1;
 			}
@@ -3984,21 +3984,21 @@ sub stats {
 			# bomb_defuses
 			my $bomb_defuses = $row[ 17 ];
 			if ( $bomb_defuses ) {
-				$stats_msg = "Г‘ГІГ ГІГЁГ±ГІГЁГЄГ  $name^7:";
-				$stats_msg .= " Г‚Г§Г°Г»ГўГ·Г ГІГЄГЁ Г®ГЎГҐГ§ГўГ°ГҐГ¦ГҐГ­Г®: ^5$bomb_defuses";
+				$stats_msg = "Статистика $name^7:";
+				$stats_msg .= " Взрывчатки обезврежено: ^5$bomb_defuses";
 				&rcon_command( "say $stats_msg" );
 				sleep 1;
 			}
 		}
 	}
 	elsif ( $guid ) {
-		&rcon_command( "say ГЌГҐ Г­Г Г©Г¤ГҐГ­Г® Г±ГІГ ГІГЁГ±ГІГЁГЄГЁ Г¤Г«Гї: $name" );
+		&rcon_command( "say Не найдено статистики для: $name" );
 		$stats_sth = $stats_dbh->prepare( "INSERT INTO stats VALUES (NULL, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)" );
 		$stats_sth->execute( $guid, 0, 0, 0 )
 			or &die_nice( "Unable to do insert\n" );
 	}
 	else {
-		&rcon_command( "say ГЋГёГЁГЎГЄГ  Г·ГІГҐГ­ГЁГї Г±ГІГ ГІГЁГ±ГІГЁГЄГЁ Г¤Г«Гї: $name^7 (^2GUID^7 - ^3$guid^7)" );
+		&rcon_command( "say Ошибка чтения статистики для: $name^7 (^2GUID^7 - ^3$guid^7)" );
 	}
 }
 
@@ -4227,11 +4227,11 @@ sub ignore {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4241,7 +4241,7 @@ sub ignore {
 		return 1;
 	}
 	$ignore{ $slot } = 1;
-	&rcon_command( "say $name_by_slot{$slot} ^7ГІГҐГЇГҐГ°Гј ГЎГіГ¤ГҐГІ ГЁГЈГ­Г®Г°ГЁГ°Г®ГўГ ГІГ±Гї." );
+	&rcon_command( "say $name_by_slot{$slot} ^7теперь будет игнорироватся." );
 	&log_to_file( 'logs/admin.log', "!IGNORE: $name_by_slot{$slot} was ignored by $name - GUID $guid (Search: $search_string)" );
 }
 
@@ -4256,11 +4256,11 @@ sub forgive {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4275,7 +4275,7 @@ sub forgive {
 	$penalty_points{ $slot }        = 0;
 	$spam_count{ $slot }            = 0;
 	$spam_last_said{ $slot }        = &random_pwd( 6 );
-	&rcon_command( "say $name_by_slot{$slot} ^7ГЇГ®Г®ГЎГҐГ№Г Г« ГўГҐГ±ГІГЁ Г±ГҐГЎГї ГµГ®Г°Г®ГёГ® ГЁ ГЎГ»Г« ГЇГ°Г®Г№ГҐГ­ Г Г¤Г¬ГЁГ­Г®Г¬" );
+	&rcon_command( "say $name_by_slot{$slot} ^7пообещал вести себя хорошо и был прощен админом" );
 	&log_to_file( 'logs/admin.log', "!FORGIVE: $name_by_slot{$slot} was forgiven by $name - GUID $guid (Search: $search_string)" );
 }
 
@@ -4290,15 +4290,15 @@ sub clear_stats {
 		$stats_sth = $stats_dbh->prepare( "DELETE FROM stats where guid=?;" );
 		$stats_sth->execute( $guid_by_slot{ $matches[ 0 ] } )
 			or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-		&rcon_command( "say Г“Г¤Г Г«ГҐГ­Г  Г±ГІГ ГІГЁГ±ГІГЁГЄГ  Г¤Г«Гї: $name_by_slot{$matches[0]}" );
+		&rcon_command( "say Удалена статистика для: $name_by_slot{$matches[0]}" );
 		&log_to_file( 'logs/admin.log', "!CLEARSTATS: $name_by_slot{$matches[0]} (GUID - $guid_by_slot{$matches[0]}) stats were deleted by $name - GUID $guid (Search: $search_string)" );
 	}
 	elsif ( $#matches == -1 ) {
-		&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Нет совпадений с: $search_string" );
 		return 1;
 	}
 	elsif ( $#matches > 0 ) {
-		&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Слишком много совпадений с: $search_string" );
 		return 1;
 	}
 }
@@ -4318,15 +4318,15 @@ sub clear_names {
 		$ip_to_name_sth = $ip_to_name_dbh->prepare( "DELETE FROM ip_to_name where ip=?;" );
 		$ip_to_name_sth->execute( $ip_by_slot{ $matches[ 0 ] } )
 			or &die_nice( "Unable to execute query: $ip_to_name_dbh->errstr\n" );
-		&rcon_command( "say Г“Г¤Г Г«ГҐГ­Г» ГЁГ¬ГҐГ­Г  Г¤Г«Гї: $name_by_slot{$matches[0]}" );
+		&rcon_command( "say Удалены имена для: $name_by_slot{$matches[0]}" );
 		&log_to_file( 'logs/admin.log', "!CLEARNAMES: $name_by_slot{$matches[0]} names were deleted by $name - GUID $guid (Search: $search_string)" );
 	}
 	elsif ( $#matches == -1 ) {
-		&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Нет совпадений с: $search_string" );
 		return 1;
 	}
 	elsif ( $#matches > 0 ) {
-		&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Слишком много совпадений с: $search_string" );
 		return 1;
 	}
 }
@@ -4340,15 +4340,15 @@ sub report_player {
 	my $reason        = shift;
 	my @matches       = &matching_users( $search_string );
 	if ( $#matches == 0 ) {
-		&rcon_command( "say Г†Г Г«Г®ГЎГ  Г­Г  ГЁГЈГ°Г®ГЄГ  $name_by_slot{$matches[0]} ^7Г®ГІГЇГ°Г ГўГ«ГҐГ­Г ." );
+		&rcon_command( "say Жалоба на игрока $name_by_slot{$matches[0]} ^7отправлена." );
 		&log_to_file( 'logs/report.log', "!report: $name_by_slot{$slot} - GUID $guid reported player $name_by_slot{$matches[0]} - GUID $guid_by_slot{$matches[0]} - reason $reason via the !report command (Search: $search_string)" );
 	}
 	elsif ( $#matches == -1 ) {
-		&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Нет совпадений с: $search_string" );
 		return 1;
 	}
 	elsif ( $#matches > 0 ) {
-		&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Слишком много совпадений с: $search_string" );
 		return 1;
 	}
 }
@@ -4364,15 +4364,15 @@ sub ip_player {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
-	&rcon_command( "say IP-ГЂГ¤Г°ГҐГ±: $name_by_slot{$slot}^7 - ^2$ip_by_slot{$slot}" );
+	&rcon_command( "say IP-Адрес: $name_by_slot{$slot}^7 - ^2$ip_by_slot{$slot}" );
 }
 
 # END: ip
@@ -4386,11 +4386,11 @@ sub id_player {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4408,11 +4408,11 @@ sub guid_player {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4431,22 +4431,22 @@ sub age_player {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
 	if ( $age >= 10 and $age <= 20 or $age >= 25 and $age <= 30 ) {
-		&rcon_command( "say Г‚Г®Г§Г°Г Г±ГІ ГЁГЈГ°Г®ГЄГ  $name_by_slot{$slot}^7 - ^3$age ^7Г«ГҐГІ" );
+		&rcon_command( "say Возраст игрока $name_by_slot{$slot}^7 - ^3$age ^7лет" );
 	}
 	elsif ( $age == 21 or $age == 31 ) {
-		&rcon_command( "say Г‚Г®Г§Г°Г Г±ГІ ГЁГЈГ°Г®ГЄГ  $name_by_slot{$slot}^7 - ^3$age ^7ГЈГ®Г¤" );
+		&rcon_command( "say Возраст игрока $name_by_slot{$slot}^7 - ^3$age ^7год" );
 	}
 	else {
-		&rcon_command( "say Г‚Г®Г§Г°Г Г±ГІ ГЁГЈГ°Г®ГЄГ  $name_by_slot{$slot}^7 - ^3$age ^7ГЈГ®Г¤Г " );
+		&rcon_command( "say Возраст игрока $name_by_slot{$slot}^7 - ^3$age ^7года" );
 	}
 }
 
@@ -4463,11 +4463,11 @@ sub name_player {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4477,9 +4477,9 @@ sub name_player {
 	@row = $names_sth->fetchrow_array;
 
 	if ( !$row[ 0 ] ) {
-		&rcon_command( "say ГЉ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ, Г­ГҐ Г­Г Г©Г¤ГҐГ­Г® ГЁГ¬ГҐГ­ Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say К сожалению, не найдено имен в базе данных" );
 	}
-	else { &rcon_command( "say $name_by_slot{$slot} ^7Г§Г®ГўГіГІ ^3$row[1]" ); }
+	else { &rcon_command( "say $name_by_slot{$slot} ^7зовут ^3$row[1]" ); }
 }
 
 # END: name
@@ -4495,11 +4495,11 @@ sub rank_player {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4509,10 +4509,10 @@ sub rank_player {
 	@row = $ranks_sth->fetchrow_array;
 
 	if ( !$row[ 0 ] ) {
-		&rcon_command( "say ГЉ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ, Г­ГҐ Г­Г Г©Г¤ГҐГ­Г® Г°Г Г­ГЈГ®Гў Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say К сожалению, не найдено рангов в базе данных" );
 	}
 	else {
-		&rcon_command( "say $name_by_slot{$slot}^7: Г’ГўГ®Г© Г°Г Г­ГЈ: ^3$row[1]" );
+		&rcon_command( "say $name_by_slot{$slot}^7: Твой ранг: ^3$row[1]" );
 	}
 }
 
@@ -4532,12 +4532,12 @@ sub add_name {
 	@row = $names_sth->fetchrow_array;
 
 	if ( $row[ 0 ] ) {
-		&rcon_command( "say Г€Г¬Гї ^2$name ^7ГіГ¦ГҐ ГҐГ±ГІГј Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say Имя ^2$name ^7уже есть в базе данных" );
 	}
 	else {
 		$names_sth = $names_dbh->prepare( "INSERT INTO names VALUES (NULL, ?)" );
 		$names_sth->execute( $name ) or &die_nice( "Unable to do insert\n" );
-		&rcon_command( "say Г€Г¬Гї ^2$name ^7Г¤Г®ГЎГ ГўГ«ГҐГ­Г® Гў ГЎГ Г§Гі Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say Имя ^2$name ^7добавлено в базу данных" );
 	}
 }
 
@@ -4557,12 +4557,12 @@ sub add_rank {
 	@row = $ranks_sth->fetchrow_array;
 
 	if ( $row[ 0 ] ) {
-		&rcon_command( "say ГђГ Г­ГЈ ^2$rank ^7ГіГ¦ГҐ ГҐГ±ГІГј Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say Ранг ^2$rank ^7уже есть в базе данных" );
 	}
 	else {
 		$ranks_sth = $ranks_dbh->prepare( "INSERT INTO ranks VALUES (NULL, ?)" );
 		$ranks_sth->execute( $rank ) or &die_nice( "Unable to do insert\n" );
-		&rcon_command( "say ГђГ Г­ГЈ ^2$rank ^7Г¤Г®ГЎГ ГўГ«ГҐГ­ Гў ГЎГ Г§Гі Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say Ранг ^2$rank ^7добавлен в базу данных" );
 	}
 }
 
@@ -4585,9 +4585,9 @@ sub clear_name {
 		$names_sth = $names_dbh->prepare( "DELETE FROM names WHERE name=?" );
 		$names_sth->execute( $name )
 			or &die_nice( "Unable to execute query: $names_dbh->errstr\n" );
-		&rcon_command( "say Г€Г¬Гї ^2$name ^7ГіГ¤Г Г«ГҐГ­Г® ГЁГ§ ГЎГ Г§Г» Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say Имя ^2$name ^7удалено из базы данных" );
 	}
-	else { &rcon_command( "say Г€Г¬Гї ^2$name ^7Г­ГҐ Г­Г Г©Г¤ГҐГ­Г® Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ" ); }
+	else { &rcon_command( "say Имя ^2$name ^7не найдено в базе данных" ); }
 }
 
 # END: clearname
@@ -4609,9 +4609,9 @@ sub clear_rank {
 		$ranks_sth = $ranks_dbh->prepare( "DELETE FROM ranks WHERE rank=?" );
 		$ranks_sth->execute( $rank )
 			or &die_nice( "Unable to execute query: $names_dbh->errstr\n" );
-		&rcon_command( "say ГђГ Г­ГЈ ^2$rank ^7ГіГ¤Г Г«ГҐГ­ ГЁГ§ ГЎГ Г§Г» Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say Ранг ^2$rank ^7удален из базы данных" );
 	}
-	else { &rcon_command( "say ГђГ Г­ГЈ ^2$rank ^7Г­ГҐ Г­Г Г©Г¤ГҐГ­ Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ" ); }
+	else { &rcon_command( "say Ранг ^2$rank ^7не найден в базе данных" ); }
 }
 
 # END: clearrank
@@ -4627,9 +4627,9 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $bans_dbh->errstr\n" );
 		@row = $bans_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2bans.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2bans.db" );
 		}
-		else { &rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2bans.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" ); }
+		else { &rcon_command( "say В базе данных ^2bans.db ^7нет записей" ); }
 	}
 	elsif ( $message =~ /^definitions(.db)?$/i ) {
 		$definitions_sth = $definitions_dbh->prepare( "SELECT count(*) FROM definitions" );
@@ -4637,10 +4637,10 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $definitions_dbh->errstr\n" );
 		@row = $definitions_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2definitions.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2definitions.db" );
 		}
 		else {
-			&rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2definitions.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" );
+			&rcon_command( "say В базе данных ^2definitions.db ^7нет записей" );
 		}
 	}
 	elsif ( $message =~ /^guid_to_name(.db)?$/i ) {
@@ -4649,10 +4649,10 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $guid_to_name_dbh->errstr\n" );
 		@row = $guid_to_name_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2guid_to_name.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2guid_to_name.db" );
 		}
 		else {
-			&rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2guid_to_name.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" );
+			&rcon_command( "say В базе данных ^2guid_to_name.db ^7нет записей" );
 		}
 	}
 	elsif ( $message =~ /^ip_to_guid(.db)?$/i ) {
@@ -4661,10 +4661,10 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $ip_to_guid_dbh->errstr\n" );
 		@row = $ip_to_guid_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2ip_to_guid.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2ip_to_guid.db" );
 		}
 		else {
-			&rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2ip_to_guid.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" );
+			&rcon_command( "say В базе данных ^2ip_to_guid.db ^7нет записей" );
 		}
 	}
 	elsif ( $message =~ /^ip_to_name(.db)?$/i ) {
@@ -4673,10 +4673,10 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $ip_to_name_dbh->errstr\n" );
 		@row = $ip_to_name_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2ip_to_name.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2ip_to_name.db" );
 		}
 		else {
-			&rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2ip_to_name.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" );
+			&rcon_command( "say В базе данных ^2ip_to_name.db ^7нет записей" );
 		}
 	}
 	elsif ( $message =~ /^names(.db)?$/i ) {
@@ -4685,9 +4685,9 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $names_dbh->errstr\n" );
 		@row = $names_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2names.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2names.db" );
 		}
-		else { &rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2names.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" ); }
+		else { &rcon_command( "say В базе данных ^2names.db ^7нет записей" ); }
 	}
 	elsif ( $message =~ /^ranks(.db)?$/i ) {
 		$ranks_sth = $ranks_dbh->prepare( "SELECT count(*) FROM ranks" );
@@ -4695,9 +4695,9 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $ranks_dbh->errstr\n" );
 		@row = $ranks_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2ranks.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2ranks.db" );
 		}
-		else { &rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2ranks.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" ); }
+		else { &rcon_command( "say В базе данных ^2ranks.db ^7нет записей" ); }
 	}
 	elsif ( $message =~ /^seen(.db)?$/i ) {
 		$seen_sth = $seen_dbh->prepare( "SELECT count(*) FROM seen" );
@@ -4705,9 +4705,9 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $seen_dbh->errstr\n" );
 		@row = $seen_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2seen.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2seen.db" );
 		}
-		else { &rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2seen.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" ); }
+		else { &rcon_command( "say В базе данных ^2seen.db ^7нет записей" ); }
 	}
 	elsif ( $message =~ /^stats(.db)?$/i ) {
 		$stats_sth = $stats_dbh->prepare( "SELECT count(*) FROM stats" );
@@ -4715,18 +4715,18 @@ sub database_info {
 			or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
 		@row = $stats_sth->fetchrow_array;
 		if ( $row[ 0 ] ) {
-			&rcon_command( "say ^3$row[0] ^7Г§Г ГЇГЁГ±ГҐГ© Гў ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2stats.db" );
+			&rcon_command( "say ^3$row[0] ^7записей в базе данных ^2stats.db" );
 		}
-		else { &rcon_command( "say Г‚ ГЎГ Г§ГҐ Г¤Г Г­Г­Г»Гµ ^2stats.db ^7Г­ГҐГІ Г§Г ГЇГЁГ±ГҐГ©" ); }
+		else { &rcon_command( "say В базе данных ^2stats.db ^7нет записей" ); }
 	}
 	else {
-		&rcon_command( "say ГЌГҐГўГҐГ°Г­Г Гї ГЎГ Г§Г  Г¤Г Г­Г­Г»Гµ: $message" );
+		&rcon_command( "say Неверная база данных: $message" );
 		sleep 1;
-		&rcon_command( "say Г€Г±ГЇГ®Г«ГјГ§ГіГҐГ¬Г»ГҐ ГЎГ Г§Г» Г¤Г Г­Г­Г»Гµ: ^2bans.db^7, ^2definitions.db^7, ^2guid_to_name.db" );
+		&rcon_command( "say Используемые базы данных: ^2bans.db^7, ^2definitions.db^7, ^2guid_to_name.db" );
 		sleep 1;
-		&rcon_command( "say Г€Г±ГЇГ®Г«ГјГ§ГіГҐГ¬Г»ГҐ ГЎГ Г§Г» Г¤Г Г­Г­Г»Гµ: ^2ip_to_guid.db^7, ^2ip_to_name.db^7, ^2names.db^7, ^2ranks.db" );
+		&rcon_command( "say Используемые базы данных: ^2ip_to_guid.db^7, ^2ip_to_name.db^7, ^2names.db^7, ^2ranks.db" );
 		sleep 1;
-		&rcon_command( "say Г€Г±ГЇГ®Г«ГјГ§ГіГҐГ¬Г»ГҐ ГЎГ Г§Г» Г¤Г Г­Г­Г»Гµ: ^2seen.db^7, ^2stats.db" );
+		&rcon_command( "say Используемые базы данных: ^2seen.db^7, ^2stats.db" );
 	}
 }
 
@@ -4741,11 +4741,11 @@ sub kick_command {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4754,7 +4754,7 @@ sub kick_command {
 	{
 		return 1;
 	}
-	&rcon_command( "say $name_by_slot{$slot} ^7ГЎГ»Г« ГўГ»ГЄГЁГ­ГіГІ Г Г¤Г¬ГЁГ­Г®Г¬" );
+	&rcon_command( "say $name_by_slot{$slot} ^7был выкинут админом" );
 	sleep 1;
 	&rcon_command( "clientkick $slot" );
 	&log_to_file( 'logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)" );
@@ -4769,21 +4769,21 @@ sub tempban_command {
 	my $tempbantime   = shift;
 	my $minutes;
 	if ( !defined( $tempbantime ) ) { $tempbantime = 30; }
-	if ( $tempbantime == 1 )        { $minutes     = "Г¬ГЁГ­ГіГІГі"; }
+	if ( $tempbantime == 1 )        { $minutes     = "минуту"; }
 	elsif ( $tempbantime == 2 or $tempbantime == 3 or $tempbantime == 4 ) {
-		$minutes = "Г¬ГЁГ­ГіГІГ»";
+		$minutes = "минуты";
 	}
-	else { $minutes = "Г¬ГЁГ­ГіГІ"; }
+	else { $minutes = "минут"; }
 	if ( $search_string =~ /^\#(\d+)$/ ) { $slot = $1; }
 	else {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4796,7 +4796,7 @@ sub tempban_command {
 	my $ban_ip     = 'unknown';
 	my $ban_guid   = 0;
 	my $unban_time = $time + $tempbantime * 60;
-	&rcon_command( "say $name_by_slot{$slot} ^7ГЎГ»Г« ГўГ°ГҐГ¬ГҐГ­Г­Г® Г§Г ГЎГ Г­ГҐГ­ Г Г¤Г¬ГЁГ­Г®Г¬ Г­Г  ^3$tempbantime ^7$minutes" );
+	&rcon_command( "say $name_by_slot{$slot} ^7был временно забанен админом на ^3$tempbantime ^7$minutes" );
 	if ( $name_by_slot{ $slot } ) { $ban_name = $name_by_slot{ $slot }; }
 
 	if ( $ip_by_slot{ $slot } =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/ ) {
@@ -4822,11 +4822,11 @@ sub ban_command {
 		my @matches = &matching_users( $search_string );
 		if ( $#matches == 0 ) { $slot = $matches[ 0 ]; }
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Нет совпадений с: $search_string" );
 			return 1;
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+			&rcon_command( "say Слишком много совпадений с: $search_string" );
 			return 1;
 		}
 	}
@@ -4839,7 +4839,7 @@ sub ban_command {
 	my $ban_ip     = 'unknown';
 	my $ban_guid   = 0;
 	my $unban_time = 2125091758;
-	&rcon_command( "say $name_by_slot{$slot} ^7ГЎГ»Г« Г§Г ГЎГ Г­ГҐГ­ Г Г¤Г¬ГЁГ­Г®Г¬" );
+	&rcon_command( "say $name_by_slot{$slot} ^7был забанен админом" );
 	if ( $name_by_slot{ $slot } ) { $ban_name = $name_by_slot{ $slot }; }
 
 	if ( $ip_by_slot{ $slot } =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/ ) {
@@ -4876,7 +4876,7 @@ sub unban_command {
 	$bans_sth->execute( $unban )
 		or &die_nice( "Unable to do unban SELECT: $unban\n" );
 	while ( @row = $bans_sth->fetchrow_array ) {
-		&rcon_command( "say $row[5] ^7ГЎГ»Г« Г°Г Г§ГЎГ Г­ГҐГ­ Г Г¤Г¬ГЁГ­Г®Г¬ (BAN ID#: ^1$row[0] ^7ГіГ¤Г Г«ГҐГ­)" );
+		&rcon_command( "say $row[5] ^7был разбанен админом (BAN ID#: ^1$row[0] ^7удален)" );
 		push( @unban_these, $row[ 0 ] );
 		&log_to_file( 'logs/admin.log', "!UNBAN: $row[5] was unbanned by an admin. (BAN ID#: $row[0] deleted)" );
 	}
@@ -4897,18 +4897,18 @@ sub voting_command {
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "g_allowVote 1" );
-		&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ ГўГЄГ«ГѕГ·ГҐГ­Г®." );
+		&rcon_command( "say Голосование включено." );
 		$voting = 1;
 		&log_to_file( 'logs/admin.log', "!VOTING: voting was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "g_allowVote 0" );
-		&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г®." );
+		&rcon_command( "say Голосование выключено." );
 		$voting = 0;
 		&log_to_file( 'logs/admin.log', "!VOTING: voting was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГўГҐГ°Г­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !voting: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неверное значение команды !voting: $state, используйте on или off" );
 	}
 }
 
@@ -4920,18 +4920,18 @@ sub voice_command {
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "sv_voice 1" );
-		&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ®Г© Г·Г ГІ ГўГЄГ«ГѕГ·ГҐГ­." );
+		&rcon_command( "say Голосовой чат включен." );
 		$voice = 1;
 		&log_to_file( 'logs/admin.log', "!VOICE: voice chat was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "sv_voice 0" );
-		&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ®Г© Г·Г ГІ ГўГ»ГЄГ«ГѕГ·ГҐГ­." );
+		&rcon_command( "say Голосовой чат выключен." );
 		$voice = 0;
 		&log_to_file( 'logs/admin.log', "!VOICE: voice chat was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГўГҐГ°Г­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !voice: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неверное значение команды !voice: $state, используйте on или off" );
 	}
 }
 
@@ -4943,18 +4943,18 @@ sub antilag_command {
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "g_antilag 1" );
-		&rcon_command( "say ГЂГ­ГІГЁГ«Г ГЈ ГўГЄГ«ГѕГ·ГҐГ­." );
+		&rcon_command( "say Антилаг включен." );
 		$antilag = 1;
 		&log_to_file( 'logs/admin.log', "!ANTILAG: antilag was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "g_antilag 0" );
-		&rcon_command( "say ГЂГ­ГІГЁГ«Г ГЈ ГўГ»ГЄГ«ГѕГ·ГҐГ­." );
+		&rcon_command( "say Антилаг выключен." );
 		$antilag = 0;
 		&log_to_file( 'logs/admin.log', "!ANTILAG: antilag was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГўГҐГ°Г­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !antilag: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неверное значение команды !antilag: $state, используйте on или off" );
 	}
 }
 
@@ -4966,18 +4966,18 @@ sub killcam_command {
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "scr_killcam 1" );
-		&rcon_command( "say ГЏГ®ГЄГ Г§ ГЈГЁГЎГҐГ«ГЁ ГЎГ»Г« ^2Г‚ГЉГ‹ГћГ—Г…ГЌ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Показ гибели был ^2ВКЛЮЧЕН ^7админом" );
 		$killcam = 1;
 		&log_to_file( 'logs/admin.log', "!KILLCAM: the kill-cam was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "scr_killcam 0" );
-		&rcon_command( "say ГЏГ®ГЄГ Г§ ГЈГЁГЎГҐГ«ГЁ ГЎГ»Г« ^1Г‚Г›ГЉГ‹ГћГ—Г…ГЌ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Показ гибели был ^1ВЫКЛЮЧЕН ^7админом" );
 		$killcam = 0;
 		&log_to_file( 'logs/admin.log', "!KILLCAM: the kill-cam was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГЁГ§ГўГ±ГІГ­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !killcam: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неизвстное значение команды !killcam: $state, используйте on или off" );
 	}
 }
 
@@ -4989,16 +4989,16 @@ sub forcerespawn_command {
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "scr_forcerespawn 1" );
-		&rcon_command( "say ГЃГ»Г±ГІГ°Г®ГҐ ГўГ®Г§Г°Г®Г¦Г¤ГҐГ­ГЁГҐ ГЎГ»Г«Г® ^2Г‚ГЉГ‹ГћГ—Г…ГЌГЋ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Быстрое возрождение было ^2ВКЛЮЧЕНО ^7админом" );
 		&log_to_file( 'logs/admin.log', "!FORCERESPAWN: the quick respawn was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "scr_forcerespawn 0" );
-		&rcon_command( "say ГЃГ»Г±ГІГ°Г®ГҐ ГўГ®Г§Г°Г®Г¦Г¤ГҐГ­ГЁГҐ ГЎГ»Г«Г® ^1Г‚Г›ГЉГ‹ГћГ—Г…ГЌГЋ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Быстрое возрождение было ^1ВЫКЛЮЧЕНО ^7админом" );
 		&log_to_file( 'logs/admin.log', "!FORCERESPAWN: the quick respawn was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГЁГ§ГўГ±ГІГ­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !forcerespawn: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неизвстное значение команды !forcerespawn: $state, используйте on или off" );
 	}
 }
 
@@ -5010,16 +5010,16 @@ sub teambalance_command {
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "scr_teambalance 1" );
-		&rcon_command( "say ГЂГўГІГ®ГЎГ Г«Г Г­Г± ГЄГ®Г¬Г Г­Г¤ ГЎГ»Г« ^2Г‚ГЉГ‹ГћГ—Г…ГЌ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Автобаланс команд был ^2ВКЛЮЧЕН ^7админом" );
 		&log_to_file( 'logs/admin.log', "!TEAMBALANCE: the team auto-balance was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "scr_teambalance 0" );
-		&rcon_command( "say ГЂГўГІГ®ГЎГ Г«Г Г­Г± ГЄГ®Г¬Г Г­Г¤ ГЎГ»Г« ^1Г‚Г›ГЉГ‹ГћГ—Г…ГЌ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Автобаланс команд был ^1ВЫКЛЮЧЕН ^7админом" );
 		&log_to_file( 'logs/admin.log', "!TEAMBALANCE: the team auto-balance was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГЁГ§ГўГ±ГІГ­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !teambalance: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неизвстное значение команды !teambalance: $state, используйте on или off" );
 	}
 }
 
@@ -5031,16 +5031,16 @@ sub spectatefree_command {
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "scr_spectatefree 1" );
-		&rcon_command( "say Г‘ГўГ®ГЎГ®Г¤Г­Г»Г© Г°ГҐГ¦ГЁГ¬ Г­Г ГЎГ«ГѕГ¤ГҐГ­ГЁГї ГЎГ»Г« ^2Г‚ГЉГ‹ГћГ—Г…ГЌ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Свободный режим наблюдения был ^2ВКЛЮЧЕН ^7админом" );
 		&log_to_file( 'logs/admin.log', "!SPECTATEFREE: the specate-free mode was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "scr_spectatefree 0" );
-		&rcon_command( "say Г‘ГўГ®ГЎГ®Г¤Г­Г»Г© Г°ГҐГ¦ГЁГ¬ Г­Г ГЎГ«ГѕГ¤ГҐГ­ГЁГї ГЎГ»Г« ^1Г‚Г›ГЉГ‹ГћГ—Г…ГЌ ^7Г Г¤Г¬ГЁГ­Г®Г¬" );
+		&rcon_command( "say Свободный режим наблюдения был ^1ВЫКЛЮЧЕН ^7админом" );
 		&log_to_file( 'logs/admin.log', "!SPECTATEFREE: the specate-free mode was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГЁГ§ГўГ±ГІГ­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !spectatefree: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неизвстное значение команды !spectatefree: $state, используйте on или off" );
 	}
 }
 
@@ -5052,17 +5052,17 @@ sub speed_command {
 	my $speed = shift;
 	if ( $speed =~ /^\d+$/ ) {
 		&rcon_command( "g_speed $speed" );
-		&rcon_command( "say Г‘ГЄГ®Г°Г®Г±ГІГј ГіГ±ГІГ Г­Г®ГўГ«ГҐГ­Г  Г­Г  Г§Г­Г Г·ГҐГ­ГЁГҐ: ^2$speed" );
+		&rcon_command( "say Скорость установлена на значение: ^2$speed" );
 		&log_to_file( 'logs/admin.log', "!SPEED: speed was set to $speed by: $name - GUID $guid" );
 	}
 	else {
 		$temporary = &rcon_query( "g_speed" );
 		if ( $temporary =~ /\"g_speed\" is: \"(\d+)\^7\"/m ) {
 			$speed = $1;
-			&rcon_command( "say Г‡Г­Г Г·ГҐГ­ГЁГҐ Г±ГЄГ®Г°Г®Г±ГІГЁ Г±ГҐГ©Г·Г Г± ГіГ±ГІГ Г­Г®ГўГ«ГҐГ­Г® Г­Г : ^2$speed" );
+			&rcon_command( "say Значение скорости сейчас установлено на: ^2$speed" );
 		}
 		else {
-			&rcon_command( "say ГЉ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ, Г­ГҐ ГіГ¤Г Г«Г®Г±Гј ГіГ±ГІГ Г­Г®ГўГЁГІГј Г§Г­Г Г·ГҐГ­ГЁГҐ Г±ГЄГ®Г°Г®Г±ГІГЁ" );
+			&rcon_command( "say К сожалению, не удалось установить значение скорости" );
 		}
 	}
 }
@@ -5075,17 +5075,17 @@ sub gravity_command {
 	my $gravity = shift;
 	if ( $gravity =~ /^\d+$/ ) {
 		&rcon_command( "g_gravity $gravity" );
-		&rcon_command( "say ГѓГ°Г ГўГЁГІГ Г¶ГЁГї ГіГ±ГІГ Г­Г®ГўГ«ГҐГ­Г  Г­Г  Г§Г­Г Г·ГҐГ­ГЁГҐ: ^1$gravity" );
+		&rcon_command( "say Гравитация установлена на значение: ^1$gravity" );
 		&log_to_file( 'logs/admin.log', "!GRAVITY: gravity was set to $gravity by: $name - GUID $guid" );
 	}
 	else {
 		$temporary = &rcon_query( "g_gravity" );
 		if ( $temporary =~ /\"g_gravity\" is: \"(\d+)\^7\"/m ) {
 			$gravity = $1;
-			&rcon_command( "say ^7Г‡Г­Г Г·ГҐГ­ГЁГҐ ГЈГ°Г ГўГЁГІГ Г¶ГЁГЁ Г±ГҐГ©Г·Г Г± ГіГ±ГІГ Г­Г®ГўГ«ГҐГ­Г® Г­Г : ^1$gravity" );
+			&rcon_command( "say ^7Значение гравитации сейчас установлено на: ^1$gravity" );
 		}
 		else {
-			&rcon_command( "say ГЉ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ, Г­ГҐ ГіГ¤Г Г«Г®Г±Гј ГіГ±ГІГ Г­Г®ГўГЁГІГј Г§Г­Г Г·ГҐГ­ГЁГҐ ГЈГ°Г ГўГЁГІГ Г¶ГЁГЁ" );
+			&rcon_command( "say К сожалению, не удалось установить значение гравитации" );
 		}
 	}
 }
@@ -5097,17 +5097,17 @@ sub glitch_command {
 	if ( &flood_protection( 'glitch', 30, $slot ) ) { return 1; }
 	my $state = shift;
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
-		&rcon_command( "say Г„Г°ГіГ¦ГҐГ«ГѕГЎГ­Г»Г© Г°ГҐГ¦ГЁГ¬ ГўГЄГ«ГѕГ·ГҐГ­. ^1Г“ГЃГ€Г‚ГЂГ’Гњ Г’Г…ГЏГ…ГђГњ Г‡ГЂГЏГђГ…Г™Г…ГЌГЋ!" );
+		&rcon_command( "say Дружелюбный режим включен. ^1УБИВАТЬ ТЕПЕРЬ ЗАПРЕЩЕНО!" );
 		$config->{ 'glitch_server_mode' } = 1;
 		&log_to_file( 'logs/admin.log', "!GLITCH: glitch mode was enabled by: $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
-		&rcon_command( "say Г„Г°ГіГ¦ГҐГ«ГѕГЎГ­Г»Г© Г°ГҐГ¦ГЁГ¬ ГўГ»ГЄГ«ГѕГ·ГҐГ­. ^2Г“ГЃГ€Г‚ГЂГ’Гњ Г’Г…ГЏГ…ГђГњ ГђГЂГ‡ГђГ…ГГ…ГЌГЋ!" );
+		&rcon_command( "say Дружелюбный режим выключен. ^2УБИВАТЬ ТЕПЕРЬ РАЗРЕШЕНО!" );
 		$config->{ 'glitch_server_mode' } = 0;
 		&log_to_file( 'logs/admin.log', "!GLITCH: glitch mode was disabled by: $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГЁГ§ГўГҐГ±ГІГ­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» glitch: $state, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ on ГЁГ«ГЁ off" );
+		&rcon_command( "say Неизвестное значение команды glitch: $state, используйте on или off" );
 	}
 }
 
@@ -5122,7 +5122,7 @@ sub yes {
 		$voted_by_slot{ $slot } = 1;
 		$voted_yes++;
 		if ( ( $required_yes - $voted_yes ) != 0 ) {
-			&rcon_command( "say $name ^7ГЇГ°Г®ГЈГ®Г«Г®Г±Г®ГўГ Г« ^2Г‡ГЂ ^7Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г® ГҐГ№ГҐ ГЈГ®Г«Г®Г±Г®Гў ^2Г‡ГЂ^7:^2 " . ( $required_yes - $voted_yes ) );
+			&rcon_command( "say $name ^7проголосовал ^2ЗА ^7необходимо еще голосов ^2ЗА^7:^2 " . ( $required_yes - $voted_yes ) );
 		}
 	}
 }
@@ -5137,7 +5137,7 @@ sub no {
 	if ( ( $vote_started ) and ( !$voted_by_slot{ $slot } ) ) {
 		$voted_by_slot{ $slot } = 1;
 		$voted_no++;
-		&rcon_command( "say $name ^7ГЇГ°Г®ГЈГ®Г«Г®Г±Г®ГўГ Г« ^1ГЏГђГЋГ’Г€Г‚" );
+		&rcon_command( "say $name ^7проголосовал ^1ПРОТИВ" );
 	}
 }
 
@@ -5152,18 +5152,18 @@ sub best {
 	}
 	my $counter = 1;
 	my @row;
-	&rcon_command( "say ^2Г‹ГіГ·ГёГЁГҐ ^7ГЁГЈГ°Г®ГЄГЁ Г±ГҐГ°ГўГҐГ°Г :" );
+	&rcon_command( "say ^2Лучшие ^7игроки сервера:" );
 	sleep 1;
 
 	# Most Kills
 	$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE kills > 0 ORDER BY kills DESC LIMIT 5;" );
 	$stats_sth->execute
 		or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-	&rcon_command( "say ^2ГЌГ ГЁГЎГ®Г«ГјГёГҐГҐ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® ГіГЎГЁГ©Г±ГІГў^7:" );
+	&rcon_command( "say ^2Наибольшее количество убийств^7:" );
 	sleep 1;
 
 	while ( @row = $stats_sth->fetchrow_array ) {
-		&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г± ^2$row[2] ^7ГіГЎГЁГ©Г±ГІГўГ Г¬ГЁ" );
+		&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с ^2$row[2] ^7убийствами" );
 		sleep 1;
 	}
 
@@ -5173,11 +5173,11 @@ sub best {
 	$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE kills > 100 ORDER BY (kills * 10000 / deaths) DESC LIMIT 5;" );
 	$stats_sth->execute
 		or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-	&rcon_command( "say ^2Г€ГЈГ°Г®ГЄГЁ Г± Г«ГіГ·ГёГЁГ¬ ГЄ/Г¤ Г±Г®Г®ГІГ­Г®ГёГҐГ­ГЁГҐГ¬^7:" );
+	&rcon_command( "say ^2Игроки с лучшим к/д соотношением^7:" );
 	sleep 1;
 
 	while ( @row = $stats_sth->fetchrow_array ) {
-		&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г±^8 " . ( int( $row[ 2 ] / $row[ 3 ] * 100 ) / 100 ) . " ^7ГЄ/Г¤ Г±Г®Г®ГІГ­Г®ГёГҐГ­ГЁГҐГ¬" );
+		&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с^8 " . ( int( $row[ 2 ] / $row[ 3 ] * 100 ) / 100 ) . " ^7к/д соотношением" );
 		sleep 1;
 	}
 
@@ -5187,11 +5187,11 @@ sub best {
 	$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE kills > 100 ORDER BY (headshots * 10000 / kills) DESC LIMIT 5;" );
 	$stats_sth->execute
 		or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-	&rcon_command( "say ^2Г‹ГіГ·ГёГЁГ© ГЇГ°Г®Г¶ГҐГ­ГІ ГµГҐГ¤ГёГ®ГІГ®Гў^7:" );
+	&rcon_command( "say ^2Лучший процент хедшотов^7:" );
 	sleep 1;
 
 	while ( @row = $stats_sth->fetchrow_array ) {
-		&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г±^3 " . ( int( $row[ 4 ] / $row[ 2 ] * 10000 ) / 100 ) . " ^7ГЇГ°Г®Г¶ГҐГ­ГІГ Г¬ГЁ ГµГҐГ¤ГёГ®ГІГ®Гў" );
+		&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с^3 " . ( int( $row[ 4 ] / $row[ 2 ] * 10000 ) / 100 ) . " ^7процентами хедшотов" );
 		sleep 1;
 	}
 	if ( $config->{ 'killing_sprees' } ) {
@@ -5202,11 +5202,11 @@ sub best {
 		$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE best_killspree > 2 ORDER BY best_killspree DESC LIMIT 5;" );
 		$stats_sth->execute
 			or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-		&rcon_command( "say ^2Г‹ГіГ·ГёГЁГҐ Г±ГҐГ°ГЁГЁ ГіГЎГЁГ©Г±ГІГў^7:" );
+		&rcon_command( "say ^2Лучшие серии убийств^7:" );
 		sleep 1;
 
 		while ( @row = $stats_sth->fetchrow_array ) {
-			&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г± ^6$row[12] ^7ГіГЎГЁГ©Г±ГІГўГ Г¬ГЁ ГЇГ®Г¤Г°ГїГ¤" );
+			&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с ^6$row[12] ^7убийствами подряд" );
 			sleep 1;
 		}
 	}
@@ -5218,11 +5218,11 @@ sub best {
 		$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE nice_shots > 0 ORDER BY nice_shots DESC LIMIT 5;" );
 		$stats_sth->execute
 			or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-		&rcon_command( "say ^2ГЌГ ГЁГЎГ®Г«ГјГёГҐГҐ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® ГЇГ®Г­Г°Г ГўГЁГўГёГЁГµГ±Гї ГіГЎГЁГ©Г±ГІГў^7:" );
+		&rcon_command( "say ^2Наибольшее количество понравившихся убийств^7:" );
 		sleep 1;
 
 		while ( @row = $stats_sth->fetchrow_array ) {
-			&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г± ^2$row[13] ^7ГЇГ®Г­Г°Г ГўГЁГўГёГЁГ¬ГЁГ±Гї ГіГЎГЁГ©Г±ГІГўГ Г¬ГЁ" );
+			&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с ^2$row[13] ^7понравившимися убийствами" );
 			sleep 1;
 		}
 	}
@@ -5234,11 +5234,11 @@ sub best {
 		$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE bomb_plants > 0 ORDER BY bomb_plants DESC LIMIT 5;" );
 		$stats_sth->execute
 			or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-		&rcon_command( "say ^2ГЌГ ГЁГЎГ®Г«ГјГёГҐГҐ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г§Г Г«Г®Г¦ГҐГ­Г­Г®Г© ГўГ§Г°Г»ГўГ·Г ГІГЄГЁ^7:" );
+		&rcon_command( "say ^2Наибольшее количество заложенной взрывчатки^7:" );
 		sleep 1;
 
 		while ( @row = $stats_sth->fetchrow_array ) {
-			&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г± ^4$row[16] ^7Г§Г ГЄГ«Г Г¤ГЄГ Г¬ГЁ ГўГ§Г°Г»ГўГ·Г ГІГЄГЁ" );
+			&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с ^4$row[16] ^7закладками взрывчатки" );
 			sleep 1;
 		}
 
@@ -5248,11 +5248,11 @@ sub best {
 		$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE bomb_defuses > 0 ORDER BY bomb_defuses DESC LIMIT 5;" );
 		$stats_sth->execute
 			or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-		&rcon_command( "say ^2ГЌГ ГЁГЎГ®Г«ГјГёГҐГҐ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г®ГЎГҐГ§ГўГ°ГҐГ¦ГҐГ­Г­Г®Г© ГўГ§Г°Г»ГўГ·Г ГІГЄГЁ^7:" );
+		&rcon_command( "say ^2Наибольшее количество обезвреженной взрывчатки^7:" );
 		sleep 1;
 
 		while ( @row = $stats_sth->fetchrow_array ) {
-			&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г± ^5$row[17] ^7Г®ГЎГҐГ§ГўГ°ГҐГ¦ГЁГўГ Г­ГЁГїГ¬ГЁ ГўГ§Г°Г»ГўГ·Г ГІГЄГЁ" );
+			&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с ^5$row[17] ^7обезвреживаниями взрывчатки" );
 			sleep 1;
 		}
 	}
@@ -5284,10 +5284,10 @@ sub change_map {
 	}
 	$map = lc $map;
 	if ( &flood_protection( 'change_map', 30, $slot ) ) { return 1; }
-	&rcon_command( "say ^2Г‘Г¬ГҐГ­Г  Г­Г ^7: ^3" . &description( $map ) );
+	&rcon_command( "say ^2Смена на^7: ^3" . &description( $map ) );
 	$temporary = &rcon_query( "map $map" );
 	if ( $temporary =~ /Can't find map maps\/mp\/(\w+).d3dbsp/mi ) {
-		&rcon_command( "say ГЌГ  Г±ГҐГ°ГўГҐГ°ГҐ Г®ГІГ±ГіГІГ±ГІГўГіГҐГІ ГЄГ Г°ГІГ  (^2$1^7)" );
+		&rcon_command( "say На сервере отсутствует карта (^2$1^7)" );
 		return 1;
 	}
 	else { &log_to_file( 'logs/commands.log', "$name changed map to: $map" ); }
@@ -5307,7 +5307,7 @@ sub change_gametype {
 		return 1;
 	}
 	if ( &flood_protection( 'change_gametype', 30, $slot ) ) { return 1; }
-	&rcon_command( "say ^2Г‘Г¬ГҐГ­Г  ГІГЁГЇГ  ГЁГЈГ°Г» Г­Г ^7:^3 " . &description( $gametype ) );
+	&rcon_command( "say ^2Смена типа игры на^7:^3 " . &description( $gametype ) );
 	&rcon_command( "g_gametype $gametype" );
 	&rcon_command( "map_restart" );
 	&log_to_file( 'logs/commands.log', "$name changed gametype to: $gametype" );
@@ -5388,7 +5388,7 @@ sub check_player_names {
 
 # BEGIN: make_announcement
 sub make_announcement {
-	my $message = $announcements[ int( rand( $#announcements + 1 ) ) ];
+	my $message = $announcements[ int( rand( $#announcements ) ) ];
 	print "Making Announcement: $message\n";
 	&rcon_command( "say $message" );
 }
@@ -5405,7 +5405,7 @@ sub names {
 
 	if ( $#matches == -1 ) {
 		if ( &flood_protection( 'names-nomatch', 10, $slot ) ) { return 1; }
-		&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Нет совпадений с: $search_string" );
 	}
 	elsif ( $#matches == 0 ) {
 		&log_to_file( 'logs/commands.log', "$name executed an !names search for $name_by_slot{$matches[0]}" );
@@ -5432,7 +5432,7 @@ sub names {
 		}
 		if ( $#names == -1 ) {
 			if ( &flood_protection( 'names-none', 10, $slot ) ) { return 1; }
-			&rcon_command( "say ГЌГҐ Г­Г Г©Г¤ГҐГ­Г® ГЁГ¬ГҐГ­ Г¤Г«Гї: $name_by_slot{$matches[0]}" );
+			&rcon_command( "say Не найдено имен для: $name_by_slot{$matches[0]}" );
 		}
 		else {
 # Remove the duplicates from the @names hash, and strip the less colorful versions of names.
@@ -5484,21 +5484,21 @@ sub names {
 
 				if ( $name_by_slot{ $matches[ 0 ] } ne $key ) {
 					if ( $guessed ) {
-						&rcon_command( "say $name_by_slot{$matches[0]} ^7ГўГҐГ°Г®ГїГІГ­Г® ГҐГ№ГҐ ГЁГЈГ°Г Г« ГЄГ ГЄ: $key" );
+						&rcon_command( "say $name_by_slot{$matches[0]} ^7вероятно еще играл как: $key" );
 					}
 					else {
-						&rcon_command( "say $name_by_slot{$matches[0]} ^7ГҐГ№ГҐ ГЁГЈГ°Г Г« ГЄГ ГЄ: $key" );
+						&rcon_command( "say $name_by_slot{$matches[0]} ^7еще играл как: $key" );
 					}
 					$found_none = 0;
 				}
 			}
 			if ( $found_none ) {
-				&rcon_command( "say ГЌГҐ Г­Г Г©Г¤ГҐГ­Г® ГЁГ¬ГҐГ­ Г¤Г«Гї $name_by_slot{$matches[0]}" );
+				&rcon_command( "say Не найдено имен для $name_by_slot{$matches[0]}" );
 			}
 		}
 	}
 	elsif ( $#matches > 0 ) {
-		&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Слишком много совпадений с: $search_string" );
 	}
 }
 
@@ -5511,7 +5511,7 @@ sub worst {
 	{
 		return 1;
 	}
-	&rcon_command( "say ^1Г•ГіГ¤ГёГЁГҐ ^7ГЁГЈГ°Г®ГЄГЁ Г±ГҐГ°ГўГҐГ°Г :" );
+	&rcon_command( "say ^1Худшие ^7игроки сервера:" );
 	my $counter = 1;
 	my @row;
 	sleep 1;
@@ -5520,11 +5520,11 @@ sub worst {
 	$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE deaths > 0 ORDER BY deaths DESC LIMIT 5;" );
 	$stats_sth->execute
 		or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-	&rcon_command( "say ^1ГЌГ ГЁГЎГ®Г«ГјГёГҐГҐ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г±Г¬ГҐГ°ГІГҐГ©^7:" );
+	&rcon_command( "say ^1Наибольшее количество смертей^7:" );
 	sleep 1;
 
 	while ( @row = $stats_sth->fetchrow_array ) {
-		&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г± ^1$row[3] ^7Г±Г¬ГҐГ°ГІГїГ¬ГЁ" );
+		&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с ^1$row[3] ^7смертями" );
 		sleep 1;
 	}
 
@@ -5534,11 +5534,11 @@ sub worst {
 	$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE ((kills > 100) and (deaths > 50)) ORDER BY (kills * 10000 / deaths) ASC LIMIT 5;" );
 	$stats_sth->execute
 		or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-	&rcon_command( "say ^1Г€ГЈГ°Г®ГЄГЁ Г± ГµГіГ¤ГёГЁГ¬ ГЄ/Г¤ Г±Г®Г®ГІГ­Г®ГёГҐГ­ГЁГҐГ¬^7:" );
+	&rcon_command( "say ^1Игроки с худшим к/д соотношением^7:" );
 	sleep 1;
 
 	while ( @row = $stats_sth->fetchrow_array ) {
-		&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7Г±^8 " . ( int( $row[ 2 ] / $row[ 3 ] * 100 ) / 100 ) . " ^7ГЄ/Г¤ Г±Г®Г®ГІГ­Г®ГёГҐГ­ГЁГҐГ¬" );
+		&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7с^8 " . ( int( $row[ 2 ] / $row[ 3 ] * 100 ) / 100 ) . " ^7к/д соотношением" );
 		sleep 1;
 	}
 
@@ -5548,11 +5548,11 @@ sub worst {
 	$stats_sth = $stats_dbh->prepare( "SELECT * FROM stats WHERE ((kills > 100) and (headshots > 10)) ORDER BY (headshots * 10000 / kills) ASC LIMIT 5;" );
 	$stats_sth->execute
 		or &die_nice( "Unable to execute query: $stats_dbh->errstr\n" );
-	&rcon_command( "say ^1Г•ГіГ¤ГёГЁГ© ГЇГ°Г®Г¶ГҐГ­ГІ ГµГҐГ¤ГёГ®ГІГ®Гў^7:" );
+	&rcon_command( "say ^1Худший процент хедшотов^7:" );
 	sleep 1;
 
 	while ( @row = $stats_sth->fetchrow_array ) {
-		&rcon_command( "say ^3" . ( $counter++ ) . " ^7Г¬ГҐГ±ГІГ®: " . &get_name_by_guid( $row[ 1 ] ) . " ^7c^3 " . ( int( $row[ 4 ] / $row[ 2 ] * 10000 ) / 100 ) . " ^7ГЇГ°Г®Г¶ГҐГ­ГІГ Г¬ГЁ ГµГҐГ¤ГёГ®ГІГ®Гў" );
+		&rcon_command( "say ^3" . ( $counter++ ) . " ^7место: " . &get_name_by_guid( $row[ 1 ] ) . " ^7c^3 " . ( int( $row[ 4 ] / $row[ 2 ] * 10000 ) / 100 ) . " ^7процентами хедшотов" );
 		sleep 1;
 	}
 }
@@ -5659,7 +5659,7 @@ sub guid_sanity_check {
 					&log_to_file( 'logs/sanity.log', "GUID Sanity check: PASSED: GUID $guid == $should_be_guid" );
 				}
 				else {
-					&rcon_command( "say ^1ГЏГђГ…Г„Г“ГЏГђГ…Г†Г„Г…ГЌГ€Г…^7: ГЏГ°Г®ГўГҐГ°ГЄГ  ГЄГ®Г°Г°ГҐГЄГІГ­Г®Г±ГІГЁ GUID Г­ГҐ ГЇГ°Г®Г©Г¤ГҐГ­Г  Г¤Г«Гї $name_by_slot{$most_recent_slot}" );
+					&rcon_command( "say ^1ПРЕДУПРЕЖДЕНИЕ^7: Проверка корректности GUID не пройдена для $name_by_slot{$most_recent_slot}" );
 					print "\nFAIL: GUID Sanity check: FAILED\n";
 					print "\tIP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
 					&log_to_file( 'logs/sanity.log', "SANITY FAILED: $name_by_slot{$most_recent_slot}  IP: $ip was supposed to be GUID $should_be_guid but came back as $guid - Server has been up for: $uptime" );
@@ -5735,7 +5735,7 @@ sub tell {
 	my @matches = &matching_users( $search_string );
 	if ( $#matches == -1 ) {
 		if ( &flood_protection( 'tell-nomatch', 10, $slot ) ) { return 1; }
-		&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $search_string" );
+		&rcon_command( "say Нет совпадений с: $search_string" );
 	}
 	else {
 		if ( &flood_protection( 'tell', 30, $slot ) ) { return 1; }
@@ -5758,7 +5758,7 @@ sub last_bans {
 	$bans_sth->execute or &die_nice( "Unable to do select recent bans\n" );
 
 	while ( @row = $bans_sth->fetchrow_array ) {
-		&rcon_command( "say $row[5] ^7ГЎГ»Г« Г§Г ГЎГ Г­ГҐГ­ " . &duration( $time - $row[ 1 ] ) . " Г­Г Г§Г Г¤ (BAN ID#: ^1$row[0]^7, IP - ^2$row[3]^7, GUID - ^3$row[4]^7)" );
+		&rcon_command( "say $row[5] ^7был забанен " . &duration( $time - $row[ 1 ] ) . " назад (BAN ID#: ^1$row[0]^7, IP - ^2$row[3]^7, GUID - ^3$row[4]^7)" );
 		sleep 1;
 	}
 }
@@ -5777,7 +5777,7 @@ sub dictionary {
 	my @row;
 
 	if ( !defined( $word ) ) {
-		&rcon_command( "say !define Г·ГІГ®?" );
+		&rcon_command( "say !define что?" );
 		return 1;
 	}
 
@@ -5789,7 +5789,7 @@ sub dictionary {
 			$definitions_sth = $definitions_dbh->prepare( "INSERT INTO definitions VALUES (NULL, ?, ?)" );
 			$definitions_sth->execute( $term, $definition )
 				or &die_nice( "Unable to do insert\n" );
-			&rcon_command( "say ^2Г„Г®ГЎГ ГўГ«ГҐГ­Г® Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГҐ Г¤Г«Гї: ^1$term" );
+			&rcon_command( "say ^2Добавлено определение для: ^1$term" );
 			return 1;
 		}
 	}
@@ -5811,14 +5811,14 @@ sub dictionary {
 
 # Now we sanatize what we're looking for - online databases don't have multiword definitions.
 	if ( $word =~ /[^A-Za-z\-\_\s\d]/ ) {
-		&rcon_command( "say $name^7: ГЌГҐГўГҐГ°Г­Г»Г© ГўГўГ®Г¤, ГЁГ±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ !define = Г±Г«Г®ГўГ® Г·ГІГ®ГЎГ» Г¤Г®ГЎГ ГўГЁГІГј ГҐГЈГ® Гў ГЎГ Г§Гі Г¤Г Г­Г­Г»Гµ" );
+		&rcon_command( "say $name^7: Неверный ввод, используйте !define = слово чтобы добавить его в базу данных" );
 		sleep 1;
-		&rcon_command( "say $name^7: Г€Г«ГЁ !define Г±Г«Г®ГўГ® Г·ГІГ®ГЎГ» ГЇГ®Г±Г¬Г®ГІГ°ГҐГІГј Г°ГҐГ§ГіГ«ГјГІГ ГІГ» ГЁГ§ Г®Г­Г«Г Г©Г­-Г±Г«Г®ГўГ Г°Гї WordNet" );
+		&rcon_command( "say $name^7: Или !define слово чтобы посмотреть результаты из онлайн-словаря WordNet" );
 		return 1;
 	}
 	$content = get( "http://wordnetweb.princeton.edu/perl/webwn?s=" . $word );
 	if ( !defined( $content ) ) {
-		&rcon_command( "say Г‘Г«Г®ГўГ Г°Гј WordNet Гў Г­Г Г±ГІГ®ГїГ№ГҐГҐ ГўГ°ГҐГ¬Гї Г­ГҐГ¤Г®Г±ГІГіГЇГҐГ­, ГЇГ®ГЇГ°Г®ГЎГіГ©ГІГҐ ГЇГ®Г§Г¦ГҐ" );
+		&rcon_command( "say Словарь WordNet в настоящее время недоступен, попробуйте позже" );
 		return 1;
 	}
 	@lines = split( /\n+/, $content );
@@ -5835,14 +5835,14 @@ sub dictionary {
 		}
 	}
 	if ( !$counter ) {
-		&rcon_command( "say ГЉ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ, Г­ГҐ Г­Г Г©Г¤ГҐГ­Г® Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГ© Г¤Г«Гї Г±Г«Г®ГўГ : ^2$word" );
+		&rcon_command( "say К сожалению, не найдено определений для слова: ^2$word" );
 	}
 	else {
 		if ( $counter == 1 ) {
-			&rcon_command( "say ^3ГЋГ¤Г­Г® ^7Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГҐ Г­Г Г©Г¤ГҐГ­Г® Г¤Г«Гї Г±Г«Г®ГўГ : ^2$word" );
+			&rcon_command( "say ^3Одно ^7определение найдено для слова: ^2$word" );
 		}
 		else {
-			&rcon_command( "say ^3$counter ^7Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГ© Г­Г Г©Г¤ГҐГ­Г® Г¤Г«Гї Г±Г«Г®ГўГ : ^2$word" );
+			&rcon_command( "say ^3$counter ^7определений найдено для слова: ^2$word" );
 		}
 		sleep 1;
 		foreach $definition ( @definitions ) {
@@ -6152,145 +6152,145 @@ sub ftp_get_line {
 # BEGIN: toggle_weapon
 sub toggle_weapon {
 	my ( $weapon, $requested_state ) = ( @_ );
-	if ( $weapon eq "Г„Г»Г¬Г®ГўГ»ГҐ ГЈГ°Г Г­Г ГІГ»" ) {
+	if ( $weapon eq "Дымовые гранаты" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_smokegrenades 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_smokegrenades 0" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
-	elsif ( $weapon eq "ГЋГ±ГЄГ®Г«Г®Г·Г­Г»ГҐ ГЈГ°Г Г­Г ГІГ»" ) {
+	elsif ( $weapon eq "Осколочные гранаты" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_fraggrenades 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_fraggrenades 0" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
-	elsif ( $weapon eq "Г„Г°Г®ГЎГ®ГўГЁГЄГЁ" ) {
+	elsif ( $weapon eq "Дробовики" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_shotgun 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_shotgun 0" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
-	elsif ( $weapon eq "Г‚ГЁГ­ГІГ®ГўГЄГЁ" ) {
+	elsif ( $weapon eq "Винтовки" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_kar98k 1" );
 			&rcon_command( "set scr_allow_enfield 1" );
 			&rcon_command( "set scr_allow_nagant 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_kar98k 0" );
 			&rcon_command( "set scr_allow_enfield 0" );
 			&rcon_command( "set scr_allow_nagant 0" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
-	elsif ( $weapon eq "ГЏГ®Г«ГіГ ГўГІГ®Г¬Г ГІГЁГ·ГҐГ±ГЄГЁГҐ ГўГЁГ­ГІГ®ГўГЄГЁ" ) {
+	elsif ( $weapon eq "Полуавтоматические винтовки" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_m1carbine 1" );
 			&rcon_command( "set scr_allow_m1garand 1" );
 			&rcon_command( "set scr_allow_g43 1" );
 			&rcon_command( "set scr_allow_svt40 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_m1carbine 0" );
 			&rcon_command( "set scr_allow_m1garand 0" );
 			&rcon_command( "set scr_allow_g43 0" );
 			&rcon_command( "set scr_allow_svt40 0" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
-	elsif ( $weapon eq "Г‘Г­Г Г©ГЇГҐГ°Г±ГЄГЁГҐ ГўГЁГ­ГІГ®ГўГЄГЁ" ) {
+	elsif ( $weapon eq "Снайперские винтовки" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_kar98ksniper 1" );
 			&rcon_command( "set scr_allow_enfieldsniper 1" );
 			&rcon_command( "set scr_allow_nagantsniper 1" );
 			&rcon_command( "set scr_allow_springfield 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_kar98ksniper 0" );
 			&rcon_command( "set scr_allow_enfieldsniper 0" );
 			&rcon_command( "set scr_allow_nagantsniper 0" );
 			&rcon_command( "set scr_allow_springfield 0" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
-	elsif ( $weapon eq "ГЏГіГ«ГҐГ¬ГҐГІГ»" ) {
+	elsif ( $weapon eq "Пулеметы" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_bar 1" );
 			&rcon_command( "set scr_allow_bren 1" );
 			&rcon_command( "set scr_allow_mp44 1" );
 			&rcon_command( "set scr_allow_ppsh 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_bar 0" );
 			&rcon_command( "set scr_allow_bren 0" );
 			&rcon_command( "set scr_allow_mp44 0" );
 			&rcon_command( "set scr_allow_ppsh 0" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
-	elsif ( $weapon eq "ГЂГўГІГ®Г¬Г ГІГ»" ) {
+	elsif ( $weapon eq "Автоматы" ) {
 		if ( $requested_state =~ /yes|1|on|enable/i ) {
-			&rcon_command( "say Г‚ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Включаю ^3$weapon" );
 			&rcon_command( "set scr_allow_sten 1" );
 			&rcon_command( "set scr_allow_mp40 1" );
 			&rcon_command( "set scr_allow_thompson 1" );
 			&rcon_command( "set scr_allow_pps42 1" );
 			&rcon_command( "set scr_allow_greasegun 1" );
-			&rcon_command( "say ^3$weapon ^7ГЎГ»Г«ГЁ ГўГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon ^7были включены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was enabled by:  $name - GUID $guid" );
 		}
 		elsif ( $requested_state =~ /no|0|off|disable/i ) {
-			&rcon_command( "say Г‚Г»ГЄГ«ГѕГ·Г Гѕ ^3$weapon" );
+			&rcon_command( "say Выключаю ^3$weapon" );
 			&rcon_command( "set scr_allow_sten 0" );
 			&rcon_command( "set scr_allow_mp40 0" );
 			&rcon_command( "set scr_allow_thompson 0" );
 			&rcon_command( "set scr_allow_pps42 0" );
 			&rcon_command( "set scr_allow_greasegun 0" );
-			&rcon_command( "say ^3$weapon^7 ГЎГ»Г«ГЁ ГўГ»ГЄГ«ГѕГ·ГҐГ­Г» Г Г¤Г¬ГЁГ­Г®Г¬." );
+			&rcon_command( "say ^3$weapon^7 были выключены админом." );
 			&log_to_file( 'logs/admin.log', "$weapon was disabled by:  $name - GUID $guid" );
 		}
 	}
@@ -6373,7 +6373,7 @@ sub update_name_by_slot {
 						}
 					}
 					if ( ( $old_name_stolen ) and ( $new_name_stolen ) ) {
-						&rcon_command( "say ^1ГЋГЃГЌГЂГђГ“Г†Г…ГЌГЂ ГЉГђГЂГ†ГЂ ГЌГ€ГЉГЌГ…Г‰ГЊГЋГ‚^7: ^3Slot #^1$slot ^7ГЎГ»Г« ГЇГҐГ°Г¬Г Г­ГҐГ­ГІГ­Г® Г§Г ГЎГ Г­ГҐГ­ Г§Г  ГЄГ°Г Г¦Гі Г­ГЁГЄГ­ГҐГ©Г¬Г®Гў!" );
+						&rcon_command( "say ^1ОБНАРУЖЕНА КРАЖА НИКНЕЙМОВ^7: ^3Slot #^1$slot ^7был перманентно забанен за кражу никнеймов!" );
 						my $ban_name   = 'NAME STEALING JERKASS';
 						my $ban_ip     = 'unknown';
 						my $ban_guid   = 0;
@@ -6410,29 +6410,29 @@ sub friendlyfire_command {
 	if ( $state =~ /^(yes|1|on|enabled?)$/i ) {
 		&rcon_command( "scr_friendlyfire 1" );
 		$friendly_fire = 1;
-		&rcon_command( "say ГЂГ¤Г¬ГЁГ­ ^1Г‚ГЉГ‹ГћГ—Г€Г‹ ^7ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬. ГЃГіГ¤ГјГІГҐ Г ГЄГЄГіГ°Г ГІГ­Г», Г±ГІГ Г°Г Г©ГІГҐГ±Гј Г­ГҐ Г°Г Г­ГЁГІГј Г±ГўГ®ГЁГµ ГІГ®ГўГ Г°ГЁГ№ГҐГ© ГЇГ® ГЄГ®Г¬Г Г­Г¤ГҐ" );
+		&rcon_command( "say Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам. Будьте аккуратны, старайтесь не ранить своих товарищей по команде" );
 		&log_to_file( 'logs/admin.log', "!friendlyfire: friendly fire was ENABLED by:  $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^(off|0|no|disabled?)$/i ) {
 		&rcon_command( "scr_friendlyfire 0" );
 		$friendly_fire = 0;
-		&rcon_command( "say ГЂГ¤Г¬ГЁГ­ ^2Г‚Г›ГЉГ‹ГћГ—Г€Г‹ ^7ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬" );
+		&rcon_command( "say Админ ^2ВЫКЛЮЧИЛ ^7Огонь по союзникам" );
 		&log_to_file( 'logs/admin.log', "!friendlyfire: friendly fire was DISABLED by:  $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^2$/i ) {
 		&rcon_command( "scr_friendlyfire 2" );
 		$friendly_fire = 2;
-		&rcon_command( "say ГЂГ¤Г¬ГЁГ­ ^1Г‚ГЉГ‹ГћГ—Г€Г‹ ^7ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Г± Г°ГЁГЄГ®ГёГҐГІГ­Г»Г¬ ГіГ°Г®Г­Г®Г¬" );
+		&rcon_command( "say Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с рикошетным уроном" );
 		&log_to_file( 'logs/admin.log', "!friendlyfire: friendly fire was ENABLED with reflective team damage by:  $name - GUID $guid" );
 	}
 	elsif ( $state =~ /^3$/i ) {
 		&rcon_command( "scr_friendlyfire 3" );
 		$friendly_fire = 3;
-		&rcon_command( "say ГЂГ¤Г¬ГЁГ­ ^1Г‚ГЉГ‹ГћГ—Г€Г‹ ^7ГЋГЈГ®Г­Гј ГЇГ® Г±Г®ГѕГ§Г­ГЁГЄГ Г¬ Г± Г±Г®ГўГ¬ГҐГ±ГІГ­Г»Г¬ ГіГ°Г®Г­Г®Г¬" );
+		&rcon_command( "say Админ ^1ВКЛЮЧИЛ ^7Огонь по союзникам с совместным уроном" );
 		&log_to_file( 'logs/admin.log', "!friendlyfire: friendly fire was ENABLED with shared team damage by:  $name - GUID $guid" );
 	}
 	else {
-		&rcon_command( "say ГЌГҐГўГҐГ°Г­Г®ГҐ Г§Г­Г Г·ГҐГ­ГЁГҐ ГЄГ®Г¬Г Г­Г¤Г» !friendlyfire. Г„Г®Г±ГІГіГЇГ­Г» Г§Г­Г Г·ГҐГ­ГЁГї Г®ГІ 0 Г¤Г® 3" );
+		&rcon_command( "say Неверное значение команды !friendlyfire. Доступны значения от 0 до 3" );
 	}
 }
 
@@ -6480,7 +6480,7 @@ sub make_affiliate_server_announcement {
 		}
 		if ( $clients ) {
 			if ( $clients == 1 or $clients == 21 or $clients == 31 ) {
-				$players = "ГЁГЈГ°Г®ГЄ Г­Г ";
+				$players = "игрок на";
 			}
 			elsif ($clients == 2
 				or $clients == 3
@@ -6490,19 +6490,19 @@ sub make_affiliate_server_announcement {
 				or $clients == 24
 				or $clients == 32 )
 			{
-				$players = "ГЁГЈГ°Г®ГЄГ  Г­Г ";
+				$players = "игрока на";
 			}
-			else { $players = "ГЁГЈГ°Г®ГЄГ®Гў Г­Г "; }
+			else { $players = "игроков на"; }
 			$line = "^1$clients ^7$players ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
 			push @results, $line;
 		}
 	}
 	if ( defined( $results[ 0 ] ) ) {
 		if ( $num_servers == 1 ) {
-			&rcon_command( "say ГЏГ®Г°Г  ГіГ§Г­Г ГІГј Г·ГІГ® ГЇГ°Г®ГЁГ±ГµГ®Г¤ГЁГІ Г­Г  Г¤Г°ГіГЈГ®Г¬ Г±ГҐГ°ГўГҐГ°ГҐ:" );
+			&rcon_command( "say Пора узнать что происходит на другом сервере:" );
 		}
 		else {
-			&rcon_command( "say ГЏГ®Г°Г  ГіГ§Г­Г ГІГј Г·ГІГ® ГЇГ°Г®ГЁГ±ГµГ®Г¤ГЁГІ Г­Г  Г¤Г°ГіГЈГЁГµ Г±ГҐГ°ГўГҐГ°Г Гµ:" );
+			&rcon_command( "say Пора узнать что происходит на других серверах:" );
 		}
 		sleep 1;
 		foreach $line ( @results ) {
@@ -6615,13 +6615,13 @@ sub broadcast_message {
 	}
 	if ( &flood_protection( 'broadcast', 30, $slot ) ) { return 1; }
 	if ( $num_servers == 0 ) {
-		&rcon_command( "say ГЉ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ, Г­ГҐ Г­Г Г©Г¤ГҐГ­Г® Г­Г Г±ГІГ°Г®ГҐГ­Г­Г»Гµ ГіГ¤Г Г«ГҐГ­Г­Г»Гµ Г±ГҐГ°ГўГҐГ°Г®Гў. ГЏГ°Г®ГўГҐГ°ГјГІГҐ ГўГ Гё ГЄГ®Г­ГґГЁГЈГіГ°Г Г¶ГЁГ®Г­Г­Г»Г© ГґГ Г©Г«." );
+		&rcon_command( "say К сожалению, не найдено настроенных удаленных серверов. Проверьте ваш конфигурационный файл." );
 	}
 	elsif ( $num_servers == 1 ) {
-		&rcon_command( "say Г‚Г ГёГҐ Г±Г®Г®ГЎГ№ГҐГ­ГЁГҐ ГЎГ»Г«Г® ГіГ±ГЇГҐГёГ­Г® ГЇГҐГ°ГҐГ¤Г Г­Г® Г­Г  Г¤Г°ГіГЈГ®Г© Г±ГҐГ°ГўГҐГ°." );
+		&rcon_command( "say Ваше сообщение было успешно передано на другой сервер." );
 	}
 	else {
-		&rcon_command( "say Г‚Г ГёГҐ Г±Г®Г®ГЎГ№ГҐГ­ГЁГҐ ГЎГ»Г«Г® ГіГ±ГЇГҐГёГ­Г® ГЇГҐГ°ГҐГ¤Г Г­Г® Г­Г  ^1$num_servers ^7Г¤Г°ГіГЈГЁГµ Г±ГҐГ°ГўГҐГ°Г®Гў" );
+		&rcon_command( "say Ваше сообщение было успешно передано на ^1$num_servers ^7других серверов" );
 	}
 }
 
@@ -6630,7 +6630,7 @@ sub broadcast_message {
 # BEGIN: nuke
 sub nuke {
 	if ( &flood_protection( 'nuke', 30, $slot ) ) { return 1; }
-	&rcon_command( "say ГЋ ГЌГ…Г’, Г®Г­ Г­Г Г¦Г Г« ^1ГЉГђГЂГ‘ГЌГ“Гћ ГЉГЌГЋГЏГЉГ“^7!!!!!!!" );
+	&rcon_command( "say О НЕТ, он нажал ^1КРАСНУЮ КНОПКУ^7!!!!!!!" );
 	sleep 1;
 	&rcon_command( "kick all" );
 	&log_to_file( 'logs/kick.log', "NUKE: ALL players were kicked by $name - GUID $guid - via !nuke command" );
@@ -6657,15 +6657,15 @@ sub exchange {
 		if ( $content =~ /<CharCode>EUR<\/CharCode>\s+<Nominal>\d+<\/Nominal>\s+<Name>.*<\/Name>\s+<Value>([\d,]+)<\/Value>/ ) {
 			$euro = $1;
 		}
-		if ( $currency =~ /^USD|dollar|Г¤Г®Г«Г«Г Г°|Г¤Г®Г«Г«Г Г°Г $/i ) {
-			&rcon_command( "say ГЉГіГ°Г± Г¤Г®Г«Г«Г Г°Г  Г­Г  ^2$date ^7ГЇГ® Г–ГЃ ГђГ” Г±Г®Г±ГІГ ГўГ«ГїГҐГІ: ^3$dollar ^7Г°ГіГЎГ«ГҐГ©" );
+		if ( $currency =~ /^USD|dollar|доллар|доллара$/i ) {
+			&rcon_command( "say Курс доллара на ^2$date ^7по ЦБ РФ составляет: ^3$dollar ^7рублей" );
 		}
-		if ( $currency =~ /^EUR|euro|ГҐГўГ°Г®$/i ) {
-			&rcon_command( "say ГЉГіГ°Г± ГҐГўГ°Г® Г­Г  ^2$date ^7ГЇГ® Г–ГЃ ГђГ” Г±Г®Г±ГІГ ГўГ«ГїГҐГІ: ^3$euro ^7Г°ГіГЎГ«ГҐГ©" );
+		if ( $currency =~ /^EUR|euro|евро$/i ) {
+			&rcon_command( "say Курс евро на ^2$date ^7по ЦБ РФ составляет: ^3$euro ^7рублей" );
 		}
 	}
 	else {
-		&rcon_command( "say Г‘Г Г©ГІ Г–ГЃ ГђГ” Гў Г­Г Г±ГІГ®ГїГ№ГҐГҐ ГўГ°ГҐГ¬Гї Г­ГҐГ¤Г®Г±ГІГіГЇГҐГ­, ГЇГ®ГўГІГ®Г°ГЁГІГҐ ГЇГ®ГЇГ»ГІГЄГі ГЇГ®Г§Г¦ГҐ" );
+		&rcon_command( "say Сайт ЦБ РФ в настоящее время недоступен, повторите попытку позже" );
 	}
 }
 
@@ -6682,15 +6682,15 @@ sub vote {
 		if ( $#matches == 0 ) {
 			$vote_target      = $name_by_slot{ $matches[ 0 ] };
 			$vote_target_slot = $matches[ 0 ];
-			if   ( $vote_type eq 'kick' ) { &vote_start( "Г‚Г»ГЄГЁГ­ГіГІГј" ); }
-			else                          { &vote_start( "Г‚Г°ГҐГ¬ГҐГ­Г­Г® Г§Г ГЎГ Г­ГЁГІГј" ); }
+			if   ( $vote_type eq 'kick' ) { &vote_start( "Выкинуть" ); }
+			else                          { &vote_start( "Временно забанить" ); }
 		}
 		elsif ( $#matches > 0 ) {
-			&rcon_command( "say Г‘Г«ГЁГёГЄГ®Г¬ Г¬Г­Г®ГЈГ® Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $vote_target" );
+			&rcon_command( "say Слишком много совпадений с: $vote_target" );
 			return 1;
 		}
 		elsif ( $#matches == -1 ) {
-			&rcon_command( "say ГЌГҐГІ Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГ© Г±: $vote_target" );
+			&rcon_command( "say Нет совпадений с: $vote_target" );
 			return 1;
 		}
 	}
@@ -6741,7 +6741,7 @@ sub vote {
 		{
 			return 1;
 		}
-		&vote_start( "Г‘Г¬ГҐГ­Г  ГЄГ Г°ГІГ» Г­Г ^2" );
+		&vote_start( "Смена карты на^2" );
 	}
 	elsif ( $vote_type eq 'type' ) {
 		if    ( $vote_target =~ /^dm\b/i )  { $vote_target = 'dm'; }
@@ -6752,7 +6752,7 @@ sub vote {
 		else                                { $vote_target = 'unknown'; }
 
 		if ( $vote_target =~ /^(dm|tdm|hq|ctf|sd)$/ ) {
-			&vote_start( "Г‘Г¬ГҐГ­Г  ГІГЁГЇГ  ГЁГЈГ°Г» Г­Г ^3" );
+			&vote_start( "Смена типа игры на^3" );
 		}
 	}
 }
@@ -6764,22 +6764,22 @@ sub vote_start {
 	if ( &flood_protection( 'vote', 300 ) ) { return 1; }
 	$vote_string = shift;
 	my $type = uc $vote_type;
-	&rcon_command( "say $vote_initiator ^7ГЇГ°ГҐГ¤Г«Г®Г¦ГЁГ« ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ: $vote_string " . &description( $vote_target ) );
+	&rcon_command( "say $vote_initiator ^7предложил голосование: $vote_string " . &description( $vote_target ) );
 	sleep 1;
 	$voting_players = $players_count;
 
 	if ( !$voting_players ) {
-		&rcon_command( "say Г‘ГҐГ©Г·Г Г± ГЇГ°Г®ГўГҐГ±ГІГЁ ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г­ГҐГўГ®Г§Г¬Г®Г¦Г­Г®, ГЇГ®ГўГІГ®Г°ГЁГІГҐ ГЇГ®ГЇГ»ГІГЄГі ГЇГ®Г§Г¦ГҐ" );
+		&rcon_command( "say Сейчас провести голосование невозможно, повторите попытку позже" );
 		return 1;
 	}
 	$vote_time = ( $time + $vote_timelimit ) + ( $players_count * 5 );    # +5 seconds for each player
 	$required_yes = ( $voting_players / 2 ) + 1;
 	if ( $required_yes =~ /^(\d+)(\.\d+)$/ ) { $required_yes = $1; }
-	&rcon_command( "say ГѓГ®Г«Г®Г±Г®ГўГ Г­ГЁГҐ Г­Г Г·Г Г«Г®Г±Гј: Г„Г«ГЁГІГҐГ«ГјГ­Г®Г±ГІГј^4 " . ( $vote_time - $time ) . " ^7Г±ГҐГЄГіГ­Г¤: ГЌГҐГ®ГЎГµГ®Г¤ГЁГ¬Г® ГЈГ®Г«Г®Г±Г®Гў ^2Г‡ГЂ^7: ^2$required_yes" );
+	&rcon_command( "say Голосование началось: Длительность^4 " . ( $vote_time - $time ) . " ^7секунд: Необходимо голосов ^2ЗА^7: ^2$required_yes" );
 	sleep 1;
-	&rcon_command( "say Г€Г±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ ^5!yes ^7Г¤Г«Гї ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГї ^2Г‡ГЂ ^7ГЁГ«ГЁ ^5!no ^7Г¤Г«Гї ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГї ^1ГЏГђГЋГ’Г€Г‚" );
+	&rcon_command( "say Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ" );
 	sleep 1;
-	&rcon_command( "say Г€Г±ГЇГ®Г«ГјГ§ГіГ©ГІГҐ ^5!votestatus ^7Г¤Г«Гї ГЇГ°Г®ГўГҐГ°ГЄГЁ Г±Г®Г±ГІГ®ГїГ­ГЁГї ГЈГ®Г«Г®Г±Г®ГўГ Г­ГЁГї" );
+	&rcon_command( "say Используйте ^5!votestatus ^7для проверки состояния голосования" );
 	$vote_started = 1;
 	&log_to_file( 'logs/voting.log', "!VOTE$type: $vote_initiator has started a vote: $vote_string $vote_target" );
 }
