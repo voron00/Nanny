@@ -88,7 +88,8 @@ my $names_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/names.db",    
 my $ranks_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/ranks.db",        "", "" );
 
 # Global variable declarations
-my $version                    = '3.4 EN r69';
+my $version                    = '3.4 EN r70';
+my $modtime                    = localtime( ( stat( $0 ) )[ 9 ] );
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
 my $idlecheck_interval         = 45;
@@ -2434,7 +2435,7 @@ sub chat {
 		elsif ( $message =~ /^!reboot/i ) {
 			if ( &check_access( 'reboot' ) ) {
 				&rcon_command( "say Ok $name^7, rebooting myself..." );
-				exec 'perl nanny.pl';
+				exec "perl $0";
 			}
 		}
 
@@ -2451,7 +2452,7 @@ sub chat {
 			if ( &check_access( 'version' ) ) {
 				if ( &flood_protection( 'version', 30 ) ) { }
 				else {
-					&rcon_command( "say Nanny^7 for CoD2 version^2 $version" );
+					&rcon_command( "say Nanny^7 for CoD2 version^2 $version ($modtime)" );
 					sleep 1;
 					&rcon_command( "say ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney" );
 					sleep 1;
@@ -2483,6 +2484,11 @@ sub chat {
 				else {
 					&change_map( $1 );
 				}
+			}
+		}
+		elsif ( $message =~ /^!map\s*$/i ) {
+			if ( &check_access( 'map' ) ) {
+				&rcon_command( "say !map mapname" );
 			}
 		}
 
@@ -2890,7 +2896,7 @@ sub chat {
 			if ( &check_access( 'fly' ) ) {
 				if ( &flood_protection( 'fly', 30, $slot ) ) { }
 				else {
-					&rcon_command( "say Fly like a birds!!!" );
+					&rcon_command( "say Like a birds in the sky you shall FLY!!!" );
 					&rcon_command( "g_gravity 10" );
 					$fly_timer = $time + 20;
 				}
@@ -5257,6 +5263,7 @@ sub change_map {
 
 	if ( $temporary =~ /Can't find map maps\/mp\/(\w+).d3dbsp/mi ) {
 		&rcon_command( "say The server doesn't have that map (^2$1^7)" );
+		if ( &flood_protection( 'vote', 1 ) ) { return 1; }    # Reset the 'vote' flood protection
 		return 1;
 	}
 	else { &log_to_file( 'logs/commands.log', "$name changed map to: $map" ); }
@@ -6447,16 +6454,22 @@ sub make_affiliate_server_announcement {
 			}
 		}
 		if ( $clients ) {
-			$line = "^1$clients ^7players at ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
-			push @results, $line;
+			if ( $clients == 1 ) {
+				$line = "^1$clients ^7player at ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
+				push @results, $line;
+			}
+			else {
+				$line = "^1$clients ^7players at ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
+				push @results, $line;
+			}
 		}
 	}
 	if ( defined( $results[ 0 ] ) ) {
 		if ( $num_servers == 1 ) {
-			&rcon_command( "say Time to check what is going on on other server:" );
+			&rcon_command( "say It's time to check what's happening on other server:" );
 		}
 		else {
-			&rcon_command( "say Time to check what is going on on other servers:" );
+			&rcon_command( "say It's time to check what's happening on other servers:" );
 		}
 		sleep 1;
 		foreach $line ( @results ) {
@@ -6643,11 +6656,15 @@ sub vote {
 		elsif ( $vote_target =~ /^len+[aeio]ngrad\b/i ) {
 			$vote_target = 'mp_leningrad';
 		}
-		elsif ( $vote_target =~ /^matmata\b/i ) { $vote_target = 'mp_matmata'; }
+		elsif ( $vote_target =~ /^matmata\b/i ) {
+			$vote_target = 'mp_matmata';
+		}
 		elsif ( $vote_target =~ /^(st[ao]l[ie]ngrad|railyard)\b/i ) {
 			$vote_target = 'mp_railyard';
 		}
-		elsif ( $vote_target =~ /^toujane\b/i ) { $vote_target = 'mp_toujane'; }
+		elsif ( $vote_target =~ /^toujane\b/i ) {
+			$vote_target = 'mp_toujane';
+		}
 		elsif ( $vote_target =~ /^(caen|train.?station)\b/i ) {
 			$vote_target = 'mp_trainstation';
 		}
