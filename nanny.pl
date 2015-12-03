@@ -88,7 +88,8 @@ my $names_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/names.db",    
 my $ranks_dbh        = DBI->connect( "dbi:SQLite:dbname=databases/ranks.db",        "", "" );
 
 # Global variable declarations
-my $version                    = '3.4 RU r69';
+my $version                    = '3.4 RU r70';
+my $modtime                    = localtime( ( stat( $0 ) )[ 9 ] );
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
 my $idlecheck_interval         = 45;
@@ -2444,7 +2445,7 @@ sub chat {
 		elsif ( $message =~ /^!reboot/i ) {
 			if ( &check_access( 'reboot' ) ) {
 				&rcon_command( "say Хорошо $name^7, перезапускаю себя..." );
-				exec 'perl nanny.pl';
+				exec "perl $0";
 			}
 		}
 
@@ -2461,7 +2462,7 @@ sub chat {
 			if ( &check_access( 'version' ) ) {
 				if ( &flood_protection( 'version', 30 ) ) { }
 				else {
-					&rcon_command( "say Nanny^7 for CoD2 version^2 $version" );
+					&rcon_command( "say Nanny^7 for CoD2 version^2 $version ($modtime)" );
 					sleep 1;
 					&rcon_command( "say ^7by ^4smugllama ^7/ ^1indie cypherable ^7/ Dick Cheney" );
 					sleep 1;
@@ -2493,6 +2494,11 @@ sub chat {
 				else {
 					&change_map( $1 );
 				}
+			}
+		}
+		elsif ( $message =~ /^!map\s*$/i ) {
+			if ( &check_access( 'map' ) ) {
+				&rcon_command( "say !map название карты" );
 			}
 		}
 
@@ -5289,6 +5295,7 @@ sub change_map {
 
 	if ( $temporary =~ /Can't find map maps\/mp\/(\w+).d3dbsp/mi ) {
 		&rcon_command( "say На сервере отсутствует карта (^2$1^7)" );
+		if ( &flood_protection( 'vote', 1 ) ) { return 1; }    # Reset the 'vote' flood protection
 		return 1;
 	}
 	else { &log_to_file( 'logs/commands.log', "$name changed map to: $map" ); }
@@ -6723,11 +6730,15 @@ sub vote {
 		elsif ( $vote_target =~ /^len+[aeio]ngrad\b/i ) {
 			$vote_target = 'mp_leningrad';
 		}
-		elsif ( $vote_target =~ /^matmata\b/i ) { $vote_target = 'mp_matmata'; }
+		elsif ( $vote_target =~ /^matmata\b/i ) {
+			$vote_target = 'mp_matmata';
+		}
 		elsif ( $vote_target =~ /^(st[ao]l[ie]ngrad|railyard)\b/i ) {
 			$vote_target = 'mp_railyard';
 		}
-		elsif ( $vote_target =~ /^toujane\b/i ) { $vote_target = 'mp_toujane'; }
+		elsif ( $vote_target =~ /^toujane\b/i ) {
+			$vote_target = 'mp_toujane';
+		}
 		elsif ( $vote_target =~ /^(caen|train.?station)\b/i ) {
 			$vote_target = 'mp_trainstation';
 		}
