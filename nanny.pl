@@ -1645,7 +1645,7 @@ sub idle_check {
     print "Checking for idle players...\n";
     foreach $slot (keys %last_activity_by_slot) {
         if ($slot > 0) {
-            if (    ($slot ne -1)
+            if (    ($slot != -1)
                 and ($last_activity_by_slot{$slot} ne 'gone'))
             {
                 $idle_for = $time - $last_activity_by_slot{$slot};
@@ -1928,7 +1928,7 @@ sub chat {
             print "DATABASE DEFINITION: $row[0]\n";
             push @results, "$name^7: ^1$question ^3is: ^2$row[0]";
         }
-        if ($#results ne -1) {
+        if ($#results != -1) {
             if (&flood_protection('auto-define', 30, $slot)) { }
             else {
                 foreach $result (@results) {
