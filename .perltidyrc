@@ -19,6 +19,8 @@
 --warning-output                      # Show warnings
 --maximum-consecutive-blank-lines=1   # Default is 1
 --nohanging-side-comments             # Troublesome for commented out code
+--entab-leading-whitespace=4
+--tabs
 
 -isbc   # Block comments may only be indented if they have some space characters before the #
 -ci=2   # Continuation indent is 2 cols
