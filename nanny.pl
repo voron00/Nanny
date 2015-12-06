@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r72';
+my $version                    = '3.4 RU r73';
 my $modtime                    = localtime((stat($0))[9]);
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -1799,41 +1799,33 @@ sub chat {
 		my $penalty  = 0;
 		my $response = 'undefined';
 		my $index;
-		my $flooded = 0;
 
 		# loop through all the rule_regex looking for matches
 		foreach $rule_name (keys %rule_regex) {
 			if ($message =~ /$rule_regex{$rule_name}/i) {
 
 				# We have a match, initiate response.
-				if (&flood_protection("chat-response-$rule_name", 30, $slot)) {
-					$flooded = 1;
-				}
-				else { $flooded = 0; }
 				$index = $number_of_responses{$rule_name};
 				if ($index) {
 					$index    = int(rand($index)) + 1;
 					$response = $rule_response->{$rule_name}->{$index};
 					$penalty  = $rule_penalty{$rule_name};
-					if ((!$flooded) and (!$ignore{$slot})) {
+					if ((!&flood_protection("chat-response-$rule_name", 30, $slot)) and (!$ignore{$slot}) and (!$kick_message_spam)) {
 						&rcon_command("say $name^7: $response");
+						print "Positive Match:\nRule Name: $rule_name\nPenalty: $penalty\nResponse: $response\n\n";
 						&log_to_file('logs/response.log', "Rule: $rule_name Match Text: $message");
 					}
-				}
-				if ((!$flooded) and (!$ignore{$slot})) {
-					print "Positive Match:\nRule Name: $rule_name\nPenalty: $penalty\nResponse: $response\n\n";
 				}
 				if (!defined($penalty_points{$slot})) {
 					$penalty_points{$slot} = $penalty;
 				}
 				elsif (!$ignore{$slot}) {
 					$penalty_points{$slot} += $penalty;
-				}
-				if ((!$ignore{$slot})) {
-					print "Penalty Points total for: $name:  $penalty_points{$slot}\n";
+					if ($penalty_points{$slot} > 100) { $penalty_points{$slot} = 100; }
+					print "Penalty Points total for: $name: $penalty_points{$slot}\n";
 				}
 				if (    (!$ignore{$slot})
-					and ($penalty_points{$slot} >= 100)
+					and ($penalty_points{$slot} == 100)
 					and (!$kick_message_spam))
 				{
 					&rcon_command("say $name^7: ^1Я думаю мы услышали достаточно, убирайся отсюда!");
