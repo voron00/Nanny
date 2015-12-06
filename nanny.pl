@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r73';
+my $version                    = '3.4 EN r74';
 my $modtime                    = localtime((stat($0))[9]);
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -459,7 +459,7 @@ while (1) {
 				}
 
 				# Glitch Server Mode
-				if ($config->{'glitch_server_mode'}) {
+				if (($config->{'glitch_server_mode'}) and (defined($name_by_slot{$attacker_slot}))) {
 					print "GLITCH SERVER MODE: $name_by_slot{$attacker_slot} killed someone. Kicking!\n";
 					&rcon_command("say $name_by_slot{$attacker_slot}^7: " . $config->{'glitch_kill_kick_message'});
 					sleep 1;
@@ -599,7 +599,8 @@ while (1) {
 				# First Blood
 				if (    ($config->{'first_blood'})
 					and ($first_blood == 0)
-					and ($attacker_slot ne $victim_slot))
+					and ($attacker_slot ne $victim_slot)
+					and (defined($name_by_slot{$attacker_slot})))
 				{
 					$first_blood = 1;
 					&rcon_command("say ^1FIRST BLOOD^7: $name_by_slot{$attacker_slot} ^7killed $name_by_slot{$victim_slot}");
