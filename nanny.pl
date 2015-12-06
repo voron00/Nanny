@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r71';
+my $version                    = '3.4 EN r72';
 my $modtime                    = localtime((stat($0))[9]);
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -703,7 +703,7 @@ while (1) {
 				&update_name_by_slot($name, $slot);
 				$ip_by_slot{$slot}          = 'not_yet_known';
 				$spam_count{$slot}          = 0;
-				$spam_last_said{$slot}      = &random_pwd(6);
+				$spam_last_said{$slot}      = &random_pwd(16);
 				$ping_by_slot{$slot}        = 0;
 				$last_ping_by_slot{$slot}   = 0;
 				$kill_spree{$slot}          = 0;
@@ -823,7 +823,7 @@ while (1) {
 				&chat('TELL');
 			}
 
-# a "tell" (private message) with only Unicode characters in name event has happened
+			# a "tell" (private message) with only Unicode characters in name event has happened
 			elsif ($line =~ /^tell;(\d+);(\d+);;\d+;\d+;[^;]+;(.*)/) {
 				($guid, $slot, $name, $message) = ($1, $2, '', $3);
 				$last_activity_by_slot{$slot} = $time;
@@ -832,7 +832,7 @@ while (1) {
 				&chat('TELL');
 			}
 
-# a "tell" (private message) with only Unicode characters in name to name with only Unicode characters in name event has happened
+			# a "tell" (private message) with only Unicode characters in name to name with only Unicode characters in name event has happened
 			elsif ($line =~ /^tell;(\d+);(\d+);;\d+;\d+;;(.*)/) {
 				($guid, $slot, $name, $message) = ($1, $2, '', $3);
 				$last_activity_by_slot{$slot} = $time;
@@ -898,7 +898,7 @@ while (1) {
 				# END: Update best_killspree stats
 			}
 
-# sometimes this line happens on sd, when there are no players and round has ended
+			# sometimes this line happens on sd, when there are no players and round has ended
 			elsif ($line =~ /^W;([^;]*)/) {
 				$attacker_team = $1;
 				if (    (defined($attacker_team))
@@ -928,7 +928,7 @@ while (1) {
 				}
 			}
 
-# sometimes this line happens on sd, when there are no players and round has ended
+			# sometimes this line happens on sd, when there are no players and round has ended
 			elsif ($line =~ /^L;([^;]*)/) {
 				$attacker_team = $1;
 				if (    (defined($attacker_team))
@@ -1059,8 +1059,8 @@ while (1) {
 				$reactivate_voting = $time + 25;
 			}
 
-# Buy some time so we don't do an rcon status during a level change
-# Also, on SD, we need to do rcon status right after a round restart, so we add this
+			# Buy some time so we don't do an rcon status during a level change
+			# Also, on SD, we need to do rcon status right after a round restart, so we add this
 			if   ($gametype eq 'sd') { $last_rconstatus = $time - 29; }
 			else                     { $last_rconstatus = $time; }
 
@@ -3288,7 +3288,7 @@ sub status {
 				&cache_ip_to_name($ip, $name);
 			}
 
-# GUID Sanity Checking - detects when the server is not tracking GUIDs correctly.
+			# GUID Sanity Checking - detects when the server is not tracking GUIDs correctly.
 			if ($guid) {
 
 				# we know the GUID is non-zero.  Is it the one we most recently saw join?
@@ -3306,7 +3306,7 @@ sub status {
 				}
 			}
 
-# Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
+			# Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
 			if ($ping ne 'CNCT') {
 				if ($ping ne 'ZMBI') {
 					if ($ping == 999) {
@@ -3358,7 +3358,7 @@ sub status {
 		}
 	}
 
-# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
+	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
 	foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
 		if ($slot >= 0) {
 			if ($guid_by_slot{$slot}) {
@@ -4295,7 +4295,7 @@ sub forgive {
 	$last_activity_by_slot{$slot} = $time;
 	$penalty_points{$slot}        = 0;
 	$spam_count{$slot}            = 0;
-	$spam_last_said{$slot}        = &random_pwd(6);
+	$spam_last_said{$slot}        = &random_pwd(16);
 	&rcon_command("say $name_by_slot{$slot} ^7was forgiven by an admin");
 	&log_to_file('logs/admin.log', "!FORGIVE: $name_by_slot{$slot} was forgiven by $name - GUID $guid (Search: $search_string)");
 }
@@ -5440,7 +5440,7 @@ sub names {
 			&rcon_command("say No names found for: $name_by_slot{$matches[0]}");
 		}
 		else {
-# Remove the duplicates from the @names hash, and strip the less colorful versions of names.
+			# Remove the duplicates from the @names hash, and strip the less colorful versions of names.
 			my $name;
 			my $key;
 			my %name_hash;
@@ -5473,7 +5473,7 @@ sub names {
 							or $name =~ /^\^\d\s*$/
 							or $name =~ /^\^\^\d\d[\d\^\s]*$/)
 						{
-# Then we know that the name is a less colorful version of what is already in the list.
+							# Then we know that the name is a less colorful version of what is already in the list.
 							delete $name_hash{$name};
 							last;
 						}
@@ -5814,7 +5814,7 @@ sub dictionary {
 		}
 	}
 
-# Now we sanatize what we're looking for - online databases don't have multiword definitions.
+	# Now we sanatize what we're looking for - online databases don't have multiword definitions.
 	if ($word =~ /[^A-Za-z\-\_\s\d]/) {
 		&rcon_command("say $name^7: Invalid syntax, use !define = word to add it's definition to database");
 		sleep 1;
@@ -6038,7 +6038,7 @@ sub reset {
 		$ip_by_slot{$reset_slot}          = 'not_yet_known';
 		$guid_by_slot{$reset_slot}        = 0;
 		$spam_count{$reset_slot}          = 0;
-		$spam_last_said{$reset_slot}      = &random_pwd(6);
+		$spam_last_said{$reset_slot}      = &random_pwd(16);
 		$ping_by_slot{$reset_slot}        = 0;
 		$last_ping_by_slot{$reset_slot}   = 0;
 		$penalty_points{$reset_slot}      = 0;
