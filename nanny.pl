@@ -88,8 +88,8 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r74';
-my $modtime                    = localtime((stat($0))[9]);
+my $version                    = '3.4 EN r75';
+my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
 my $idlecheck_interval         = 45;
@@ -249,8 +249,8 @@ local $| = 1;
 # initialize the timers
 $time        = time;
 $timestring  = scalar(localtime($time));
-$currenttime = $timestring->hms;
-$currenttime =~ s/\:(\d+)$//g;    # strip the ':seconds'
+$currenttime = $timestring->strftime();
+if ($currenttime =~ /^(\w+),\s(\d+)\s(\w+)\s(\d+)\s(\d+:\d+:\d+)\s(\w+)$/) { $currenttime = "$5 $6"; }    # Only display time and timezone
 $currentdate            = $timestring->dmy(".");
 $last_idlecheck         = $time;
 $last_namecheck         = $time;
@@ -1100,8 +1100,8 @@ while (1) {
 		# cache the time to limit the number of syscalls
 		$time        = time;
 		$timestring  = scalar(localtime($time));
-		$currenttime = $timestring->hms;
-		$currenttime =~ s/\:(\d+)$//g;    # strip the ':seconds'
+		$currenttime = $timestring->strftime();
+		if ($currenttime =~ /^(\w+),\s(\d+)\s(\w+)\s(\d+)\s(\d+:\d+:\d+)\s(\w+)$/) { $currenttime = "$5 $6"; }    # Only display time and timezone
 		$currentdate = $timestring->dmy(".");
 
 		# Freshen the rcon status if it's time
@@ -3428,8 +3428,8 @@ sub banned_player_kick {
 	my $bandate;
 	my $bantime;
 	if (!$ban_message_spam) {
-		$bantime = scalar(localtime($ban_time))->hms;
-		$bantime =~ s/\:(\d+)$//g;    # strip the ':seconds'
+		$bantime = scalar(localtime($ban_time))->strftime;
+		if ($bantime =~ /^(\w+),\s(\d+)\s(\w+)\s(\d+)\s(\d+:\d+:\d+)\s(\w+)$/) { $bantime = "$5 $6"; }    # Only display time and timezone
 		$bandate = scalar(localtime($ban_time))->dmy(".");
 		sleep 1;
 		&rcon_command("say $name_by_slot{$slot}^7: You are banned. You are not allowed to stay on this server");
