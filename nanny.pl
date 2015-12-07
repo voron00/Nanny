@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r76';
+my $version                    = '3.4 EN r77';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -598,6 +598,10 @@ while (1) {
 				# First Blood
 				if (    ($config->{'first_blood'})
 					and ($first_blood == 0)
+					and ($damage_type ne 'MOD_SUICIDE')
+					and ($damage_type ne 'MOD_FALLING')
+					and ($damage_type ne 'MOD_TRIGGER_HURT')
+					and ($attacker_team ne 'world')
 					and ($attacker_slot ne $victim_slot))
 				{
 					$first_blood = 1;
@@ -616,6 +620,7 @@ while (1) {
 				if (    ($config->{'killing_sprees'})
 					and ($damage_type ne 'MOD_SUICIDE')
 					and ($damage_type ne 'MOD_FALLING')
+					and ($damage_type ne 'MOD_TRIGGER_HURT')
 					and ($attacker_team ne 'world')
 					and ($attacker_slot ne $victim_slot))
 				{
@@ -3290,7 +3295,7 @@ sub status {
 			}
 
 			# Ping-related checks. (Known Bug:  Not all slots are ping-enforced, rcon can't always see all the slots.)
-			if (($ping ne 'CNCT') or ($ping ne 'ZMBI')) {
+			if ($ping ne 'CNCT') {
 				if ($ping == 999) {
 					if (!defined($last_ping_by_slot{$slot})) {
 						$last_ping_by_slot{$slot} = 0;
@@ -3333,7 +3338,6 @@ sub status {
 
 				# we need to remember this for the next ping we check.
 				$last_ping_by_slot{$slot} = $ping;
-
 			}
 
 			# End of Ping Checks.
