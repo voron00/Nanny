@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r79';
+my $version                    = '3.4 EN r80';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -6287,7 +6287,6 @@ sub update_name_by_slot {
 	if (!defined($name)) {
 		&die_nice("invalid name passed to update_slot_by_name: $name\n\n");
 	}
-	if ($slot < 0) { return 1; }
 
 	# strip trailing spaces from the name.
 	$name =~ s/\s+$//;
