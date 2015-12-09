@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r77';
+my $version                    = '3.4 RU r78';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -1677,34 +1677,36 @@ sub idle_check {
 	my $idle_for;
 	print "Checking for idle players...\n";
 	foreach $slot (keys %last_activity_by_slot) {
-		if ($last_activity_by_slot{$slot} ne 'gone') {
-			$idle_for = $time - $last_activity_by_slot{$slot};
-			if ($idle_for > 120) {
-				print "Slot $slot: $name_by_slot{$slot} has been idle for " . duration($idle_for) . "\n";
-			}
-			if (!defined($idle_warn_level{$slot})) {
-				$idle_warn_level{$slot} = 0;
-			}
-			if (    ($idle_warn_level{$slot} < 1)
-				and ($idle_for >= $config->{'antiidle_warn_level_1'}))
-			{
-				print "IDLE_WARN1: Idle Time for $name_by_slot{$slot} has exceeded warn1 threshold: " . duration($config->{'antiidle_warn_level_1'}) . "\n";
-				&rcon_command("say $name_by_slot{$slot}^7 " . $config->{'antiidle_warn_message_1'} . " (неактивен " . duration($idle_for) . ")");
-				$idle_warn_level{$slot} = 1;
-			}
-			if (    ($idle_warn_level{$slot} < 2)
-				and ($idle_for >= $config->{'antiidle_warn_level_2'}))
-			{
-				print "IDLE_WARN2: Idle Time for $name_by_slot{$slot} has exceeded warn2 threshold: " . duration($config->{'antiidle_warn_level_2'}) . "\n";
-				&rcon_command("say $name_by_slot{$slot}^7 " . $config->{'antiidle_warn_message_2'} . " (неактивен " . duration($idle_for) . ")");
-				$idle_warn_level{$slot} = 2;
-			}
-			if ($idle_for >= $config->{'antiidle_kick_level'}) {
-				print "KICK: Idle Time for $name_by_slot{$slot} exceeded.\n";
-				&rcon_command("say $name_by_slot{$slot}^7 " . $config->{'antiidle_kick_message'});
-				sleep 1;
-				&rcon_command("clientkick $slot");
-				&log_to_file('logs/kick.log', "IDLE: $name_by_slot{$slot} was kicked for being idle for too long " . duration($idle_for));
+		if ($slot >= 0) {
+			if ($last_activity_by_slot{$slot} ne 'gone') {
+				$idle_for = $time - $last_activity_by_slot{$slot};
+				if ($idle_for > 120) {
+					print "Slot $slot: $name_by_slot{$slot} has been idle for " . duration($idle_for) . "\n";
+				}
+				if (!defined($idle_warn_level{$slot})) {
+					$idle_warn_level{$slot} = 0;
+				}
+				if (    ($idle_warn_level{$slot} < 1)
+					and ($idle_for >= $config->{'antiidle_warn_level_1'}))
+				{
+					print "IDLE_WARN1: Idle Time for $name_by_slot{$slot} has exceeded warn1 threshold: " . duration($config->{'antiidle_warn_level_1'}) . "\n";
+					&rcon_command("say $name_by_slot{$slot}^7 " . $config->{'antiidle_warn_message_1'} . " (неактивен " . duration($idle_for) . ")");
+					$idle_warn_level{$slot} = 1;
+				}
+				if (    ($idle_warn_level{$slot} < 2)
+					and ($idle_for >= $config->{'antiidle_warn_level_2'}))
+				{
+					print "IDLE_WARN2: Idle Time for $name_by_slot{$slot} has exceeded warn2 threshold: " . duration($config->{'antiidle_warn_level_2'}) . "\n";
+					&rcon_command("say $name_by_slot{$slot}^7 " . $config->{'antiidle_warn_message_2'} . " (неактивен " . duration($idle_for) . ")");
+					$idle_warn_level{$slot} = 2;
+				}
+				if ($idle_for >= $config->{'antiidle_kick_level'}) {
+					print "KICK: Idle Time for $name_by_slot{$slot} exceeded.\n";
+					&rcon_command("say $name_by_slot{$slot}^7 " . $config->{'antiidle_kick_message'});
+					sleep 1;
+					&rcon_command("clientkick $slot");
+					&log_to_file('logs/kick.log', "IDLE: $name_by_slot{$slot} was kicked for being idle for too long " . duration($idle_for));
+				}
 			}
 		}
 	}
@@ -3360,31 +3362,33 @@ sub status {
 
 	# BEGIN: IP Guessing - if we have players who we don't get IP's with status, try to fake it.
 	foreach $slot (sort { $a <=> $b } keys %ip_by_slot) {
-		if ($guid_by_slot{$slot}) {
-			$sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
-		}
-		else {
-			$sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
-		}
-		if (   (!defined($ip_by_slot{$slot}))
-			or ($ip_by_slot{$slot} eq 'not_yet_known'))
-		{
-			$ip_by_slot{$slot} = 'unknown';
+		if ($slot >= 0) {
 			if ($guid_by_slot{$slot}) {
-				$sth->execute($guid_by_slot{$slot})
-				  or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
+				$sth = $ip_to_guid_dbh->prepare("SELECT ip FROM ip_to_guid WHERE guid=? ORDER BY id DESC LIMIT 1");
 			}
 			else {
-				$sth->execute($name_by_slot{$slot})
-				  or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+				$sth = $ip_to_name_dbh->prepare("SELECT ip FROM ip_to_name WHERE name=? ORDER BY id DESC LIMIT 1");
 			}
-			while (@row = $sth->fetchrow_array) {
-				$ip_by_slot{$slot} = $row[0] . '?';
+			if (   (!defined($ip_by_slot{$slot}))
+				or ($ip_by_slot{$slot} eq 'not_yet_known'))
+			{
+				$ip_by_slot{$slot} = 'unknown';
 				if ($guid_by_slot{$slot}) {
-					print "Guessed an IP by GUID for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n";
+					$sth->execute($guid_by_slot{$slot})
+					  or &die_nice("Unable to execute query: $ip_to_guid_dbh->errstr\n");
 				}
 				else {
-					print "Guessed an IP by NAME for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n";
+					$sth->execute($name_by_slot{$slot})
+					  or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+				}
+				while (@row = $sth->fetchrow_array) {
+					$ip_by_slot{$slot} = $row[0] . '?';
+					if ($guid_by_slot{$slot}) {
+						print "Guessed an IP by GUID for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n";
+					}
+					else {
+						print "Guessed an IP by NAME for: $name_by_slot{$slot} = $ip_by_slot{$slot}\n";
+					}
 				}
 			}
 		}
@@ -5350,34 +5354,36 @@ sub check_player_names {
 	my $match_string;
 	my $warned;
 	foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
-		$warned = 0;
-		foreach $match_string (@banned_names) {
-			if ($name_by_slot{$slot} =~ /$match_string/) {
-				$warned = 1;
-				if (!defined($name_warn_level{$slot})) {
-					$name_warn_level{$slot} = 0;
-				}
-				if ($name_warn_level{$slot} == 0) {
-					print "NAME_WARN1: $name_by_slot{$slot} is using a banned name. Match: $match_string\n";
-					&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_1'});
-					$name_warn_level{$slot} = 1;
-				}
-				elsif ($name_warn_level{$slot} == 1) {
-					print "NAME_WARN2: $name_by_slot{$slot} is using a banned name. (2nd warning) Match: $match_string\n";
-					&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_2'});
-					$name_warn_level{$slot} = 2;
-				}
-				elsif ($name_warn_level{$slot} == 2) {
-					print "NAME_KICK: $name_by_slot{$slot} is using a banned name. (3rd strike) Match: $match_string\n";
-					&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_kick_message'});
-					sleep 1;
-					&rcon_command("clientkick $slot");
-					&log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
+		if ($slot >= 0) {
+			$warned = 0;
+			foreach $match_string (@banned_names) {
+				if ($name_by_slot{$slot} =~ /$match_string/) {
+					$warned = 1;
+					if (!defined($name_warn_level{$slot})) {
+						$name_warn_level{$slot} = 0;
+					}
+					if ($name_warn_level{$slot} == 0) {
+						print "NAME_WARN1: $name_by_slot{$slot} is using a banned name. Match: $match_string\n";
+						&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_1'});
+						$name_warn_level{$slot} = 1;
+					}
+					elsif ($name_warn_level{$slot} == 1) {
+						print "NAME_WARN2: $name_by_slot{$slot} is using a banned name. (2nd warning) Match: $match_string\n";
+						&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_2'});
+						$name_warn_level{$slot} = 2;
+					}
+					elsif ($name_warn_level{$slot} == 2) {
+						print "NAME_KICK: $name_by_slot{$slot} is using a banned name. (3rd strike) Match: $match_string\n";
+						&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_kick_message'});
+						sleep 1;
+						&rcon_command("clientkick $slot");
+						&log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
+					}
 				}
 			}
-		}
-		if ((!defined($name_warn_level{$slot})) or (!$warned)) {
-			$name_warn_level{$slot} = 0;
+			if ((!defined($name_warn_level{$slot})) or (!$warned)) {
+				$name_warn_level{$slot} = 0;
+			}
 		}
 	}
 }
@@ -6306,6 +6312,7 @@ sub update_name_by_slot {
 	if (!defined($name)) {
 		&die_nice("invalid name passed to update_slot_by_name: $name\n\n");
 	}
+	if ($slot < 0) { return 1; }
 
 	# strip trailing spaces from the name.
 	$name =~ s/\s+$//;
@@ -6591,7 +6598,7 @@ sub get_server_info {
 # BEGIN: broadcast_message($message)
 sub broadcast_message {
 	my $message = shift;
-	if ((!defined($message)) or ($message !~ /./)) { return; }
+	if ((!defined($message)) or ($message !~ /./)) { return 1; }
 	my $num_servers = 0;
 	my $config_val;
 	my $rcon;
