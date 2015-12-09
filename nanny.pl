@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r78';
+my $version                    = '3.4 RU r79';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -882,19 +882,21 @@ while (1) {
 
 				# BEGIN: Update best_killspree stats
 				foreach $slot (keys %kill_spree) {
-					if (defined($kill_spree{$slot})
-						and $kill_spree{$slot} > 2)
-					{
-						$stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE guid=?");
-						$stats_sth->execute($guid_by_slot{$slot})
-						  or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-						@row = $stats_sth->fetchrow_array;
-						if (    ($guid_by_slot{$slot})
-							and (defined($row[0]))
-							and ($row[0] < $kill_spree{$slot}))
+					if ($slot >= 0) {
+						if (defined($kill_spree{$slot})
+							and $kill_spree{$slot} > 2)
 						{
-							$stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE guid=?");
-							$stats_sth->execute($kill_spree{$slot}, $guid_by_slot{$slot}) or &die_nice("Unable to update stats\n");
+							$stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE guid=?");
+							$stats_sth->execute($guid_by_slot{$slot})
+							  or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+							@row = $stats_sth->fetchrow_array;
+							if (    ($guid_by_slot{$slot})
+								and (defined($row[0]))
+								and ($row[0] < $kill_spree{$slot}))
+							{
+								$stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE guid=?");
+								$stats_sth->execute($kill_spree{$slot}, $guid_by_slot{$slot}) or &die_nice("Unable to update stats\n");
+							}
 						}
 					}
 				}
@@ -3206,30 +3208,32 @@ sub locate {
 		}
 		if (&flood_protection('locate', 30, $slot)) { return 1; }
 		foreach $slot (@matches) {
-			if ($ip_by_slot{$slot}) {
-				print "MATCH: " . $name_by_slot{$slot} . ", IP = $ip_by_slot{$slot}\n";
-				$ip = $ip_by_slot{$slot};
-				if ($ip =~ /\?$/) {
-					$guessed = 1;
-					$ip =~ s/\?$//;
-				}
-				if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/) {
-					$location = &geolocate_ip($ip);
-					if ($guessed) {
-						$location = $name_by_slot{$slot} . " ^7вероятно зашел к нам из ^2" . $location;
+			if ($slot >= 0) {
+				if ($ip_by_slot{$slot}) {
+					print "MATCH: " . $name_by_slot{$slot} . ", IP = $ip_by_slot{$slot}\n";
+					$ip = $ip_by_slot{$slot};
+					if ($ip =~ /\?$/) {
+						$guessed = 1;
+						$ip =~ s/\?$//;
 					}
-					else {
-						$location = $name_by_slot{$slot} . " ^7зашел к нам из ^2" . $location;
-					}
-
-					# location spoofing
-					foreach $spoof_match (keys(%location_spoof)) {
-						if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) {
-							$location = $name_by_slot{$slot} . " ^7" . $location_spoof{$spoof_match};
+					if ($ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/) {
+						$location = &geolocate_ip($ip);
+						if ($guessed) {
+							$location = $name_by_slot{$slot} . " ^7вероятно зашел к нам из ^2" . $location;
 						}
+						else {
+							$location = $name_by_slot{$slot} . " ^7зашел к нам из ^2" . $location;
+						}
+
+						# location spoofing
+						foreach $spoof_match (keys(%location_spoof)) {
+							if (&strip_color($name_by_slot{$slot}) =~ /$spoof_match/i) {
+								$location = $name_by_slot{$slot} . " ^7" . $location_spoof{$spoof_match};
+							}
+						}
+						&rcon_command("say $location");
+						sleep 1;
 					}
-					&rcon_command("say $location");
-					sleep 1;
 				}
 			}
 		}
@@ -5864,13 +5868,14 @@ sub check_guid_zero_players {
 	print "GUID ZERO audit in progress...\n";
 	&log_to_file('logs/audit.log', "GUID ZERO audit in progress...");
 	foreach $slot (keys %guid_by_slot) {
-
-		if (    (defined($guid_by_slot{$slot}))
-			and (defined($ip_by_slot{$slot}))
-			and ($guid_by_slot{$slot} == 0)
-			and ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/))
-		{
-			push @possible, $slot;
+		if ($slot >= 0) {
+			if (    (defined($guid_by_slot{$slot}))
+				and (defined($ip_by_slot{$slot}))
+				and ($guid_by_slot{$slot} == 0)
+				and ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/))
+			{
+				push @possible, $slot;
+			}
 		}
 	}
 	if ($#possible == -1) {
@@ -5899,110 +5904,112 @@ sub check_guid_zero_players {
 
 	# Try as many as we can within our time limit
 	foreach $slot (@possible) {
-		$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot} 0";
-		print "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}\n";
-		&log_to_file('logs/audit.log', "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}");
-		print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.\n\n";
-		&log_to_file('logs/audit.log', "Asking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.");
-		socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
-		  or &die_nice("Socket error: $!");
-		$selecta = IO::Select->new;
-		$selecta->add(\*SOCKET);
+		if ($slot >= 0) {
+			$send_message = "\xFF\xFF\xFF\xFFgetIpAuthorize $random $ip_by_slot{$slot} 0";
+			print "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}\n";
+			&log_to_file('logs/audit.log', "AUDITING: slot: $slot IP: $ip_by_slot{$slot} GUID: $guid_by_slot{$slot} NAME: $name_by_slot{$slot}");
+			print "\nAsking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.\n\n";
+			&log_to_file('logs/audit.log', "Asking $activision_master if $ip_by_slot{$slot} has provided a valid CD-KEY recently.");
+			socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
+			  or &die_nice("Socket error: $!");
+			$selecta = IO::Select->new;
+			$selecta->add(\*SOCKET);
 
-		while (($current_try < $total_tries) and ($still_waiting)) {
-			$current_try++;
+			while (($current_try < $total_tries) and ($still_waiting)) {
+				$current_try++;
 
-			# Send the packet
-			$portaddr = sockaddr_in($port, $d_ip);
-			send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
-			  or &die_nice("cannot send to $activision_master($port): $!\n\n");
+				# Send the packet
+				$portaddr = sockaddr_in($port, $d_ip);
+				send(SOCKET, $send_message, 0, $portaddr) == length($send_message)
+				  or &die_nice("cannot send to $activision_master($port): $!\n\n");
 
-			# Check to see if there is a response yet.
-			@ready = $selecta->can_read($read_timeout);
-			if (defined($ready[0])) {
+				# Check to see if there is a response yet.
+				@ready = $selecta->can_read($read_timeout);
+				if (defined($ready[0])) {
 
-				# Yes, the socket is ready.
-				$portaddr = recv(SOCKET, $message, $maximum_length, 0)
-				  or &die_nice("Socket error: recv: $!");
+					# Yes, the socket is ready.
+					$portaddr = recv(SOCKET, $message, $maximum_length, 0)
+					  or &die_nice("Socket error: recv: $!");
 
-				# strip the 4 \xFF bytes at the begining.
-				$message =~ s/^.{4}//;
-				$got_response  = 1;
-				$still_waiting = 0;
+					# strip the 4 \xFF bytes at the begining.
+					$message =~ s/^.{4}//;
+					$got_response  = 1;
+					$still_waiting = 0;
+				}
 			}
-		}
-		if ($got_response) {
-			if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
-				my ($session_id, $result, $reason, $guid) = ($1, $2, $3, $4);
-				print "RESULTS:\n";
-				print "\tIP Address: $ip_by_slot{$slot}\n";
-				print "\tAction: $result\n";
-				print "\tReason: $reason\n";
-				print "\tGUID: $guid\n";
-				print "\n";
-				$dirtbag = 0;
+			if ($got_response) {
+				if ($message =~ /ipAuthorize ([\d\-]+) ([a-z]+) (\w+) (\d+)/) {
+					my ($session_id, $result, $reason, $guid) = ($1, $2, $3, $4);
+					print "RESULTS:\n";
+					print "\tIP Address: $ip_by_slot{$slot}\n";
+					print "\tAction: $result\n";
+					print "\tReason: $reason\n";
+					print "\tGUID: $guid\n";
+					print "\n";
+					$dirtbag = 0;
 
-				if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
-					print "Explaination of: $reason\n";
-					print "\tThis IP Address has not provided any CD Keys to the activision server\n";
-					print "\tThis IP Address may not playing COD2 currently, or\n";
-					print "\tActivision has not heard a key from this IP recently.\n";
-					&log_to_file('logs/audit.log', "RESULTS: $reason");
-				}
-				if ($reason eq 'BANNED_CDKEY') {
-					print "Explaination of: $reason\n";
-					print "\tThis IP Address is using a well known stolen CD Key.\n";
-					print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
-					print "\tThis IP address is using a stolen copy of CoD2\n\n";
-					&log_to_file('logs/audit.log', "RESULTS: $reason");
-					$dirtbag     = 1;
-					$kick_reason = "was kicked for using a banned CD-KEY";
-				}
-				if ($reason eq 'INVALID_CDKEY') {
-					print "Explaination of: $reason\n";
-					print "\tThis IP Address is trying to use the same CD Key from multiple IPs.\n";
-					print "\tActivision has already seen this Key recently used by a different IP.\n";
-					print "\tThis is a valid CD Key, but is being used from multiple locations\n";
-					print "\tActivision only allows one IP per key.\n\n";
-					&log_to_file('logs/audit.log', "RESULTS: $reason");
-					$dirtbag     = 1;
-					$kick_reason = "was kicked for using an invalid CD-KEY. Perhaps this CD-KEY is already in use";
-				}
-				if (($dirtbag) and ($reason eq 'BANNED_CDKEY')) {
-					&rcon_command("say $name_by_slot{$slot} ^7$kick_reason");
-					sleep 1;
-					&rcon_command("clientkick $slot");
-					&log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
-					my $ban_name   = 'unknown';
-					my $ban_ip     = 'unknown';
-					my $ban_guid   = 0;
-					my $unban_time = $time + 28800;
+					if ($reason eq 'CLIENT_UNKNOWN_TO_AUTH') {
+						print "Explaination of: $reason\n";
+						print "\tThis IP Address has not provided any CD Keys to the activision server\n";
+						print "\tThis IP Address may not playing COD2 currently, or\n";
+						print "\tActivision has not heard a key from this IP recently.\n";
+						&log_to_file('logs/audit.log', "RESULTS: $reason");
+					}
+					if ($reason eq 'BANNED_CDKEY') {
+						print "Explaination of: $reason\n";
+						print "\tThis IP Address is using a well known stolen CD Key.\n";
+						print "\tActivision has BANNED this CD Key and will not allow anyone to use it.\n";
+						print "\tThis IP address is using a stolen copy of CoD2\n\n";
+						&log_to_file('logs/audit.log', "RESULTS: $reason");
+						$dirtbag     = 1;
+						$kick_reason = "was kicked for using a banned CD-KEY";
+					}
+					if ($reason eq 'INVALID_CDKEY') {
+						print "Explaination of: $reason\n";
+						print "\tThis IP Address is trying to use the same CD Key from multiple IPs.\n";
+						print "\tActivision has already seen this Key recently used by a different IP.\n";
+						print "\tThis is a valid CD Key, but is being used from multiple locations\n";
+						print "\tActivision only allows one IP per key.\n\n";
+						&log_to_file('logs/audit.log', "RESULTS: $reason");
+						$dirtbag     = 1;
+						$kick_reason = "was kicked for using an invalid CD-KEY. Perhaps this CD-KEY is already in use";
+					}
+					if (($dirtbag) and ($reason eq 'BANNED_CDKEY')) {
+						&rcon_command("say $name_by_slot{$slot} ^7$kick_reason");
+						sleep 1;
+						&rcon_command("clientkick $slot");
+						&log_to_file('logs/kick.log', "CD-KEY: $name_by_slot{$slot} was kicked for: $kick_reason");
+						my $ban_name   = 'unknown';
+						my $ban_ip     = 'unknown';
+						my $ban_guid   = 0;
+						my $unban_time = $time + 28800;
 
-					if ($name_by_slot{$slot}) {
-						$ban_name = $name_by_slot{$slot};
+						if ($name_by_slot{$slot}) {
+							$ban_name = $name_by_slot{$slot};
+						}
+						if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
+							$ban_ip = $ip_by_slot{$slot};
+						}
+						if ($guid_by_slot{$slot}) {
+							$ban_guid = $guid_by_slot{$slot};
+						}
+						$bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
+						$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name)
+						  or &die_nice("Unable to do insert\n");
+						$ban_message_spam = $time + 3;    # 3 seconds spam protection
 					}
-					if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-						$ban_ip = $ip_by_slot{$slot};
-					}
-					if ($guid_by_slot{$slot}) {
-						$ban_guid = $guid_by_slot{$slot};
-					}
-					$bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
-					$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name)
-					  or &die_nice("Unable to do insert\n");
-					$ban_message_spam = $time + 3;    # 3 seconds spam protection
+				}
+				else {
+					print "\nERROR:\n\tGot a response, but not in the format expected\n";
+					print "\t$message\n\n";
+					&log_to_file('logs/audit.log', "WARNING: Got a response, but not in the format expected: $message");
 				}
 			}
 			else {
-				print "\nERROR:\n\tGot a response, but not in the format expected\n";
-				print "\t$message\n\n";
-				&log_to_file('logs/audit.log', "WARNING: Got a response, but not in the format expected: $message");
+				print "\nERROR:\n\t$activision_master is not currently responding to requests.\n";
+				print "\n\tSorry.  Try again later.\n\n";
+				&log_to_file('logs/audit.log', "WARNING: $activision_master is not currently responding to requests.");
 			}
-		}
-		else {
-			print "\nERROR:\n\t$activision_master is not currently responding to requests.\n";
-			print "\n\tSorry.  Try again later.\n\n";
-			&log_to_file('logs/audit.log', "WARNING: $activision_master is not currently responding to requests.");
 		}
 	}
 }
