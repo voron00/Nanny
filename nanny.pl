@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r80';
+my $version                    = '3.4 EN r81';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -1726,7 +1726,11 @@ sub chat {
 	#   $guid
 	my $chattype = shift;
 	my $is_there;
-	if ($name_by_slot{$slot} ne 'SLOT_EMPTY') { $name = $name_by_slot{$slot}; }
+
+	# This is really stupid, sometimes name_by_slot is undefined for some reason, well, just use it's slot number until it gets defined properly
+	if   ((defined($name_by_slot{$slot})) and ($name_by_slot{$slot} ne 'SLOT_EMPTY')) { $name = $name_by_slot{$slot}; }
+	else                                                                              { $name = "Slot #^3$slot"; }
+
 	if (!defined($ignore{$slot})) { $ignore{$slot} = 0; }
 
 	# print the message to the console
@@ -1933,8 +1937,10 @@ sub chat {
 	# End of Nice Shot
 
 	# Auto-define questions (my most successful if statement evar?)
-	if (   (!$ignore{$slot}) and ($message =~ /^(.*)\?$/)
-		or ($message =~ /^!(.*)$/))
+	if ((!$ignore{$slot})
+		and (  ($message =~ /^(.*)\?$/)
+			or ($message =~ /^!(.*)$/))
+	  )
 	{
 		my $question = $1;
 		my $counter  = 0;
@@ -4215,13 +4221,15 @@ sub matching_users {
 	my @matches;
 
 	foreach $key (keys %name_by_slot) {
-		if (   ($name_by_slot{$key} =~ /$search_string/i)
-			or (&strip_color($name_by_slot{$key}) =~ /$search_string/i)
-			or (&strip_space($name_by_slot{$key}) =~ /$search_string/i))
-		{
-			if ($name_by_slot{$key} ne 'SLOT_EMPTY') {
-				print "MATCH: $name_by_slot{$key}\n";
-				push @matches, $key;
+		if ($slot >= 0) {
+			if (   ($name_by_slot{$key} =~ /$search_string/i)
+				or (&strip_color($name_by_slot{$key}) =~ /$search_string/i)
+				or (&strip_space($name_by_slot{$key}) =~ /$search_string/i))
+			{
+				if ($name_by_slot{$key} ne 'SLOT_EMPTY') {
+					print "MATCH: $name_by_slot{$key}\n";
+					push @matches, $key;
+				}
 			}
 		}
 	}
@@ -4248,9 +4256,12 @@ sub ignore {
 		}
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
+	my $target;
+	if   (defined($name_by_slot{$slot})) { $target = $name_by_slot{$slot}; }
+	else                                 { $target = "Slot #^3$slot"; }
 	$ignore{$slot} = 1;
-	&rcon_command("say $name_by_slot{$slot} ^7will be ignored now.");
-	&log_to_file('logs/admin.log', "!IGNORE: $name_by_slot{$slot} was ignored by $name - GUID $guid (Search: $search_string)");
+	&rcon_command("say $target ^7will be ignored now.");
+	&log_to_file('logs/admin.log', "!IGNORE: $target was ignored by $name - GUID $guid (Search: $search_string)");
 }
 
 # END: ignore
@@ -4273,14 +4284,17 @@ sub forgive {
 		}
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
+	my $target;
+	if   (defined($name_by_slot{$slot})) { $target = $name_by_slot{$slot}; }
+	else                                 { $target = "Slot #^3$slot"; }
 	$ignore{$slot}                = 0;
 	$idle_warn_level{$slot}       = 0;
 	$last_activity_by_slot{$slot} = $time;
 	$penalty_points{$slot}        = 0;
 	$spam_count{$slot}            = 0;
 	$spam_last_said{$slot}        = &random_pwd(16);
-	&rcon_command("say $name_by_slot{$slot} ^7was forgiven by an admin");
-	&log_to_file('logs/admin.log', "!FORGIVE: $name_by_slot{$slot} was forgiven by $name - GUID $guid (Search: $search_string)");
+	&rcon_command("say $target ^7was forgiven by an admin");
+	&log_to_file('logs/admin.log', "!FORGIVE: $target was forgiven by $name - GUID $guid (Search: $search_string)");
 }
 
 # END: forgive
@@ -4742,10 +4756,13 @@ sub kick_command {
 		}
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
-	&rcon_command("say $name_by_slot{$slot} ^7was kicked by an admin");
+	my $target;
+	if   (defined($name_by_slot{$slot})) { $target = $name_by_slot{$slot}; }
+	else                                 { $target = "Slot #^3$slot"; }
+	&rcon_command("say $target ^7was kicked by an admin");
 	sleep 1;
 	&rcon_command("clientkick $slot");
-	&log_to_file('logs/kick.log', "!KICK: $name_by_slot{$slot} was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
+	&log_to_file('logs/kick.log', "!KICK: $target was kicked by $name - GUID $guid - via the !kick command. (Search: $search_string)");
 }
 
 # END: kick
@@ -4770,11 +4787,14 @@ sub tempban_command {
 		}
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
+	my $target;
+	if   (defined($name_by_slot{$slot})) { $target = $name_by_slot{$slot}; }
+	else                                 { $target = "Slot #^3$slot"; }
 	my $ban_name   = 'unknown';
 	my $ban_ip     = 'unknown';
 	my $ban_guid   = 0;
 	my $unban_time = $time + $tempbantime * 60;
-	&rcon_command("say $name_by_slot{$slot} ^7was temporarily banned by an admin for ^3$tempbantime ^7minutes");
+	&rcon_command("say $target ^7was temporarily banned by an admin for ^3$tempbantime ^7minutes");
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
 
 	if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
@@ -4785,7 +4805,7 @@ sub tempban_command {
 	$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name)
 	  or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
-	&log_to_file('logs/kick.log', "TEMPBAN: $name_by_slot{$slot} was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");
+	&log_to_file('logs/kick.log', "TEMPBAN: $target was temporarily banned by $name - GUID $guid - via the !tempban command. (Search: $search_string)");
 	$ban_message_spam = $time + 3;    # 3 seconds spam protection
 }
 
@@ -4809,11 +4829,14 @@ sub ban_command {
 		}
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
+	my $target;
+	if   (defined($name_by_slot{$slot})) { $target = $name_by_slot{$slot}; }
+	else                                 { $target = "Slot #^3$slot"; }
 	my $ban_name   = 'unknown';
 	my $ban_ip     = 'unknown';
 	my $ban_guid   = 0;
 	my $unban_time = 2125091758;
-	&rcon_command("say $name_by_slot{$slot} ^7was permanently banned by an admin");
+	&rcon_command("say $target ^7was permanently banned by an admin");
 	if ($name_by_slot{$slot}) { $ban_name = $name_by_slot{$slot}; }
 
 	if ($ip_by_slot{$slot} =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
@@ -4824,7 +4847,7 @@ sub ban_command {
 	$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name)
 	  or &die_nice("Unable to do insert\n");
 	&rcon_command("clientkick $slot");
-	&log_to_file('logs/kick.log', "BAN: $name_by_slot{$slot} was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");
+	&log_to_file('logs/kick.log', "BAN: $target was permanently banned by $name - GUID $guid - via the !ban command. (Search: $search_string)");
 	$ban_message_spam = $time + 3;    # 3 seconds spam protection
 }
 
@@ -6006,24 +6029,26 @@ sub random_pwd {
 
 sub reset {
 	foreach $reset_slot (keys %last_activity_by_slot) {
-		$last_activity_by_slot{$reset_slot} = 'gone';
-		$idle_warn_level{$reset_slot}       = 0;
-		&update_name_by_slot('SLOT_EMPTY', $reset_slot);
-		$ip_by_slot{$reset_slot}          = 'not_yet_known';
-		$guid_by_slot{$reset_slot}        = 0;
-		$spam_count{$reset_slot}          = 0;
-		$spam_last_said{$reset_slot}      = &random_pwd(16);
-		$ping_by_slot{$reset_slot}        = 0;
-		$last_ping_by_slot{$reset_slot}   = 0;
-		$penalty_points{$reset_slot}      = 0;
-		$last_killed_by_name{$reset_slot} = 'none';
-		$last_killed_by_guid{$reset_slot} = 0;
-		$last_kill_by_name{$reset_slot}   = 'none';
-		$last_kill_by_guid{$reset_slot}   = 0;
-		$kill_spree{$reset_slot}          = 0;
-		$best_spree{$reset_slot}          = 0;
-		$ignore{$reset_slot}              = 0;
-		$last_rconstatus                  = 0;
+		if ($slot >= 0) {
+			$last_activity_by_slot{$reset_slot} = 'gone';
+			$idle_warn_level{$reset_slot}       = 0;
+			&update_name_by_slot('SLOT_EMPTY', $reset_slot);
+			$ip_by_slot{$reset_slot}          = 'not_yet_known';
+			$guid_by_slot{$reset_slot}        = 0;
+			$spam_count{$reset_slot}          = 0;
+			$spam_last_said{$reset_slot}      = &random_pwd(16);
+			$ping_by_slot{$reset_slot}        = 0;
+			$last_ping_by_slot{$reset_slot}   = 0;
+			$penalty_points{$reset_slot}      = 0;
+			$last_killed_by_name{$reset_slot} = 'none';
+			$last_killed_by_guid{$reset_slot} = 0;
+			$last_kill_by_name{$reset_slot}   = 'none';
+			$last_kill_by_guid{$reset_slot}   = 0;
+			$kill_spree{$reset_slot}          = 0;
+			$best_spree{$reset_slot}          = 0;
+			$ignore{$reset_slot}              = 0;
+			$last_rconstatus                  = 0;
+		}
 	}
 }
 
@@ -6317,37 +6342,39 @@ sub update_name_by_slot {
 					my $new_name_stolen = 0;
 
 					foreach $i (keys %name_by_slot) {
-						if (    ($name_by_slot{$i} ne 'SLOT_EMPTY')
-							and ($slot ne $i))
-						{
-							$stripped_compare = &strip_color($name_by_slot{$i});
+						if ($slot >= 0) {
+							if (    ($name_by_slot{$i} ne 'SLOT_EMPTY')
+								and ($slot ne $i))
+							{
+								$stripped_compare = &strip_color($name_by_slot{$i});
 
-							# Compare the old name for matches
-							if ($name_by_slot{$slot} eq $name_by_slot{$i}) {
-								$old_name_stolen = 1;
-							}
-							elsif ($name_by_slot{$slot} eq $stripped_compare) {
-								$old_name_stolen = 1;
-							}
-							elsif ($stripped_old eq $name_by_slot{$i}) {
-								$old_name_stolen = 1;
-							}
-							elsif ($stripped_old eq $stripped_compare) {
-								$old_name_stolen = 1;
-							}
+								# Compare the old name for matches
+								if ($name_by_slot{$slot} eq $name_by_slot{$i}) {
+									$old_name_stolen = 1;
+								}
+								elsif ($name_by_slot{$slot} eq $stripped_compare) {
+									$old_name_stolen = 1;
+								}
+								elsif ($stripped_old eq $name_by_slot{$i}) {
+									$old_name_stolen = 1;
+								}
+								elsif ($stripped_old eq $stripped_compare) {
+									$old_name_stolen = 1;
+								}
 
-							# Compare the new name for matches
-							if ($name eq $name_by_slot{$i}) {
-								$new_name_stolen = 1;
-							}
-							elsif ($name eq $stripped_compare) {
-								$new_name_stolen = 1;
-							}
-							elsif ($stripped_new eq $name_by_slot{$i}) {
-								$new_name_stolen = 1;
-							}
-							elsif ($stripped_new eq $stripped_compare) {
-								$new_name_stolen = 1;
+								# Compare the new name for matches
+								if ($name eq $name_by_slot{$i}) {
+									$new_name_stolen = 1;
+								}
+								elsif ($name eq $stripped_compare) {
+									$new_name_stolen = 1;
+								}
+								elsif ($stripped_new eq $name_by_slot{$i}) {
+									$new_name_stolen = 1;
+								}
+								elsif ($stripped_new eq $stripped_compare) {
+									$new_name_stolen = 1;
+								}
 							}
 						}
 					}
@@ -6458,11 +6485,11 @@ sub make_affiliate_server_announcement {
 		}
 		if ($clients) {
 			if ($clients == 1) {
-				$line = "^1$clients ^7player at ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
+				$line = "^1$clients ^7player on ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
 				push @results, $line;
 			}
 			else {
-				$line = "^1$clients ^7players at ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
+				$line = "^1$clients ^7players on ^7$hostname^7 - ^2$mapname^7 | ^3$gametype\n";
 				push @results, $line;
 			}
 		}
@@ -6741,7 +6768,10 @@ sub vote_cleanup {
 	$vote_target      = undef;
 	$vote_target_slot = undef;
 	foreach $reset_slot (keys %voted_by_slot) {
-		$voted_by_slot{$reset_slot} = 0;
+
+		if ($slot >= 0) {
+			$voted_by_slot{$reset_slot} = 0;
+		}
 	}
 }
 
