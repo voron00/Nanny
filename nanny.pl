@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r82';
+my $version                    = '3.4 RU r83';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -3691,6 +3691,11 @@ sub cache_guid_to_name {
 	elsif (!defined($name)) {
 		&die_nice("cache_guid_to_name was called without a name\n");
 	}
+
+	# strip trailing spaces from the name.
+	$name =~ s/\s+$//;
+	if ($name =~ /\^\^\d\d/) { $name = &strip_color($name); }
+
 	if ($guid) {
 
 		# only log this if the guid isn't zero
@@ -3760,6 +3765,11 @@ sub cache_ip_to_name {
 	elsif (!defined($ip)) {
 		&die_nice("cache_ip_to_name was called without an ip\n");
 	}
+
+	# strip trailing spaces from the name.
+	$name =~ s/\s+$//;
+	if ($name =~ /\^\^\d\d/) { $name = &strip_color($name); }
+
 	$ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name WHERE ip=? AND name=?");
 	$ip_to_name_sth->execute($ip, $name)
 	  or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
@@ -6363,9 +6373,7 @@ sub update_name_by_slot {
 		if (    ($name_by_slot{$slot} ne 'SLOT_EMPTY')
 			and ($name ne 'SLOT_EMPTY'))
 		{
-			if (    ($name_by_slot{$slot} ne &strip_color($name))
-				and ((&strip_color($name_by_slot{$slot}) ne $name)))
-			{
+			if ($name_by_slot{$slot} ne $name) {
 				print "NAME CHANGE: $name_by_slot{$slot} changed their name to: $name\n";
 
 				# Detect Name Thieves
@@ -6373,9 +6381,6 @@ sub update_name_by_slot {
 					and ($config->{'ban_name_thieves'}))
 				{
 					my $i;
-					my $stripped_compare;
-					my $stripped_old    = &strip_color($name_by_slot{$slot});
-					my $stripped_new    = &strip_color($name);
 					my $old_name_stolen = 0;
 					my $new_name_stolen = 0;
 
@@ -6384,19 +6389,9 @@ sub update_name_by_slot {
 							if (    ($name_by_slot{$i} ne 'SLOT_EMPTY')
 								and ($slot ne $i))
 							{
-								$stripped_compare = &strip_color($name_by_slot{$i});
 
 								# Compare the old name for matches
 								if ($name_by_slot{$slot} eq $name_by_slot{$i}) {
-									$old_name_stolen = 1;
-								}
-								elsif ($name_by_slot{$slot} eq $stripped_compare) {
-									$old_name_stolen = 1;
-								}
-								elsif ($stripped_old eq $name_by_slot{$i}) {
-									$old_name_stolen = 1;
-								}
-								elsif ($stripped_old eq $stripped_compare) {
 									$old_name_stolen = 1;
 								}
 
@@ -6404,21 +6399,12 @@ sub update_name_by_slot {
 								if ($name eq $name_by_slot{$i}) {
 									$new_name_stolen = 1;
 								}
-								elsif ($name eq $stripped_compare) {
-									$new_name_stolen = 1;
-								}
-								elsif ($stripped_new eq $name_by_slot{$i}) {
-									$new_name_stolen = 1;
-								}
-								elsif ($stripped_new eq $stripped_compare) {
-									$new_name_stolen = 1;
-								}
 							}
 						}
 					}
 					if (($old_name_stolen) and ($new_name_stolen)) {
-						&rcon_command("say ^1ÎÁÍÀÐÓÆÅÍÀ ÊÐÀÆÀ ÍÈÊÍÅÉÌÎÂ^7: ^3Slot #^1$slot ^7áûë ïåðìàíåíòíî çàáàíåí çà êðàæó íèêíåéìîâ!");
-						my $ban_name   = 'NAME STEALING JERKASS';
+						&rcon_command("say ^1ÎÁÍÀÐÓÆÅÍÀ ÊÐÀÆÀ ÍÈÊÍÅÉÌÎÂ^7: Slot #^3$slot ^7áûë ïåðìàíåíòíî çàáàíåí çà êðàæó íèêíåéìîâ!");
+						my $ban_name   = 'NAME STEALING JACKASS';
 						my $ban_ip     = 'unknown';
 						my $ban_guid   = 0;
 						my $unban_time = 2125091758;
@@ -6430,7 +6416,7 @@ sub update_name_by_slot {
 							$ban_guid = $guid_by_slot{$slot};
 						}
 						&rcon_command("clientkick $slot");
-						&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip | $guid_by_slot{$slot} was permanently for being a name thief: $name | $name_by_slot{$slot}");
+						&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip | $ban_guid was permanently for being a name thief: $name | $ban_name");
 						$bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
 						$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 						$ban_message_spam = $time + 3;    # 3 seconds spam protection
