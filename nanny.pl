@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r83';
+my $version                    = '3.4 RU r84';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -3133,8 +3133,8 @@ sub chat {
 		elsif ($message =~ /^!time\b/i) {
 			if (&check_access('time')) {
 				if (&flood_protection('time', 30, $slot)) { }
-				else {
-					&rcon_command("say Московское время: ^2$currenttime ^7| ^3$currentdate");
+				elsif ($currenttime =~ /^(\d+:\d+):\d+\s(\w+)$/) {
+					&rcon_command("say Московское время: ^2$1 $2 ^7| ^3$currentdate");
 				}
 			}
 		}
@@ -3189,7 +3189,7 @@ sub description {
 	else { return $string; }
 }
 
-# END: strip_color
+# END: description
 
 # BEGIN: locate($search_string)
 sub locate {
@@ -6416,7 +6416,7 @@ sub update_name_by_slot {
 							$ban_guid = $guid_by_slot{$slot};
 						}
 						&rcon_command("clientkick $slot");
-						&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip | $ban_guid was permanently for being a name thief: $name | $ban_name");
+						&log_to_file('logs/kick.log', "BAN: NAME_THIEF: $ban_ip | $ban_guid was permanently for being a name thief: $name | $name_by_slot{$slot}");
 						$bans_sth = $bans_dbh->prepare("INSERT INTO bans VALUES (NULL, ?, ?, ?, ?, ?)");
 						$bans_sth->execute($time, $unban_time, $ban_ip, $ban_guid, $ban_name) or &die_nice("Unable to do insert\n");
 						$ban_message_spam = $time + 3;    # 3 seconds spam protection
