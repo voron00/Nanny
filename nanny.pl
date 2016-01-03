@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r84';
+my $version                    = '3.4 EN r85';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -171,10 +171,8 @@ my $last_guid_sanity_check;
 my $uptime = 0;
 my %flood_protection;
 my $first_blood = 1;
-my %last_killed_by_name;
-my %last_killed_by_guid;
-my %last_kill_by_name;
-my %last_kill_by_guid;
+my %last_killed_by;
+my %last_kill_by;
 my %kill_spree;
 my %best_spree;
 my $next_announcement;
@@ -432,7 +430,7 @@ while (1) {
 
 				# the RIDDLER fix, try #1
 				$attacker_name =~ s/\s+$//;
-				$victim_name =~ s/\s+$//;
+				$victim_name   =~ s/\s+$//;
 				if (($attacker_guid) and ($attacker_name)) {
 					&cache_guid_to_name($attacker_guid, $attacker_name);
 				}
@@ -446,16 +444,8 @@ while (1) {
 				$guid_by_slot{$victim_slot}   = $victim_guid;
 
 				if ($attacker_slot ne $victim_slot) {
-					$last_killed_by_name{$victim_slot} = $attacker_name;
-					$last_killed_by_guid{$victim_slot} = $attacker_guid;
-					if ($last_killed_by_name{$victim_slot} =~ /\^\^\d\d/) {
-						$last_killed_by_name{$victim_slot} = &strip_color($last_killed_by_name{$victim_slot});
-					}
-					$last_kill_by_name{$attacker_slot} = $victim_name;
-					$last_kill_by_guid{$attacker_slot} = $victim_guid;
-					if ($last_kill_by_name{$attacker_slot} =~ /\^\^\d\d/) {
-						$last_kill_by_name{$attacker_slot} = &strip_color($last_kill_by_name{$attacker_slot});
-					}
+					$last_killed_by{$victim_slot} = $attacker_slot;
+					$last_kill_by{$attacker_slot} = $victim_slot;
 				}
 
 				# Glitch Server Mode
@@ -598,9 +588,9 @@ while (1) {
 				# First Blood
 				if (    ($config->{'first_blood'})
 					and ($first_blood == 0)
-					and ($damage_type ne 'MOD_SUICIDE')
-					and ($damage_type ne 'MOD_FALLING')
-					and ($damage_type ne 'MOD_TRIGGER_HURT')
+					and ($damage_type   ne 'MOD_SUICIDE')
+					and ($damage_type   ne 'MOD_FALLING')
+					and ($damage_type   ne 'MOD_TRIGGER_HURT')
 					and ($attacker_team ne 'world')
 					and ($attacker_slot ne $victim_slot))
 				{
@@ -618,9 +608,9 @@ while (1) {
 
 				# Killing Spree
 				if (    ($config->{'killing_sprees'})
-					and ($damage_type ne 'MOD_SUICIDE')
-					and ($damage_type ne 'MOD_FALLING')
-					and ($damage_type ne 'MOD_TRIGGER_HURT')
+					and ($damage_type   ne 'MOD_SUICIDE')
+					and ($damage_type   ne 'MOD_FALLING')
+					and ($damage_type   ne 'MOD_TRIGGER_HURT')
 					and ($attacker_team ne 'world')
 					and ($attacker_slot ne $victim_slot))
 				{
@@ -705,17 +695,15 @@ while (1) {
 				$idle_warn_level{$slot}       = 0;
 				$guid_by_slot{$slot}          = $guid;
 				&update_name_by_slot($name, $slot);
-				$ip_by_slot{$slot}          = 'not_yet_known';
-				$spam_count{$slot}          = 0;
-				$spam_last_said{$slot}      = &random_pwd(16);
-				$ping_by_slot{$slot}        = 0;
-				$last_ping_by_slot{$slot}   = 0;
-				$kill_spree{$slot}          = 0;
-				$best_spree{$slot}          = 0;
-				$last_killed_by_name{$slot} = 'none';
-				$last_killed_by_guid{$slot} = 0;
-				$last_kill_by_name{$slot}   = 'none';
-				$last_kill_by_guid{$slot}   = 0;
+				$ip_by_slot{$slot}        = 'not_yet_known';
+				$spam_count{$slot}        = 0;
+				$spam_last_said{$slot}    = &random_pwd(16);
+				$ping_by_slot{$slot}      = 0;
+				$last_ping_by_slot{$slot} = 0;
+				$kill_spree{$slot}        = 0;
+				$best_spree{$slot}        = 0;
+				$last_killed_by{$slot}    = 'none';
+				$last_kill_by{$slot}      = 'none';
 
 				if ($gametype ne 'sd') {
 					$penalty_points{$slot} = 0;
@@ -763,10 +751,8 @@ while (1) {
 				$ping_by_slot{$slot}          = 0;
 				$last_ping_by_slot{$slot}     = 0;
 				$penalty_points{$slot}        = 0;
-				$last_killed_by_name{$slot}   = 'none';
-				$last_killed_by_guid{$slot}   = 0;
-				$last_kill_by_name{$slot}     = 'none';
-				$last_kill_by_guid{$slot}     = 0;
+				$last_killed_by{$slot}        = 'none';
+				$last_kill_by{$slot}          = 'none';
 				$kill_spree{$slot}            = 0;
 				$best_spree{$slot}            = 0;
 				$ignore{$slot}                = 0;
@@ -1361,8 +1347,7 @@ sub load_config_file {
 
 					# FTP url has been specified - remote FTP mode selected
 					($ftp_host, $file, $logfile_mode) = ($1, $2, 'ftp');
-					($ftp_dirname, $ftp_basename) =
-					  (dirname($file), basename($file));
+					($ftp_dirname, $ftp_basename) = (dirname($file), basename($file));
 				}
 			}
 			elsif ($config_name eq 'ban_name') {
@@ -1847,20 +1832,20 @@ sub chat {
 	# Call Bad shot
 	if (($config->{'bad_shots'}) and (!$ignore{$slot})) {
 		if ($message =~ /^!?bs\W*$|^!?bad\s*shot\W*$|^!?bull\s*shit\W*$|^!?hacks?\W*$|^!?hacker\W*$|^!?hax\W*$|^that\s+was\s+(bs|badshot|bullshit)\W*$/i) {
-			if (    (defined($last_killed_by_name{$slot}))
-				and ($last_killed_by_name{$slot} ne 'none'))
+			if (    (defined($last_killed_by{$slot}))
+				and ($last_killed_by{$slot} ne 'none'))
 			{
 				if (   (&flood_protection('badshot', 30, $slot))
 					or (&flood_protection('niceshot', 30, $slot)))
 				{
 				}
-				elsif ($last_killed_by_guid{$slot}) {
+				elsif ($guid_by_slot{$last_killed_by{$slot}}) {
 
 					# update the Bad Shot counter.
 					$stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
-					$stats_sth->execute($last_killed_by_guid{$slot})
+					$stats_sth->execute($guid_by_slot{$last_killed_by{$slot}})
 					  or &die_nice("Unable to update stats\n");
-					&rcon_command("say $name ^7called bad shot on $last_killed_by_name{$slot}");
+					&rcon_command("say $name ^7called bad shot on $name_by_slot{$last_killed_by{$slot}}");
 				}
 			}
 		}
@@ -1868,21 +1853,21 @@ sub chat {
 			my $search_string = $2;
 			my @matches       = &matching_users($search_string);
 			if (    ($#matches == 0)
-				and (defined($last_kill_by_name{$matches[0]}))
-				and ($last_kill_by_name{$matches[0]} ne 'none')
+				and (defined($last_kill_by{$matches[0]}))
+				and ($last_kill_by{$matches[0]} ne 'none')
 				and ($slot ne $matches[0]))
 			{
 				if (   (&flood_protection('badshot', 30, $slot))
 					or (&flood_protection('niceshot', 30, $slot)))
 				{
 				}
-				elsif ($last_kill_by_guid{$matches[0]}) {
+				elsif ($guid_by_slot{$last_kill_by{$matches[0]}}) {
 
 					# update the Bad Shot counter.
 					$stats_sth = $stats_dbh->prepare("UPDATE stats SET bad_shots = bad_shots + 1 WHERE guid=?");
-					$stats_sth->execute($last_kill_by_guid{$matches[0]})
+					$stats_sth->execute($guid_by_slot{$last_kill_by{$matches[0]}})
 					  or &die_nice("Unable to update stats\n");
-					&rcon_command("say $name ^7called bad shot on $name_by_slot{$matches[0]} ^7killing $last_kill_by_name{$matches[0]}");
+					&rcon_command("say $name ^7called bad shot on $name_by_slot{$matches[0]} ^7killing $name_by_slot{$last_kill_by{$matches[0]}}");
 				}
 			}
 		}
@@ -1893,20 +1878,20 @@ sub chat {
 	# Call Nice Shot
 	if (($config->{'nice_shots'}) and (!$ignore{$slot})) {
 		if ($message =~ /\bnice\W?\s+(one|shot|1)\b|^n[1s]\W*$/i) {
-			if (    (defined($last_killed_by_name{$slot}))
-				and ($last_killed_by_name{$slot} ne 'none'))
+			if (    (defined($last_killed_by{$slot}))
+				and ($last_killed_by{$slot} ne 'none'))
 			{
 				if (   (&flood_protection('niceshot', 30, $slot))
 					or (&flood_protection('badshot', 30, $slot)))
 				{
 				}
-				elsif ($last_killed_by_guid{$slot}) {
+				elsif ($guid_by_slot{$last_killed_by{$slot}}) {
 
 					# update the Nice Shot counter.
 					$stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
-					$stats_sth->execute($last_killed_by_guid{$slot})
+					$stats_sth->execute($guid_by_slot{$last_killed_by{$slot}})
 					  or &die_nice("Unable to update stats\n");
-					&rcon_command("say $name ^7called nice shot on $last_killed_by_name{$slot}");
+					&rcon_command("say $name ^7called nice shot on $name_by_slot{$last_killed_by{$slot}}");
 				}
 			}
 		}
@@ -1914,21 +1899,21 @@ sub chat {
 			my $search_string = $2;
 			my @matches       = &matching_users($search_string);
 			if (    ($#matches == 0)
-				and (defined($last_kill_by_name{$matches[0]}))
-				and ($last_kill_by_name{$matches[0]} ne 'none')
+				and (defined($last_kill_by{$matches[0]}))
+				and ($last_kill_by{$matches[0]} ne 'none')
 				and ($slot ne $matches[0]))
 			{
 				if (   (&flood_protection('niceshot', 30, $slot))
 					or (&flood_protection('badshot', 30, $slot)))
 				{
 				}
-				elsif ($last_kill_by_guid{$matches[0]}) {
+				elsif ($guid_by_slot{$last_kill_by{$matches[0]}}) {
 
 					# update the Nice Shot counter.
 					$stats_sth = $stats_dbh->prepare("UPDATE stats SET nice_shots = nice_shots + 1 WHERE guid=?");
-					$stats_sth->execute($last_kill_by_guid{$matches[0]})
+					$stats_sth->execute($guid_by_slot{$last_kill_by{$matches[0]}})
 					  or &die_nice("Unable to update stats\n");
-					&rcon_command("say $name ^7called nice shot on $name_by_slot{$matches[0]} ^7killing $last_kill_by_name{$matches[0]}");
+					&rcon_command("say $name ^7called nice shot on $name_by_slot{$matches[0]} ^7killing $name_by_slot{$last_kill_by{$matches[0]}}");
 				}
 			}
 		}
@@ -3807,10 +3792,10 @@ sub lastkill {
 	if ($search_string) {
 		my @matches = &matching_users($search_string);
 		if (    ($#matches == 0)
-			and (defined($last_kill_by_name{$matches[0]}))
-			and ($last_kill_by_name{$matches[0]} ne 'none'))
+			and (defined($last_kill_by{$matches[0]}))
+			and ($last_kill_by{$matches[0]} ne 'none'))
 		{
-			&rcon_command("say $name_by_slot{$matches[0]} ^7killed $last_kill_by_name{$matches[0]}");
+			&rcon_command("say $name_by_slot{$matches[0]} ^7killed $name_by_slot{$last_kill_by{$matches[0]}}");
 		}
 		elsif ($#matches > 0) {
 			&rcon_command("say Too many matches for: $search_string");
@@ -3821,10 +3806,10 @@ sub lastkill {
 			return 1;
 		}
 	}
-	elsif ( (defined($last_kill_by_name{$slot}))
-		and ($last_kill_by_name{$slot} ne 'none'))
+	elsif ( (defined($last_kill_by{$slot}))
+		and ($last_kill_by{$slot} ne 'none'))
 	{
-		&rcon_command("say $name_by_slot{$slot}^7: You killed $last_kill_by_name{$slot}");
+		&rcon_command("say $name_by_slot{$slot}^7: You killed $name_by_slot{$last_kill_by{$slot}}");
 	}
 }
 
@@ -3838,10 +3823,10 @@ sub lastkilled {
 	if ($search_string) {
 		my @matches = &matching_users($search_string);
 		if (    ($#matches == 0)
-			and (defined($last_killed_by_name{$matches[0]}))
-			and ($last_killed_by_name{$matches[0]} ne 'none'))
+			and (defined($last_killed_by{$matches[0]}))
+			and ($last_killed_by{$matches[0]} ne 'none'))
 		{
-			&rcon_command("say $name_by_slot{$matches[0]} ^7was killed by $last_killed_by_name{$matches[0]}");
+			&rcon_command("say $name_by_slot{$matches[0]} ^7was killed by $name_by_slot{$last_killed_by{$matches[0]}}");
 		}
 		elsif ($#matches > 0) {
 			&rcon_command("say Too many matches for: $search_string");
@@ -3852,10 +3837,10 @@ sub lastkilled {
 			return 1;
 		}
 	}
-	elsif ( (defined($last_killed_by_name{$slot}))
-		and ($last_killed_by_name{$slot} ne 'none'))
+	elsif ( (defined($last_killed_by{$slot}))
+		and ($last_killed_by{$slot} ne 'none'))
 	{
-		&rcon_command("say $name_by_slot{$slot}^7: You were killed by $last_killed_by_name{$slot}");
+		&rcon_command("say $name_by_slot{$slot}^7: You were killed by $name_by_slot{$last_killed_by{$slot}}");
 	}
 }
 
@@ -3912,12 +3897,9 @@ sub stats {
 
 		# pistol_ratio,grenade_ratio,bash_ratio
 		if ($row[2]) {
-			my $pistol_ratio =
-			  ($row[5]) ? int($row[5] / $row[2] * 10000) / 100 : 0;
-			my $grenade_ratio =
-			  ($row[6]) ? int($row[6] / $row[2] * 10000) / 100 : 0;
-			my $bash_ratio =
-			  ($row[7]) ? int($row[7] / $row[2] * 10000) / 100 : 0;
+			my $pistol_ratio  = ($row[5]) ? int($row[5] / $row[2] * 10000) / 100 : 0;
+			my $grenade_ratio = ($row[6]) ? int($row[6] / $row[2] * 10000) / 100 : 0;
+			my $bash_ratio    = ($row[7]) ? int($row[7] / $row[2] * 10000) / 100 : 0;
 			$stats_msg .= " ^9$pistol_ratio ^7pistol ratio, ^9$grenade_ratio ^7grenade ratio, ^9$bash_ratio ^7melee ratio";
 
 			if (($row[5]) or ($row[6]) or ($row[7])) {
@@ -4026,7 +4008,7 @@ sub stats {
 		  or &die_nice("Unable to do insert\n");
 	}
 	else {
-		&rcon_command("say Error reading stats for: $name^7 (^2GUID^7 - ^3$guid^7)");
+		&rcon_command("say Can't get stats for: $name^7 (^2GUID^7 - ^3$guid^7)");
 	}
 }
 
@@ -4788,8 +4770,8 @@ sub tempban_command {
 	if (&flood_protection('tempban', 30, $slot)) { return 1; }
 	my $search_string = shift;
 	my $tempbantime   = shift;
-	if (!defined($tempbantime))        { $tempbantime = 30; }
-	if ($search_string =~ /^\#(\d+)$/) { $slot        = $1; }
+	if (!defined($tempbantime)) { $tempbantime = 30; }
+	if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
 	else {
 		my @matches = &matching_users($search_string);
 		if ($#matches == 0) { $slot = $matches[0]; }
@@ -5281,7 +5263,7 @@ sub get_name_by_guid {
 	$guid_to_name_sth->execute($guid)
 	  or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
 	@row = $guid_to_name_sth->fetchrow_array;
-	if    (!$row[0])              { return "^3$guid"; }
+	if (!$row[0]) { return "^3$guid"; }
 	elsif ($row[0] =~ /\^\^\d\d/) { return &strip_color($row[0]); }
 	else                          { return $row[0]; }
 }
@@ -6049,21 +6031,19 @@ sub reset {
 			$last_activity_by_slot{$reset_slot} = 'gone';
 			$idle_warn_level{$reset_slot}       = 0;
 			&update_name_by_slot('SLOT_EMPTY', $reset_slot);
-			$ip_by_slot{$reset_slot}          = 'not_yet_known';
-			$guid_by_slot{$reset_slot}        = 0;
-			$spam_count{$reset_slot}          = 0;
-			$spam_last_said{$reset_slot}      = &random_pwd(16);
-			$ping_by_slot{$reset_slot}        = 0;
-			$last_ping_by_slot{$reset_slot}   = 0;
-			$penalty_points{$reset_slot}      = 0;
-			$last_killed_by_name{$reset_slot} = 'none';
-			$last_killed_by_guid{$reset_slot} = 0;
-			$last_kill_by_name{$reset_slot}   = 'none';
-			$last_kill_by_guid{$reset_slot}   = 0;
-			$kill_spree{$reset_slot}          = 0;
-			$best_spree{$reset_slot}          = 0;
-			$ignore{$reset_slot}              = 0;
-			$last_rconstatus                  = 0;
+			$ip_by_slot{$reset_slot}        = 'not_yet_known';
+			$guid_by_slot{$reset_slot}      = 0;
+			$spam_count{$reset_slot}        = 0;
+			$spam_last_said{$reset_slot}    = &random_pwd(16);
+			$ping_by_slot{$reset_slot}      = 0;
+			$last_ping_by_slot{$reset_slot} = 0;
+			$penalty_points{$reset_slot}    = 0;
+			$last_killed_by{$reset_slot}    = 'none';
+			$last_kill_by{$reset_slot}      = 'none';
+			$kill_spree{$reset_slot}        = 0;
+			$best_spree{$reset_slot}        = 0;
+			$ignore{$reset_slot}            = 0;
+			$last_rconstatus                = 0;
 		}
 	}
 }
