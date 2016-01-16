@@ -12,7 +12,7 @@ Instructions to run in Windows:
 2. Setup every necessary parameters in nanny.cfg
 3. Launch. In Windows you can use nanny.bat
 
-Instructions to run in Linux or other os:
+Instructions to run in Linux:
 
 1. Install through CPAN (http://www.cpan.org/modules/INSTALL.html) dependent modules: DBI, DBD::SQLite, LWP::Simple
 2. Setup every necessary parameters in nanny.cfg
