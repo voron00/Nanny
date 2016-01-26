@@ -28,6 +28,11 @@ Nanny
 
 Интсрукция по запуску в Linux:
 
-1. Установить через CPAN (http://www.cpan.org/modules/INSTALL.html) зависимые модули: DBI, DBD::SQLite, LWP::Simple
+1. Установить через CPAN (http://www.cpan.org/modules/INSTALL.html) зависимые модули: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Некоторые могут уже быть установлены, зависит от дистрибутива)
 2. Настроить необходимые параметры в nanny.cfg
 3. Запустить в терминале. В Linux можно запускать через nanny.sh
+
+Интсрукция по запуску в Mac OSX:
+
+1. Настроить необходимые параметры в nanny.cfg
+2. Запустить в терминале. В OSX можно запускать через nanny.sh
