@@ -66,6 +66,7 @@ use DBD::SQLite;                # also needed to support databases
 use Geo::IP;                    # GeoIP is used for locating IP addresses
 use Geo::Inverse;               # Used for calculating the distance from the server
 use Time::Duration;             # expresses times in plain english
+use Time::HiRes qw (usleep);    # high resolution interval timers
 use Time::Piece;                # object oriented time objects
 use Socket;                     # Used for asking activision for GUID numbers
 use IO::Select;                 # Used by the udp routines for manual GUID lookup
@@ -87,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r86';
+my $version                    = '3.4 EN r85';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -1085,7 +1086,7 @@ while (1) {
 	else {
 		# We have reached the end of the logfile.
 		# Delay some time so we aren't constantly hammering this loop
-		sleep 1;
+		usleep(100000);
 
 		# cache the time to limit the number of syscalls
 		$time        = time;
