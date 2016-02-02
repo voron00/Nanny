@@ -12,13 +12,8 @@ Instructions to run in Windows:
 2. Setup every necessary parameters in nanny.cfg
 3. Launch. In Windows you can use nanny.bat
 
-Instructions to run in Linux:
+Instructions to run in *nix:
 
 1. Install through CPAN (http://www.cpan.org/modules/INSTALL.html) dependent modules: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Some of them might be already installed, depends on a distro)
 2. Setup every necessary parameters in nanny.cfg
-3. Launch in terminal. In Linux you can use nanny.sh
-
-Instructions to run in Mac OSX:
-
-1. Setup every necessary parameters in nanny.cfg
-2. Launch in terminal. In OSX you can use nanny.sh
+3. Launch in terminal. In *nix you can use nanny.sh

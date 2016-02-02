@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r85';
+my $version                    = '3.4 EN r86';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -1160,6 +1160,9 @@ while (1) {
 		# Check vote status
 		if ($vote_started) {
 
+			# Bugfix: $required_yes - $voted_yes may be < 0
+			if ($voted_yes > $required_yes) { $voted_yes = $required_yes; }
+
 			# Vote TIMEOUT
 			if (($vote_time) and ($time >= $vote_time)) {
 				&rcon_command("say Vote: $vote_string " . &description($vote_target) . "^7: ^1FAILED^7: Voted ^2YES^7: ^2$voted_yes^7, Voted ^1NO^7: ^1$voted_no");
@@ -1168,7 +1171,7 @@ while (1) {
 			}
 
 			# Vote PASS, required YES reached
-			elsif ($voted_yes >= $required_yes) {
+			elsif ($voted_yes == $required_yes) {
 				&rcon_command("say Vote: $vote_string " . &description($vote_target) . "^7: ^2PASSED^7: Voted ^2YES^7: ^2$voted_yes^7, Voted ^1NO^7: ^1$voted_no");
 				sleep 1;
 				if ($vote_type eq 'kick') {
