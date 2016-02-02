@@ -1160,14 +1160,15 @@ while (1) {
 		# Check vote status
 		if ($vote_started) {
 
+			# Bugfix: $required_yes - $voted_yes may be < 0
+			if ($voted_yes > $required_yes) { $voted_yes = $required_yes; }
+
 			# Vote TIMEOUT
 			if (($vote_time) and ($time >= $vote_time)) {
 				&rcon_command("say Ãîëîñîâàíèå: $vote_string " . &description($vote_target) . "^7: ^1ÍÅ ÓÄÀËÎÑÜ^7: Ãîëîñîâ ^2ÇÀ^7: ^2$voted_yes^7, ^1ÏÐÎÒÈÂ^7: ^1$voted_no");
 				&log_to_file('logs/voting.log', "RESULTS: Vote FAILED: Reason: TIMEOUT, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 				&vote_cleanup;
 			}
-
-			if ($voted_yes > $required_yes) { $voted_yes = $required_yes; }    # Bugfix: $required_yes - $voted_yes may be < 0
 
 			# Vote PASS, required YES reached
 			elsif ($voted_yes == $required_yes) {
