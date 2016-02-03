@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r87';
+my $version                    = '3.4 RU r88';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -5151,6 +5151,10 @@ sub yes {
 	if (($vote_started) and (!$voted_by_slot{$slot})) {
 		$voted_by_slot{$slot} = 1;
 		$voted_yes++;
+		
+		# Bugfix: $required_yes - $voted_yes may be < 0
+		if ($voted_yes > $required_yes) { $voted_yes = $required_yes; }
+		
 		if (($required_yes - $voted_yes) != 0) {
 			&rcon_command("say $name ^7проголосовал ^2ЗА ^7необходимо еще голосов ^2ЗА^7:^2 " . ($required_yes - $voted_yes));
 		}
