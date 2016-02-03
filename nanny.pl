@@ -5383,34 +5383,36 @@ sub check_player_names {
 	my $warned;
 	foreach $slot (sort { $a <=> $b } keys %name_by_slot) {
 		if ($slot >= 0) {
-			$warned = 0;
-			foreach $match_string (@banned_names) {
-				if ($name_by_slot{$slot} =~ /$match_string/) {
-					$warned = 1;
-					if (!defined($name_warn_level{$slot})) {
-						$name_warn_level{$slot} = 0;
-					}
-					if ($name_warn_level{$slot} == 0) {
-						print "NAME_WARN1: $name_by_slot{$slot} is using a banned name. Match: $match_string\n";
-						&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_1'});
-						$name_warn_level{$slot} = 1;
-					}
-					elsif ($name_warn_level{$slot} == 1) {
-						print "NAME_WARN2: $name_by_slot{$slot} is using a banned name. (2nd warning) Match: $match_string\n";
-						&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_2'});
-						$name_warn_level{$slot} = 2;
-					}
-					elsif ($name_warn_level{$slot} == 2) {
-						print "NAME_KICK: $name_by_slot{$slot} is using a banned name. (3rd strike) Match: $match_string\n";
-						&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_kick_message'});
-						sleep 1;
-						&rcon_command("clientkick $slot");
-						&log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
+			if (defined($ping_by_slot{$slot}) and ($ping_by_slot{$slot}) ne 'CNCT' and $ping_by_slot{$slot} != 999) {
+				$warned = 0;
+				foreach $match_string (@banned_names) {
+					if ($name_by_slot{$slot} =~ /$match_string/) {
+						$warned = 1;
+						if (!defined($name_warn_level{$slot})) {
+							$name_warn_level{$slot} = 0;
+						}
+						if ($name_warn_level{$slot} == 0) {
+							print "NAME_WARN1: $name_by_slot{$slot} is using a banned name. Match: $match_string\n";
+							&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_1'});
+							$name_warn_level{$slot} = 1;
+						}
+						elsif ($name_warn_level{$slot} == 1) {
+							print "NAME_WARN2: $name_by_slot{$slot} is using a banned name. (2nd warning) Match: $match_string\n";
+							&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_warn_message_2'});
+							$name_warn_level{$slot} = 2;
+						}
+						elsif ($name_warn_level{$slot} == 2) {
+							print "NAME_KICK: $name_by_slot{$slot} is using a banned name. (3rd strike) Match: $match_string\n";
+							&rcon_command("say $name_by_slot{$slot}^7: " . $config->{'banned_name_kick_message'});
+							sleep 1;
+							&rcon_command("clientkick $slot");
+							&log_to_file('logs/kick.log', "BANNED NAME: $name_by_slot{$slot} was kicked for having a banned name:  Match: $match_string");
+						}
 					}
 				}
-			}
-			if ((!defined($name_warn_level{$slot})) or (!$warned)) {
-				$name_warn_level{$slot} = 0;
+				if ((!defined($name_warn_level{$slot})) or (!$warned)) {
+					$name_warn_level{$slot} = 0;
+				}
 			}
 		}
 	}
