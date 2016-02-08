@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r88';
+my $version                    = '3.4 EN r89';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -1159,9 +1159,6 @@ while (1) {
 
 		# Check vote status
 		if ($vote_started) {
-
-			# Bugfix: $required_yes - $voted_yes may be < 0
-			if ($voted_yes > $required_yes) { $voted_yes = $required_yes; }
 
 			# Vote TIMEOUT
 			if (($vote_time) and ($time >= $vote_time)) {
@@ -5119,10 +5116,10 @@ sub yes {
 	if (($vote_started) and (!$voted_by_slot{$slot})) {
 		$voted_by_slot{$slot} = 1;
 		$voted_yes++;
-		
+
 		# Bugfix: $required_yes - $voted_yes may be < 0
 		if ($voted_yes > $required_yes) { $voted_yes = $required_yes; }
-		
+
 		if (($required_yes - $voted_yes) != 0) {
 			&rcon_command("say $name ^7voted ^2YES^7, ^2YES ^7needed to pass:^2 " . ($required_yes - $voted_yes));
 		}
@@ -6344,7 +6341,9 @@ sub update_name_by_slot {
 					foreach $i (keys %name_by_slot) {
 						if ($slot >= 0) {
 							if (    ($name_by_slot{$i} ne 'SLOT_EMPTY')
-								and ($slot ne $i))
+								and ($slot ne $i)
+								and (defined($ping_by_slot{$slot}) and ($ping_by_slot{$slot}) ne 'CNCT' and $ping_by_slot{$slot} != 999)
+								and (defined($ping_by_slot{$i}) and ($ping_by_slot{$i}) ne 'CNCT' and $ping_by_slot{$i} != 999))
 							{
 
 								# Compare the old name for matches
