@@ -88,7 +88,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r89';
+my $version                    = '3.4 RU r90';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -4340,16 +4340,33 @@ sub clear_names {
 	if (&flood_protection('clearnames', 30, $slot)) { return 1; }
 	my $search_string = shift;
 	my @matches       = &matching_users($search_string);
+	my @row;
+	my $result = 0;
 	if ($#matches == 0) {
 		if ($ip_by_slot{$matches[0]} =~ /\?$/) { return 1; }
-		$guid_to_name_sth = $guid_to_name_dbh->prepare("DELETE FROM guid_to_name where guid=?;");
+		$guid_to_name_sth = $guid_to_name_dbh->prepare("SELECT count(*) FROM guid_to_name WHERE guid=?");
 		$guid_to_name_sth->execute($guid_by_slot{$matches[0]})
 		  or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
-		$ip_to_name_sth = $ip_to_name_dbh->prepare("DELETE FROM ip_to_name where ip=?;");
+		@row = $guid_to_name_sth->fetchrow_array;
+		$result += $row[0];
+		if ($result) {
+			$guid_to_name_sth = $guid_to_name_dbh->prepare("DELETE FROM guid_to_name where guid=?;");
+			$guid_to_name_sth->execute($guid_by_slot{$matches[0]})
+			  or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
+		}
+		$ip_to_name_sth = $ip_to_name_dbh->prepare("SELECT count(*) FROM ip_to_name WHERE ip=?");
 		$ip_to_name_sth->execute($ip_by_slot{$matches[0]})
 		  or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
-		&rcon_command("say Удалены имена для: $name_by_slot{$matches[0]}");
-		&log_to_file('logs/admin.log', "!CLEARNAMES: $name_by_slot{$matches[0]} names were deleted by $name - GUID $guid (Search: $search_string)");
+		@row = $ip_to_name_sth->fetchrow_array;
+		$result += $row[0];
+		if ($result) {
+			$ip_to_name_sth = $ip_to_name_dbh->prepare("DELETE FROM ip_to_name where ip=?;");
+			$ip_to_name_sth->execute($ip_by_slot{$matches[0]})
+			  or &die_nice("Unable to execute query: $ip_to_name_dbh->errstr\n");
+			&rcon_command("say Удалено ^1$result ^7имен для: $name_by_slot{$matches[0]}");
+			&log_to_file('logs/admin.log', "!CLEARNAMES: $name_by_slot{$matches[0]} names were deleted by $name - GUID $guid (Search: $search_string)");
+		}
+		else { &rcon_command("say Не найдено имен для: $name_by_slot{$matches[0]}"); }
 	}
 	elsif ($#matches == -1) {
 		&rcon_command("say Нет совпадений с: $search_string");
