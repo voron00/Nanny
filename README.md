@@ -28,6 +28,6 @@ Nanny
 
 Интсрукция по запуску в *nix:
 
-1. Установить через CPAN (http://www.cpan.org/modules/INSTALL.html) зависимые модули: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Некоторые могут уже быть установлены, зависит от дистрибутива)
+1. Установить через CPAN (http://www.cpan.org/modules/INSTALL.html) зависимые модули: DBI, DBD::SQLite, LWP::Simple
 2. Настроить необходимые параметры в nanny.cfg
 3. Запустить в терминале. В *nix можно запускать через nanny.sh
