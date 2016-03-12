@@ -1,19 +1,19 @@
-
 package Time::Duration;
-# POD is at the end.
-$VERSION = '1.1';
-require Exporter;
-@ISA = ('Exporter');
-@EXPORT = qw( later later_exact earlier earlier_exact
-              ago ago_exact from_now from_now_exact
-              duration duration_exact
-              concise
-            );
-@EXPORT_OK = ('interval', @EXPORT);
-
+$Time::Duration::VERSION = '1.20';
+use 5.006;
 use strict;
+use warnings;
 use constant DEBUG => 0;
 
+require Exporter;
+
+our @ISA         = ('Exporter');
+our @EXPORT      = qw( later later_exact earlier earlier_exact
+                       ago ago_exact from_now from_now_exact
+                       duration duration_exact
+                       concise
+                     );
+our @EXPORT_OK   = ('interval', @EXPORT);
 our $MILLISECOND = 0;
 
 # ALL SUBS ARE PURE FUNCTIONS

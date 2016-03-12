@@ -66,8 +66,6 @@ use DBD::SQLite;                # also needed to support databases
 use Geo::IP;                    # GeoIP is used for locating IP addresses
 use Geo::Inverse;               # Used for calculating the distance from the server
 use Time::Duration;             # expresses times in plain english
-use Time::HiRes qw (usleep);    # high resolution interval timers
-use Time::Piece;                # object oriented time objects
 use Socket;                     # Used for asking activision for GUID numbers
 use IO::Select;                 # Used by the udp routines for manual GUID lookup
 use LWP::Simple;                # HTTP fetches, simple procedural interface to LWP
@@ -88,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r90';
+my $version                    = '3.4 EN r91';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -130,8 +128,6 @@ my $damage_location;
 my $message;
 my $time;
 my $timestring;
-my $currenttime;
-my $currentdate;
 my %last_activity_by_slot;
 my $last_idlecheck;
 my $last_rconstatus;
@@ -247,9 +243,6 @@ local $| = 1;
 # initialize the timers
 $time        = time;
 $timestring  = scalar(localtime($time));
-$currenttime = $timestring->strftime();
-if ($currenttime =~ /^(\w+),\s(\d+)\s(\w+)\s(\d+)\s(\d+:\d+:\d+)\s(\w+)$/) { $currenttime = "$5 $6"; }    # Only display time and timezone
-$currentdate            = $timestring->dmy(".");
 $last_idlecheck         = $time;
 $last_namecheck         = $time;
 $last_guid0_audit       = $time;
@@ -1086,14 +1079,11 @@ while (1) {
 	else {
 		# We have reached the end of the logfile.
 		# Delay some time so we aren't constantly hammering this loop
-		usleep(100000);
+		sleep 1;
 
 		# cache the time to limit the number of syscalls
 		$time        = time;
 		$timestring  = scalar(localtime($time));
-		$currenttime = $timestring->strftime();
-		if ($currenttime =~ /^(\w+),\s(\d+)\s(\w+)\s(\d+)\s(\d+:\d+:\d+)\s(\w+)$/) { $currenttime = "$5 $6"; }    # Only display time and timezone
-		$currentdate = $timestring->dmy(".");
 
 		# Freshen the rcon status if it's time
 		if (($time - $last_rconstatus) >= ($rconstatus_interval)) {
@@ -3104,8 +3094,8 @@ sub chat {
 		elsif ($message =~ /^!time\b/i) {
 			if (&check_access('time')) {
 				if (&flood_protection('time', 30, $slot)) { }
-				elsif ($currenttime =~ /^(\d+:\d+):\d+\s(\w+)$/) {
-					&rcon_command("say Current time: ^2$1 $2 ^7| ^3$currentdate");
+				else {
+					&rcon_command("say Current time: ^2$timestring");
 				}
 			}
 		}
@@ -3415,16 +3405,13 @@ sub banned_guid_check {
 # BEGIN: banned_player_kick
 sub banned_player_kick {
 	my ($slot, $ban_id, $ban_time, $unban_time, $ban_ip, $ban_guid, $ban_name) = (@_);
-	my $bandate;
 	my $bantime;
 	if (!$ban_message_spam) {
-		$bantime = scalar(localtime($ban_time))->strftime;
-		if ($bantime =~ /^(\w+),\s(\d+)\s(\w+)\s(\d+)\s(\d+:\d+:\d+)\s(\w+)$/) { $bantime = "$5 $6"; }    # Only display time and timezone
-		$bandate = scalar(localtime($ban_time))->dmy(".");
+		$bantime = scalar(localtime($ban_time));
 		sleep 1;
 		&rcon_command("say $name_by_slot{$slot}^7: You are banned. You are not allowed to stay on this server");
 		sleep 1;
-		&rcon_command("say $ban_name^7: Was banned ^3$bandate ^7in ^2$bantime ^7(BAN ID#: ^1$ban_id^7)");
+		&rcon_command("say $ban_name^7: Was banned ^2$bantime ^7(BAN ID#: ^1$ban_id^7)");
 		sleep 1;
 
 		if ($unban_time == 2125091758) {
@@ -3778,7 +3765,7 @@ sub seen {
 sub log_to_file {
 	my ($logfile, $msg) = @_;
 	open LOG, ">> $logfile" or return 0;
-	print LOG "$currentdate $currenttime $msg\n";
+	print LOG "$timestring $msg\n";
 	close LOG;
 }
 
@@ -5986,7 +5973,7 @@ sub check_guid_zero_players {
 						$dirtbag     = 1;
 						$kick_reason = "was kicked for using an invalid CD-KEY. Perhaps this CD-KEY is already in use";
 					}
-					if (($dirtbag) and ($reason eq 'BANNED_CDKEY')) {
+					if (($dirtbag) and ($reason eq 'BANNED_CDKEY') and (!$ban_message_spam)) {
 						&rcon_command("say $name_by_slot{$slot} ^7$kick_reason");
 						sleep 1;
 						&rcon_command("clientkick $slot");
@@ -6375,7 +6362,7 @@ sub update_name_by_slot {
 							}
 						}
 					}
-					if (($old_name_stolen) and ($new_name_stolen)) {
+					if (($old_name_stolen) and ($new_name_stolen) and (!$ban_message_spam)) {
 						&rcon_command("say ^1NAME STEALING DETECTED^7: Slot #^3$slot ^7was permanently banned for name stealing!");
 						my $ban_name   = 'NAME STEALING JACKASS';
 						my $ban_ip     = 'unknown';

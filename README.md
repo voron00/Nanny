@@ -14,6 +14,6 @@ Instructions to run in Windows:
 
 Instructions to run in *nix:
 
-1. Install through CPAN (http://www.cpan.org/modules/INSTALL.html) dependent modules: DBI, DBD::SQLite, Time::HiRes, LWP::Simple (Some of them might be already installed, depends on a distro)
+1. Install through CPAN (http://www.cpan.org/modules/INSTALL.html) dependent modules: DBI, DBD::SQLite, LWP::Simple
 2. Setup every necessary parameters in nanny.cfg
 3. Launch in terminal. In *nix you can use nanny.sh
