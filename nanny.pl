@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r91';
+my $version                    = '3.4 RU r92';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -4209,7 +4209,8 @@ sub matching_users {
 			}
 			elsif (($name_by_slot{$key} =~ /$search_string/i)
 				or (&strip_color($name_by_slot{$key}) =~ /$search_string/i)
-				or (&strip_space($name_by_slot{$key}) =~ /$search_string/i))
+				or (&strip_space($name_by_slot{$key}) =~ /$search_string/i)
+				or (&strip_color(&strip_space($name_by_slot{$key})) =~ /$search_string/i))
 			{
 				if ($name_by_slot{$key} ne 'SLOT_EMPTY') {
 					print "MATCH: $name_by_slot{$key}\n";
