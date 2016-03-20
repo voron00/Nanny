@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r92';
+my $version                    = '3.4 RU r93';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -177,6 +177,7 @@ my $reactivate_voting = 0;
 my $fly_timer         = 0;
 my $ban_message_spam  = 0;
 my $kick_message_spam = 0;
+my $response_system_spam = 0;
 my %location_spoof;
 my $gametype;
 my $gamename;
@@ -1146,6 +1147,11 @@ while (1) {
 		if (($kick_message_spam) and ($time >= $kick_message_spam)) {
 			$kick_message_spam = 0;
 		}
+			
+		# Response system anti-spam (penalty points)
+		if (($response_system_spam) and ($time >= $response_system_spam)) {
+			$response_system_spam = 0;
+		}
 
 		# Check vote status
 		if ($vote_started) {
@@ -1789,10 +1795,11 @@ sub chat {
 					$index    = int(rand($index)) + 1;
 					$response = $rule_response->{$rule_name}->{$index};
 					$penalty  = $rule_penalty{$rule_name};
-					if ((!&flood_protection("chat-response-$rule_name", 30, $slot)) and (!$ignore{$slot}) and (!$kick_message_spam)) {
+					if ((!&flood_protection("chat-response-$rule_name", 30, $slot)) and (!$ignore{$slot}) and (!$kick_message_spam) and (!$response_system_spam)) {
 						&rcon_command("say $name^7: $response");
 						print "Positive Match:\nRule Name: $rule_name\nPenalty: $penalty\nResponse: $response\n\n";
 						&log_to_file('logs/response.log', "Rule: $rule_name Match Text: $message");
+						$response_system_spam = $time + 3;    # 3 seconds spam protection
 					}
 				}
 				if (!defined($penalty_points{$slot})) {
