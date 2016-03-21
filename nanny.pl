@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r94';
+my $version                    = '3.4 EN r95';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -639,9 +639,9 @@ while (1) {
 							}
 						}
 					}
-					$kill_spree{$victim_slot} = 0;
-					$best_spree{$victim_slot} = 0;
 				}
+				$kill_spree{$victim_slot} = 0;
+				$best_spree{$victim_slot} = 0;
 
 				# End of Kill-Spree section
 			}
