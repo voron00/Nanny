@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r93';
+my $version                    = '3.4 RU r94';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -6760,8 +6760,7 @@ sub vote_start {
 		return 1;
 	}
 	$vote_time = ($time + $vote_timelimit) + ($players_count * 5);    # +5 seconds for each player
-	$required_yes = ($voting_players / 2) + 1;
-	if ($required_yes =~ /^(\d+)(\.\d+)$/) { $required_yes = $1; }
+	$required_yes = int(($voting_players / 2) + 1);
 	&rcon_command("say Голосование началось: Длительность^4 " . ($vote_time - $time) . " ^7секунд: Необходимо голосов ^2ЗА^7: ^2$required_yes");
 	sleep 1;
 	&rcon_command("say Используйте ^5!yes ^7для голосования ^2ЗА ^7или ^5!no ^7для голосования ^1ПРОТИВ");
