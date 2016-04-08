@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r96';
+my $version                    = '3.4 EN r97';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -750,6 +750,7 @@ while (1) {
 				$kill_spree{$slot}            = 0;
 				$best_spree{$slot}            = 0;
 				$ignore{$slot}                = 0;
+				if ($vote_target_slot == $slot) { $vote_time = $time; }
 			}
 			else {
 				print "WARNING: unrecognized syntax for quit line:\n\t$line\n";
@@ -1168,24 +1169,12 @@ while (1) {
 				&rcon_command("say Vote: $vote_string " . &description($vote_target) . "^7: ^2PASSED^7: Voted ^2YES^7: ^2$voted_yes^7, Voted ^1NO^7: ^1$voted_no");
 				sleep 1;
 				if ($vote_type eq 'kick') {
-					if ($name_by_slot{$vote_target_slot} eq $vote_target) {
-						&kick_command($vote_target);
-						&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-					}
-					else {
-						&kick_command('#' . $vote_target_slot);
-						&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $name_by_slot{$vote_target_slot}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-					}
+					&kick_command('#' . $vote_target_slot);
+					&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Kicking $name_by_slot{$vote_target_slot}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 				}
 				elsif ($vote_type eq 'ban') {
-					if ($name_by_slot{$vote_target_slot} eq $vote_target) {
-						&tempban_command($vote_target);
-						&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $vote_target, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-					}
-					else {
-						&tempban_command('#' . $vote_target);
-						&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $name_by_slot{$vote_target_slot}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
-					}
+					&tempban_command('#' . $vote_target_slot);
+					&log_to_file('logs/voting.log', "RESULTS: Vote PASSED: ACTION: Temporary banning $name_by_slot{$vote_target_slot}, YES NEEDED: $required_yes | Voted YES: $voted_yes | Voted NO: $voted_no");
 				}
 				elsif ($vote_type eq 'map') {
 					&change_map($vote_target);
@@ -6062,6 +6051,11 @@ sub reset {
 			$best_spree{$reset_slot}        = 0;
 			$ignore{$reset_slot}            = 0;
 			$last_rconstatus                = 0;
+
+			my $key;
+			foreach $key (keys %flood_protection) {
+				$flood_protection{$key} = $time;
+			}
 		}
 	}
 }
