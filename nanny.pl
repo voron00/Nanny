@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r95';
+my $version                    = '3.4 EN r96';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -172,11 +172,11 @@ my %last_kill_by;
 my %kill_spree;
 my %best_spree;
 my $next_announcement;
-my $voting            = 0;
-my $reactivate_voting = 0;
-my $fly_timer         = 0;
-my $ban_message_spam  = 0;
-my $kick_message_spam = 0;
+my $voting               = 0;
+my $reactivate_voting    = 0;
+my $fly_timer            = 0;
+my $ban_message_spam     = 0;
+my $kick_message_spam    = 0;
 my $response_system_spam = 0;
 my %location_spoof;
 my $gametype;
@@ -242,8 +242,8 @@ my $vote_time      = 0;
 local $| = 1;
 
 # initialize the timers
-$time        = time;
-$timestring  = scalar(localtime($time));
+$time                   = time;
+$timestring             = scalar(localtime($time));
 $last_idlecheck         = $time;
 $last_namecheck         = $time;
 $last_guid0_audit       = $time;
@@ -424,7 +424,7 @@ while (1) {
 
 				# the RIDDLER fix, try #1
 				$attacker_name =~ s/\s+$//;
-				$victim_name   =~ s/\s+$//;
+				$victim_name =~ s/\s+$//;
 				if (($attacker_guid) and ($attacker_name)) {
 					&cache_guid_to_name($attacker_guid, $attacker_name);
 				}
@@ -582,9 +582,9 @@ while (1) {
 				# First Blood
 				if (    ($config->{'first_blood'})
 					and ($first_blood == 0)
-					and ($damage_type   ne 'MOD_SUICIDE')
-					and ($damage_type   ne 'MOD_FALLING')
-					and ($damage_type   ne 'MOD_TRIGGER_HURT')
+					and ($damage_type ne 'MOD_SUICIDE')
+					and ($damage_type ne 'MOD_FALLING')
+					and ($damage_type ne 'MOD_TRIGGER_HURT')
 					and ($attacker_team ne 'world')
 					and ($attacker_slot ne $victim_slot))
 				{
@@ -602,9 +602,9 @@ while (1) {
 
 				# Killing Spree
 				if (    ($config->{'killing_sprees'})
-					and ($damage_type   ne 'MOD_SUICIDE')
-					and ($damage_type   ne 'MOD_FALLING')
-					and ($damage_type   ne 'MOD_TRIGGER_HURT')
+					and ($damage_type ne 'MOD_SUICIDE')
+					and ($damage_type ne 'MOD_FALLING')
+					and ($damage_type ne 'MOD_TRIGGER_HURT')
 					and ($attacker_team ne 'world')
 					and ($attacker_slot ne $victim_slot))
 				{
@@ -1083,8 +1083,8 @@ while (1) {
 		sleep 1;
 
 		# cache the time to limit the number of syscalls
-		$time        = time;
-		$timestring  = scalar(localtime($time));
+		$time       = time;
+		$timestring = scalar(localtime($time));
 
 		# Freshen the rcon status if it's time
 		if (($time - $last_rconstatus) >= ($rconstatus_interval)) {
@@ -1147,7 +1147,7 @@ while (1) {
 		if (($kick_message_spam) and ($time >= $kick_message_spam)) {
 			$kick_message_spam = 0;
 		}
-		
+
 		# Response system anti-spam (penalty points)
 		if (($response_system_spam) and ($time >= $response_system_spam)) {
 			$response_system_spam = 0;
@@ -1938,7 +1938,7 @@ sub chat {
 			push @results, "$name^7: ^1$question ^3is: ^2$row[0]";
 		}
 		if ($#results != -1) {
-			if (&flood_protection('auto-define', 30, $slot)) { }
+			if (&flood_protection('auto-define', 15)) { }
 			else {
 				foreach $result (@results) {
 					&rcon_command("say $result");
@@ -3247,7 +3247,7 @@ sub status {
 			$ping_by_slot{$slot} = $ping;
 
 			# update name by slot
-			if (length($name) < 32) {
+			if (length($name) < 32 and !defined($name_by_slot{$slot})) {    # This sucks. The rcon bug sometimes screws up the names. No way to fix it so update only if name is undefined
 				&update_name_by_slot($name, $slot);
 			}
 
@@ -4782,8 +4782,8 @@ sub tempban_command {
 	if (&flood_protection('tempban', 30, $slot)) { return 1; }
 	my $search_string = shift;
 	my $tempbantime   = shift;
-	if (!defined($tempbantime)) { $tempbantime = 30; }
-	if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
+	if (!defined($tempbantime))        { $tempbantime = 30; }
+	if ($search_string =~ /^\#(\d+)$/) { $slot        = $1; }
 	else {
 		my @matches = &matching_users($search_string);
 		if ($#matches == 0) { $slot = $matches[0]; }
@@ -5279,7 +5279,7 @@ sub get_name_by_guid {
 	$guid_to_name_sth->execute($guid)
 	  or &die_nice("Unable to execute query: $guid_to_name_dbh->errstr\n");
 	@row = $guid_to_name_sth->fetchrow_array;
-	if (!$row[0]) { return "^3$guid"; }
+	if    (!$row[0])              { return "^3$guid"; }
 	elsif ($row[0] =~ /\^\^\d\d/) { return &strip_color($row[0]); }
 	else                          { return $row[0]; }
 }
