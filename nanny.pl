@@ -6051,6 +6051,7 @@ sub reset {
 			$best_spree{$reset_slot}        = 0;
 			$ignore{$reset_slot}            = 0;
 			$last_rconstatus                = 0;
+			$vote_time                      = $time;
 
 			my $key;
 			foreach $key (keys %flood_protection) {
