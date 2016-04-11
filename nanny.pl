@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r98';
+my $version                    = '3.4 EN r99';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -3313,7 +3313,7 @@ sub status {
 					$players_count++;
 
 					# Check for banned IP
-					if ($ip) { &banned_ip_check($slot); }
+					if ($ip and !$guid) { &banned_ip_check($slot); }
 
 					# Since we have spam protection anyway, we can add this
 					if ($guid) { &banned_guid_check($slot); }
