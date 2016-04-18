@@ -127,6 +127,7 @@ sub sendrecv {
 		$self->{"error"} = "Rcon timeout";
 	}
 
+	$ans =~ s/\s+$//; # strip trailing spaces
 	return $ans;
 }
 
