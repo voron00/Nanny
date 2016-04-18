@@ -5,9 +5,9 @@ package KKrcon;
 #
 # Synopsis:
 #
-#   use KKrcon;
-#   $rcon = new KKrcon(Password=>PASSWORD, [Host=>HOST], [Port=>PORT], [Type=>"new"|"old"]);
-#   $result  = $rcon->execute(COMMAND);
+# use KKrcon;
+# $rcon = new KKrcon(Password=>PASSWORD, [Host=>HOST], [Port=>PORT]);u
+# $result  = $rcon->execute(COMMAND);
 #
 # Copyright (C) 2000, 2001  Rod May
 #
@@ -25,71 +25,44 @@ package KKrcon;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+use warnings;
+use strict;
 use Socket;
-use Sys::Hostname;
 
 # Main
-
 sub new {
 	my $class_name = shift;
 	my %params     = @_;
 	my $self       = {};
 	bless($self, $class_name);
-	my %server_types = (new => 1, old => 2);
 
 	# Check parameters
 	$params{"Host"} = "127.0.0.1" unless ($params{"Host"});
 	$params{"Port"} = "28960"     unless ($params{"Port"});
-	$params{"Type"} = "new"       unless ($params{"Type"});
 
 	# Initialise properties
 	$self->{"rcon_password"} = $params{"Password"} or die("KKrcon: a Password is required\n");
 	$self->{"server_host"}   = $params{"Host"};
 	$self->{"server_port"}   = int($params{"Port"}) or die("KKrcon: invalid Port \"" . $params{"Port"} . "\"\n");
-	$self->{"server_type"}   = ($server_types{$params{"Type"}} || 1);
 	$self->{"error"}         = "";
 
 	# Set up socket parameters
-	$self->{"_proto"} = getprotobyname('udp');
-	$self->{"_ipaddr"} = gethostbyname($self->{"server_host"}) or die("KKrcon: could not resolve Host \"" . $self->{"server_host"} . "\"\n");
+	$self->{"ipaddr"} = gethostbyname($self->{"server_host"}) or die("KKrcon: could not resolve Host \"" . $self->{"server_host"} . "\"\n");
 
-	# Return values
 	return $self;
 }
 
 # Execute an Rcon command and return the response
-
 sub execute {
 	my ($self, $command) = @_;
 	my $msg;
 	my $ans;
 
-	# BEGIN: say hack to match unicode characters
+	# Say hack to match non-ascii characters
 	if ($command =~ /^say\s(.*)/) { $command = "say " . '"' . "$1" . '"'; }
 
-	# END: say hack
-	if ($self->{"server_type"} == 1) {
-
-		# version x.1.0.6+ HL server
-		$msg = "\xFF\xFF\xFF\xFFchallenge rcon\n\0";
-		$ans = $self->sendrecv($msg);
-
-		if ($ans =~ /challenge +rcon +(\d+)/) {
-			$msg = "\xFF\xFF\xFF\xFFrcon $1 \"" . $self->{"rcon_password"} . "\" $command\0";
-			$ans = $self->sendrecv($msg);
-		}
-		elsif (!$self->error) {
-			$ans = "";
-			$self->{"error"} = "No challenge response";
-		}
-	}
-	else {
-		# QW/Q2/Q3 or old HL server
-		$msg = "\xFF\xFF\xFF\xFFrcon " . $self->{"rcon_password"} . " $command\n\0";
-		$ans = $self->sendrecv($msg);
-	}
-
-	if ($ans =~ /bad rcon_password/i) { $self->{"error"} = "Bad Password"; }
+	$msg = "\xFF\xFF\xFF\xFFrcon " . $self->{"rcon_password"} . " $command";
+	$ans = $self->sendrecv($msg);
 
 	return $ans;
 }
@@ -98,17 +71,11 @@ sub sendrecv {
 	my ($self, $msg) = @_;
 	my $host   = $self->{"server_host"};
 	my $port   = $self->{"server_port"};
-	my $ipaddr = $self->{"_ipaddr"};
-	my $proto  = $self->{"_proto"};
+	my $ipaddr = $self->{"ipaddr"};
 
 	# Open socket
-	socket(RCON, PF_INET, SOCK_DGRAM, $proto) or die("KKrcon: socket: $!\n");
+	socket(RCON, PF_INET, SOCK_DGRAM, getprotobyname("udp")) or die("KKrcon: socket: $!\n");
 
-	# bind causes problems if hostname gets wrong interface...
-	# and it doesn't seem to be necessary
-	# my $iaddr = gethostbyname(hostname);
-	# my $paddr = sockaddr_in(0, $iaddr);
-	# bind(RCON, $paddr) or die("KKrcon: bind: $!\n");
 	my $hispaddr = sockaddr_in($port, $ipaddr);
 	unless (defined(send(RCON, $msg, 0, $hispaddr))) { print("KKrcon: send $ipaddr:$port : $!"); }
 
@@ -120,10 +87,7 @@ sub sendrecv {
 		$ans = "";
 		$hispaddr = recv(RCON, $ans, 8192, 0);
 		$ans =~ s/\x00+$//;                    # trailing crap
-		$ans =~ s/^\xFF\xFF\xFF\xFFl//;        # HL response
-		$ans =~ s/^\xFF\xFF\xFF\xFFn//;        # QW response
-		$ans =~ s/^\xFF\xFF\xFF\xFF//;         # Q2/Q3 response
-		$ans =~ s/^\xFE\xFF\xFF\xFF.....//;    # old HL bug/feature
+		$ans =~ s/^\xFF\xFF\xFF\xFFprint\n//;  # CoD2 response
 
 		# my ugly hack for long responses.
 		#  - smug
@@ -140,17 +104,14 @@ sub sendrecv {
 			# so far as being corrupt.
 			@explode = split(/\n/, $ans);
 			$explode[$#explode] =~ s/^ //;
-			$explode[$#explode] = 'X' . $explode[$#explode];
+			$explode[$#explode] = ' ' . $explode[$#explode];
 			$ans = join("\n", @explode);
 
 			# now we receive, strip again, and append.
 			$lol = '';
 			$hispaddr = recv(RCON, $lol, 8192, 0);
 			$lol =~ s/\x00+$//;                    # trailing crap
-			$lol =~ s/^\xFF\xFF\xFF\xFFl//;        # HL response
-			$lol =~ s/^\xFF\xFF\xFF\xFFn//;        # QW response
-			$lol =~ s/^\xFF\xFF\xFF\xFF//;         # Q2/Q3 response
-			$lol =~ s/^\xFE\xFF\xFF\xFF.....//;    # old HL bug/feature
+			$lol =~ s/^\xFF\xFF\xFF\xFFprint\n//;  # CoD2 response
 			$lol = substr($lol, 6, 8192);
 			$ans .= $lol;
 		}
@@ -169,13 +130,10 @@ sub sendrecv {
 	return $ans;
 }
 
-# Get error message
-
 sub error {
 	my ($self) = @_;
 	return $self->{"error"};
 }
 
 # End
-
 1;
