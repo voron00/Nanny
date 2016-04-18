@@ -3478,8 +3478,7 @@ sub rcon_query {
 			$rcon = new KKrcon(
 				Host     => $config->{'ip'},
 				Port     => $config->{'port'},
-				Password => $config->{'rcon_pass'},
-				Type     => 'old'
+				Password => $config->{'rcon_pass'}
 			);
 		}
 		else { print "WARNING: rcon_command error: $error\n"; }
