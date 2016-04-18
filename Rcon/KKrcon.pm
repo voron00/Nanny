@@ -6,7 +6,7 @@ package KKrcon;
 # Synopsis:
 #
 # use KKrcon;
-# $rcon = new KKrcon(Password=>PASSWORD, [Host=>HOST], [Port=>PORT]);u
+# $rcon = new KKrcon(Password=>PASSWORD, [Host=>HOST], [Port=>PORT]);
 # $result  = $rcon->execute(COMMAND);
 #
 # Copyright (C) 2000, 2001  Rod May
