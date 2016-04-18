@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r99';
+my $version                    = '3.4 EN r100';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -305,8 +305,7 @@ print "=========================================================================
 my $rcon = new KKrcon(
 	Host     => $config->{'ip'},
 	Port     => $config->{'port'},
-	Password => $config->{'rcon_pass'},
-	Type     => 'old'
+	Password => $config->{'rcon_pass'}
 );
 
 # tell the server that we want the game logfiles flushed to disk after every line.
@@ -750,7 +749,7 @@ while (1) {
 				$kill_spree{$slot}            = 0;
 				$best_spree{$slot}            = 0;
 				$ignore{$slot}                = 0;
-				if ($vote_target_slot == $slot) { $vote_time = $time; }
+				if (defined($vote_target_slot) and $vote_target_slot == $slot) { $vote_time = $time; }
 			}
 			else {
 				print "WARNING: unrecognized syntax for quit line:\n\t$line\n";
@@ -3226,7 +3225,7 @@ sub status {
 
 	foreach (@lines) {
 		if (/^map:\s+(\w+)$/) { $mapname = $1; }
-		if (/^[\sX]+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
+		if (/^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
 			($slot, $score, $ping, $guid, $name, $lastmsg, $ip, $port, $qport, $rate) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
 
 			# strip trailing spaces.
@@ -3446,8 +3445,7 @@ sub rcon_command {
 			$rcon = new KKrcon(
 				Host     => $config->{'ip'},
 				Port     => $config->{'port'},
-				Password => $config->{'rcon_pass'},
-				Type     => 'old'
+				Password => $config->{'rcon_pass'}
 			);
 		}
 		else { print "WARNING: rcon_command error: $error\n"; }
@@ -3480,8 +3478,7 @@ sub rcon_query {
 			$rcon = new KKrcon(
 				Host     => $config->{'ip'},
 				Port     => $config->{'port'},
-				Password => $config->{'rcon_pass'},
-				Type     => 'old'
+				Password => $config->{'rcon_pass'}
 			);
 		}
 		else { print "WARNING: rcon_command error: $error\n"; }
@@ -5681,6 +5678,7 @@ sub guid_sanity_check {
 		print "\n\tSorry.  Try again later.\n\n";
 		&log_to_file('logs/sanity.log', "WARNING: $activision_master is not currently responding to requests.");
 	}
+	close(SOCKET);
 	$most_recent_guid = 0;
 	$most_recent_slot = 0;
 }
@@ -6006,6 +6004,7 @@ sub check_guid_zero_players {
 				print "\n\tSorry.  Try again later.\n\n";
 				&log_to_file('logs/audit.log', "WARNING: $activision_master is not currently responding to requests.");
 			}
+			close(SOCKET);
 		}
 	}
 }
@@ -6569,6 +6568,7 @@ sub get_server_info {
 		print "\nERROR:\n\t$ip_address:$port is not currently responding to requests.\n";
 		print "\n\tSorry.  Try again later.\n\n";
 	}
+	close(SOCKET);
 	return $return_text;
 }
 
@@ -6590,8 +6590,7 @@ sub broadcast_message {
 			$rcon = new KKrcon(
 				Host     => $ip_address,
 				Port     => $port,
-				Password => $password,
-				Type     => 'old'
+				Password => $password
 			);
 			print $rcon->execute($message);
 		}
