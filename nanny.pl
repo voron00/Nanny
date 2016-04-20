@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r103';
+my $version                    = '3.4 RU r104';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -6672,6 +6672,7 @@ sub vote {
 		}
 	}
 	elsif ($vote_type eq 'map') {
+		$vote_target = lc $vote_target;
 		if ($vote_target =~ /^beltot\b|!farmhouse\b/i) {
 			$vote_target = 'mp_farmhouse';
 		}
