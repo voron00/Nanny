@@ -16,8 +16,7 @@ my $command = join("", @ARGV);
 my $rcon = new KKrcon(
 	Host     => $address,
 	Port     => $port,
-	Password => $password,
-	Type     => 'old'
+	Password => $password
 );
 my $result = 0;
 my $interactive = 1 unless ($command);
@@ -88,8 +87,7 @@ sub execute {
 			$rcon = new KKrcon(
 				Host     => $address,
 				Port     => $port,
-				Password => $password,
-				Type     => 'old'
+				Password => $password
 			);
 		}
 		else { print "WARNING: rcon error: $error\n"; }
