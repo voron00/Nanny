@@ -106,7 +106,7 @@ sub sendrecv {
 					# so far as being corrupt.
 					@explode = split(/\n/, $ans);
 					$explode[$#explode] =~ s/^ //;
-					$explode[$#explode] = ' ' . $explode[$#explode];
+					$explode[$#explode] = 'X' . $explode[$#explode];
 					$ans = join("\n", @explode);
 
 					# now we receive, strip again, and append.
