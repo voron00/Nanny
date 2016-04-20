@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r102';
+my $version                    = '3.4 EN r103';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -3235,7 +3235,7 @@ sub status {
 			$ping_by_slot{$slot} = $ping;
 
 			# update name by slot
-			if (length($name) < 32) {
+			if (length($name) < 32 and $slot != 12) {    # Found it lol. slot #12 has a missing byte, and that's what was screwing up the names!!!
 				&update_name_by_slot($name, $slot);
 			}
 

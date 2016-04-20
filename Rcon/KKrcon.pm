@@ -81,55 +81,57 @@ sub sendrecv {
 
 	my $rin;
 	vec($rin, fileno(RCON), 1) = 1;
-	my $ans = "TIMEOUT";
+	my $ans;
 
 	if (select($rin, undef, undef, 10.0)) {
 		$hispaddr = recv(RCON, $ans, 8192, 0);
-		$ans =~ s/\x00+$//;                      # trailing crap
-		$ans =~ s/^\xFF\xFF\xFF\xFFprint\n//;    # CoD2 response
+		if (defined($ans)) {
+			$ans =~ s/^\xFF\xFF\xFF\xFFprint\n//;    # CoD2 response
+			$ans =~ s/\s+$//;                        # trailing spaces
 
-		if (length($ans) > 1024) {
+			if (length($ans) > 1024) {
 
-			# my ugly hack for long responses.
-			#  - smug
-			my $lol;
-			my @explode;
-			while (select($rin, undef, undef, 0.05)) {
+				# my ugly hack for long responses.
+				#  - smug
+				my $lol;
+				my @explode;
+				while (select($rin, undef, undef, 0.05)) {
 
-				# this really sucks.  We're missing a byte and I can't find it
-				# BECAUSE ITS NOT THERE.
-				# fuckers.  This seems to be a bug in the game.
-				# Even the in-game /rcon command has the missing-byte bug.
-				# Now that we know we can't fix it now we mark it as corrupt.
-				# First, we mark the begining of the last line of what we've received
-				# so far as being corrupt.
-				@explode = split(/\n/, $ans);
-				$explode[$#explode] =~ s/^ //;
-				$explode[$#explode] = ' ' . $explode[$#explode];
-				$ans = join("\n", @explode);
+					# this really sucks.  We're missing a byte and I can't find it
+					# BECAUSE ITS NOT THERE.
+					# fuckers.  This seems to be a bug in the game.
+					# Even the in-game /rcon command has the missing-byte bug.
+					# Now that we know we can't fix it now we mark it as corrupt.
+					# First, we mark the begining of the last line of what we've received
+					# so far as being corrupt.
+					@explode = split(/\n/, $ans);
+					$explode[$#explode] =~ s/^ //;
+					$explode[$#explode] = ' ' . $explode[$#explode];
+					$ans = join("\n", @explode);
 
-				# now we receive, strip again, and append.
-				$lol = '';
-				$hispaddr = recv(RCON, $lol, 8192, 0);
-				$lol =~ s/\x00+$//;                      # trailing crap
-				$lol =~ s/^\xFF\xFF\xFF\xFFprint\n//;    # CoD2 response
-				$lol = substr($lol, 6, 8192);
-				$ans .= $lol;
+					# now we receive, strip again, and append.
+					$hispaddr = recv(RCON, $lol, 8192, 0);
+					if (defined($lol)) {
+						$lol =~ s/^\xFF\xFF\xFF\xFFprint\n//;    # CoD2 response
+						$lol =~ s/\s+$//;                        # trailing spaces
+						$lol = substr($lol, 6, 8192);
+						$ans .= $lol;
+					}
+				}
+
+				# End of the llama / platypus ugly hack for long responses.
 			}
-
-			# End of the llama / platypus ugly hack for long responses.
 		}
 	}
 
 	# Close socket
 	close(RCON);
 
-	if ($ans eq "TIMEOUT") {
+	if (!defined($ans)) {
 		$ans = "";
 		$self->{"error"} = "Rcon timeout";
 	}
 
-	$ans =~ s/\s+$//;    # strip trailing spaces
 	return $ans;
 }
 
