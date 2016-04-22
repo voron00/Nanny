@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r108';
+my $version                    = '3.4 EN r109';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -4193,6 +4193,10 @@ sub matching_users {
 	my $key;
 	my @matches;
 
+	if ($search_string =~ /^\#(\d+)$/) {
+		if ((defined($name_by_slot{$1})) and ($name_by_slot{$1} ne 'SLOT_EMPTY')) { return $1; }
+	}
+
 	foreach $key (keys %name_by_slot) {
 		if ($slot >= 0) {
 			if ($name_by_slot{$key} eq $search_string) {
@@ -4222,18 +4226,15 @@ sub matching_users {
 sub ignore {
 	if (&flood_protection('ignore', 30, $slot)) { return 1; }
 	my $search_string = shift;
-	if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
-	else {
-		my @matches = &matching_users($search_string);
-		if ($#matches == 0) { $slot = $matches[0]; }
-		elsif ($#matches == -1) {
-			&rcon_command("say No matches for: $search_string");
-			return 1;
-		}
-		elsif ($#matches > 0) {
-			&rcon_command("say Too many matches for: $search_string");
-			return 1;
-		}
+	my @matches       = &matching_users($search_string);
+	if ($#matches == 0) { $slot = $matches[0]; }
+	elsif ($#matches == -1) {
+		&rcon_command("say No matches for: $search_string");
+		return 1;
+	}
+	elsif ($#matches > 0) {
+		&rcon_command("say Too many matches for: $search_string");
+		return 1;
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
 	my $target;
@@ -4250,18 +4251,15 @@ sub ignore {
 sub forgive {
 	if (&flood_protection('forgive', 30, $slot)) { return 1; }
 	my $search_string = shift;
-	if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
-	else {
-		my @matches = &matching_users($search_string);
-		if ($#matches == 0) { $slot = $matches[0]; }
-		elsif ($#matches == -1) {
-			&rcon_command("say No matches for: $search_string");
-			return 1;
-		}
-		elsif ($#matches > 0) {
-			&rcon_command("say Too many matches for: $search_string");
-			return 1;
-		}
+	my @matches       = &matching_users($search_string);
+	if ($#matches == 0) { $slot = $matches[0]; }
+	elsif ($#matches == -1) {
+		&rcon_command("say No matches for: $search_string");
+		return 1;
+	}
+	elsif ($#matches > 0) {
+		&rcon_command("say Too many matches for: $search_string");
+		return 1;
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
 	my $target;
@@ -4739,18 +4737,15 @@ sub database_info {
 sub kick_command {
 	if (&flood_protection('kick', 30, $slot)) { return 1; }
 	my $search_string = shift;
-	if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
-	else {
-		my @matches = &matching_users($search_string);
-		if ($#matches == 0) { $slot = $matches[0]; }
-		elsif ($#matches == -1) {
-			&rcon_command("say No matches for: $search_string");
-			return 1;
-		}
-		elsif ($#matches > 0) {
-			&rcon_command("say Too many matches for: $search_string");
-			return 1;
-		}
+	my @matches       = &matching_users($search_string);
+	if ($#matches == 0) { $slot = $matches[0]; }
+	elsif ($#matches == -1) {
+		&rcon_command("say No matches for: $search_string");
+		return 1;
+	}
+	elsif ($#matches > 0) {
+		&rcon_command("say Too many matches for: $search_string");
+		return 1;
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
 	my $target;
@@ -4769,19 +4764,16 @@ sub tempban_command {
 	if (&flood_protection('tempban', 30, $slot)) { return 1; }
 	my $search_string = shift;
 	my $tempbantime   = shift;
-	if (!defined($tempbantime))        { $tempbantime = 30; }
-	if ($search_string =~ /^\#(\d+)$/) { $slot        = $1; }
-	else {
-		my @matches = &matching_users($search_string);
-		if ($#matches == 0) { $slot = $matches[0]; }
-		elsif ($#matches == -1) {
-			&rcon_command("say No matches for: $search_string");
-			return 1;
-		}
-		elsif ($#matches > 0) {
-			&rcon_command("say Too many matches for: $search_string");
-			return 1;
-		}
+	if (!defined($tempbantime)) { $tempbantime = 30; }
+	my @matches = &matching_users($search_string);
+	if ($#matches == 0) { $slot = $matches[0]; }
+	elsif ($#matches == -1) {
+		&rcon_command("say No matches for: $search_string");
+		return 1;
+	}
+	elsif ($#matches > 0) {
+		&rcon_command("say Too many matches for: $search_string");
+		return 1;
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
 	my $target;
@@ -4812,18 +4804,15 @@ sub tempban_command {
 sub ban_command {
 	if (&flood_protection('ban', 30, $slot)) { return 1; }
 	my $search_string = shift;
-	if ($search_string =~ /^\#(\d+)$/) { $slot = $1; }
-	else {
-		my @matches = &matching_users($search_string);
-		if ($#matches == 0) { $slot = $matches[0]; }
-		elsif ($#matches == -1) {
-			&rcon_command("say No matches for: $search_string");
-			return 1;
-		}
-		elsif ($#matches > 0) {
-			&rcon_command("say Too many matches for: $search_string");
-			return 1;
-		}
+	my @matches       = &matching_users($search_string);
+	if ($#matches == 0) { $slot = $matches[0]; }
+	elsif ($#matches == -1) {
+		&rcon_command("say No matches for: $search_string");
+		return 1;
+	}
+	elsif ($#matches > 0) {
+		&rcon_command("say Too many matches for: $search_string");
+		return 1;
 	}
 	if ($name_by_slot{$slot} eq 'SLOT_EMPTY') { return 1; }
 	my $target;
