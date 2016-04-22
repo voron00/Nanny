@@ -114,7 +114,6 @@ sub sendrecv {
 					if (defined($lol)) {
 						$lol =~ s/^\xFF\xFF\xFF\xFFprint\n//;    # CoD2 response
 						$lol =~ s/\s+$//;                        # trailing spaces
-						$lol = substr($lol, 6, length($lol));
 						$ans .= $lol;
 					}
 				}
