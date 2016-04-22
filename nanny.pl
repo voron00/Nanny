@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 RU r107';
+my $version                    = '3.4 RU r108';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -3224,6 +3224,7 @@ sub status {
 	$players_count = 0;
 
 	foreach (@lines) {
+		next if (/^X/);    # completely discard the broken line
 		if (/^map:\s+(\w+)$/) { $mapname = $1; }
 		if (/^\s+(\d+)\s+(-?\d+)\s+([\dCNT]+)\s+(\d+)\s+(.*)\^7\s+(\d+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):([\d\-]+)\s+([\d\-]+)\s+(\d+)$/) {
 			($slot, $score, $ping, $guid, $name, $lastmsg, $ip, $port, $qport, $rate) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
