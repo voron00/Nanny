@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r109';
+my $version                    = '3.4 EN r110';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -600,47 +600,52 @@ while (1) {
 				}
 
 				# Killing Spree
-				if (    ($config->{'killing_sprees'})
-					and ($damage_type ne 'MOD_SUICIDE')
-					and ($damage_type ne 'MOD_FALLING')
-					and ($damage_type ne 'MOD_TRIGGER_HURT')
-					and ($attacker_team ne 'world')
-					and ($attacker_slot ne $victim_slot))
-				{
+				if ($config->{'killing_sprees'}) {
 					if (!defined($kill_spree{$attacker_slot})) {
 						$kill_spree{$attacker_slot} = 1;
 					}
-					else { $kill_spree{$attacker_slot} += 1; }
-					if (defined($kill_spree{$victim_slot})) {
-						if (!defined($best_spree{$victim_slot})) {
-							$best_spree{$victim_slot} = 0;
-						}
-						if (    ($kill_spree{$victim_slot} > 2)
-							and ($kill_spree{$victim_slot} > $best_spree{$victim_slot}))
-						{
-							$best_spree{$victim_slot} = $kill_spree{$victim_slot};
-							$stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE guid=?");
-							$stats_sth->execute($victim_guid)
-							  or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
-							@row = $stats_sth->fetchrow_array;
+					if (!defined($kill_spree{$victim_slot})) {
+						$kill_spree{$victim_slot} = 0;
+					}
+					if (!defined($best_spree{$victim_slot})) {
+						$best_spree{$victim_slot} = 0;
+					}
+					$kill_spree{$attacker_slot} += 1;
+					if (    ($kill_spree{$victim_slot} > 2)
+						and ($kill_spree{$victim_slot} > $best_spree{$victim_slot})
+						and ($victim_guid))
+					{
+						$best_spree{$victim_slot} = $kill_spree{$victim_slot};
+						$stats_sth = $stats_dbh->prepare("SELECT best_killspree FROM stats WHERE guid=?");
+						$stats_sth->execute($victim_guid)
+						  or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
+						@row = $stats_sth->fetchrow_array;
 
-							if (    ($victim_guid)
-								and (defined($row[0]))
-								and ($row[0] < $best_spree{$victim_slot}))
+						if ($row[0] < $best_spree{$victim_slot}) {
+							$stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE guid=?");
+							$stats_sth->execute($best_spree{$victim_slot}, $victim_guid)
+							  or &die_nice("Unable to update stats\n");
+							if (    ($damage_type ne 'MOD_SUICIDE')
+								and ($damage_type ne 'MOD_FALLING')
+								and ($damage_type ne 'MOD_TRIGGER_HURT')
+								and ($attacker_team ne 'world')
+								and ($attacker_slot ne $victim_slot))
 							{
-								$stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE guid=?");
-								$stats_sth->execute($best_spree{$victim_slot}, $victim_guid)
-								  or &die_nice("Unable to update stats\n");
 								&rcon_command("say $name_by_slot{$attacker_slot} ^7has stopped ^2*^1BEST^2* ^7killing spree of $name_by_slot{$victim_slot} ^7who killed ^6$kill_spree{$victim_slot} ^7players");
 							}
-							else {
-								&rcon_command("say $name_by_slot{$attacker_slot} ^7has stopped killing spree of $name_by_slot{$victim_slot} ^7who killed ^6$kill_spree{$victim_slot} ^7players");
-							}
+						}
+						elsif ( ($damage_type ne 'MOD_SUICIDE')
+							and ($damage_type ne 'MOD_FALLING')
+							and ($damage_type ne 'MOD_TRIGGER_HURT')
+							and ($attacker_team ne 'world')
+							and ($attacker_slot ne $victim_slot))
+						{
+							&rcon_command("say $name_by_slot{$attacker_slot} ^7has stopped killing spree of $name_by_slot{$victim_slot} ^7who killed ^6$kill_spree{$victim_slot} ^7players");
 						}
 					}
+					$kill_spree{$victim_slot} = 0;
+					$best_spree{$victim_slot} = 0;
 				}
-				$kill_spree{$victim_slot} = 0;
-				$best_spree{$victim_slot} = 0;
 
 				# End of Kill-Spree section
 			}
@@ -871,7 +876,6 @@ while (1) {
 							  or &die_nice("Unable to execute query: $stats_dbh->errstr\n");
 							@row = $stats_sth->fetchrow_array;
 							if (    ($guid_by_slot{$slot})
-								and (defined($row[0]))
 								and ($row[0] < $kill_spree{$slot}))
 							{
 								$stats_sth = $stats_dbh->prepare("UPDATE stats SET best_killspree=? WHERE guid=?");
