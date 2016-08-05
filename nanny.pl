@@ -86,7 +86,7 @@ my $names_dbh        = DBI->connect("dbi:SQLite:dbname=databases/names.db",     
 my $ranks_dbh        = DBI->connect("dbi:SQLite:dbname=databases/ranks.db",        "", "");
 
 # Global variable declarations
-my $version                    = '3.4 EN r110';
+my $version                    = '3.4 EN r111';
 my $modtime                    = scalar(localtime((stat($0))[9]));
 my $rconstatus_interval        = 30;
 my $namecheck_interval         = 40;
@@ -5559,6 +5559,7 @@ sub guid_sanity_check {
 	my $should_be_guid = shift;
 	my $ip             = shift;
 	$last_guid_sanity_check = $time;
+	if (!$guid) { return 0; }
 
 	# make sure that the GUID sanity check is enabled before proceeding.
 	if   ($config->{'guid_sanity_check'}) { }
@@ -5655,6 +5656,7 @@ sub guid_sanity_check {
 				}
 				else {
 					&rcon_command("say ^1WARNING^7: GUID Sanity check failed for $name_by_slot{$most_recent_slot}");
+					&rcon_command("clientkick $most_recent_slot");
 					print "\nFAIL: GUID Sanity check: FAILED\n";
 					print "\tIP: $ip was supposed to be GUID $should_be_guid but came back as $guid\n\n";
 					&log_to_file('logs/sanity.log', "SANITY FAILED: $name_by_slot{$most_recent_slot}  IP: $ip was supposed to be GUID $should_be_guid but came back as $guid - Server has been up for: $uptime");
